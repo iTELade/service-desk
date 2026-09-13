@@ -1,0 +1,5 @@
+.env
+data/
+backups/
+node_modules/
+.sites-runtime/
