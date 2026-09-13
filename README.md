@@ -20,9 +20,6 @@ W Nginx Proxy Manager utwórz Proxy Host: scheme `http`, host `service-desk`, po
 
 Otwórz domenę, wpisz jednorazowy kod z logów oraz nazwę organizacji, nazwę systemu, logo i dane pierwszego administratora. Następnie zaloguj się, utwórz projekty i skonfiguruj pocztę w Ustawieniach. Pusta instalacja nie zawiera projektów firmowych, kont klientów ani demonstracyjnych zgłoszeń. Rejestracja jest początkowo zamknięta.
 
-## Istniejąca instalacja
-
-Użyj **UPGRADE.md**. Pełna paczka obsługuje aktualizację z 0.4.0 lub 0.5.0. Nie uruchamiaj ponownie `configure.sh`, nie nadpisuj `.env` i nie usuwaj wolumenu. Stare nazwy kontenera i wolumenu są zachowane dla zgodności migracji; nie są częścią publicznego brandingu.
 
 ## Konfiguracja i obsługa
 
