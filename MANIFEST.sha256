@@ -1,9 +1,9 @@
-1e4947e8bf13e77eac7d6b013ad7e7ad58110388688ac12a555fb1f9e0366871  ./.dockerignore
+99f58e116d4302dff0d531f7007fef2621562e5334897058e9f23ade59c9f933  ./.dockerignore
 0bebbc528515e611f75aa51d95b193c193b788d26cecf116df0b50a2b9cfbfbe  ./.env.example
 1a4a95988f472bff92171767e8c67e7f6cc68feb597f5f729ddad92ccb09fc64  ./.github/ISSUE_TEMPLATE/bug_report.yml
 1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb  ./.github/ISSUE_TEMPLATE/config.yml
 98464db95e7174b0e6a9061fc6f296d4fc807d3ebbe0db8aa6c7d538cf0d8ae7  ./.github/ISSUE_TEMPLATE/feature_request.yml
-0a98d4fde9f590ba24f49277d34260c4337361648532922c10438880b3b109d6  ./.github/workflows/publish-version.yml
+fa21f69a97796d3ce02f4da6123c0907d526b86719cd5bcf4bde6393cb77ec85  ./.github/workflows/publish-version.yml
 e32b7972a57071bdb118ea9058fe1a64b2a8fe7115fa7386deb94d1b8784893a  ./.github/workflows/release.yml
 c11bb6f194ddaa3e5b6b066b466a1179a39a3f2a9658d070596832f7cdd66e70  ./.gitignore
 60b75698e586ce4203faf4556be89c397f2cefa0dd45708ab220bd7d79aa56dc  ./API.md
@@ -65,7 +65,7 @@ d6c87eabc9f47e24d30f8f5fef6630f7bb2172b34ab5018506b06e499df80a7e  ./lib/username
 c214af75d209a10cee33f9ec524b87016a33eeeba829e7dfd31f81ac7eb77a67  ./lib/webhooks.mjs
 1d5ea10e8794d4aed91f0a5c12591407f8c9dfa883bf6ec34d5bb4206b39c1d0  ./lib/workflows.mjs
 20a1fc570a97b8b1cc08c23bdfccb2aaf51d435ed75868c1b1c390aed305a71e  ./package-lock.json
-05e52feb3bb19bdb5157433b66cf0534c3953d2f2e2f92c2aa5b6cfe24108aa7  ./package.json
+0a811433c680fb55eb13e58d863f70f9e2149ae185bd48c8868dfcbf2d66b662  ./package.json
 98d1a693caf28644f4fe07fec5d845f24c67415c3ae02ec3c874f155d9ea3857  ./public/app.css
 c3b94aeaa409c045fab311563cb324deaf2d9a6b698b6fe289d629eaf4d54357  ./public/app.js
 5503b339639fcf7a0dd106cf5fe0fc0d19d240c252c16c7aed29726eaebe32f4  ./public/favicon.svg
