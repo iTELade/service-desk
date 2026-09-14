@@ -28,6 +28,8 @@ const DIRECT_SETTINGS_LINKS = {
 
 function completeSettingsNavigation() {
   const nav = document.querySelector('.settings-nav');
+  const version = document.querySelector('.version-chip');
+  if (version) version.textContent = 'Wersja 1.0.4';
   if (!nav) return;
 
   for (const group of nav.querySelectorAll('.settings-nav-group')) {
