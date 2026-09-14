@@ -20,11 +20,19 @@ test('native Settings Center and navigation expose all legacy administration are
     assert.ok(center.includes(group) || nav.includes(group), `missing group ${group}`);
   }
   for (const href of [
-    '/#/users','/#/directory','/#/admin/sso','/#/projects','/#/admin/templates',
+    '/#/users','/#/directory','/#/admin/sso','/#/admin/approvals',
+    '/#/projects','/#/admin/templates','/#/admin/organizations',
     '/#/admin/mail','/#/admin/mail-templates','/#/admin/sync','/#/admin/knowledge',
     '/#/admin/api-tokens','/#/admin/webhooks','/#/admin/assets','/#/admin/updates',
     '/#/admin/events','/#/admin-settings'
   ]) assert.ok(nav.includes(href), `missing legacy administration link ${href}`);
+
+  for (const label of [
+    'Katalog LDAP / Active Directory','Logowanie SSO / OIDC','Wnioski o zmiany profilu',
+    'Szablony statusów i workflow','Firmy i grupy klientów','Poczta zespołów · IMAP i SMTP',
+    'Szablony e-mail','Synchronizacja projektów','Webhooki','Baza wiedzy','API i tokeny',
+    'Katalog środków trwałych','Wersja i aktualizacje','Błędy modułów'
+  ]) assert.ok(nav.includes(label), `missing legacy Settings label ${label}`);
 });
 
 test('Settings Center asset versions are aligned with 1.0.6', () => {
