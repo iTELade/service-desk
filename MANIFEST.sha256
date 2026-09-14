@@ -3,7 +3,7 @@
 1a4a95988f472bff92171767e8c67e7f6cc68feb597f5f729ddad92ccb09fc64  ./.github/ISSUE_TEMPLATE/bug_report.yml
 1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb  ./.github/ISSUE_TEMPLATE/config.yml
 98464db95e7174b0e6a9061fc6f296d4fc807d3ebbe0db8aa6c7d538cf0d8ae7  ./.github/ISSUE_TEMPLATE/feature_request.yml
-3fb4c77fff87f0219b68bce8ff01c21c3eae6d4f75ba6c5dedf7761e47962169  ./.github/workflows/publish-version.yml
+f88687691c1c6a5021ed0866175ce6dfee2de00a96965a39e83d834a8a26f87b  ./.github/workflows/publish-version.yml
 e32b7972a57071bdb118ea9058fe1a64b2a8fe7115fa7386deb94d1b8784893a  ./.github/workflows/release.yml
 c11bb6f194ddaa3e5b6b066b466a1179a39a3f2a9658d070596832f7cdd66e70  ./.gitignore
 60b75698e586ce4203faf4556be89c397f2cefa0dd45708ab220bd7d79aa56dc  ./API.md
@@ -17,6 +17,7 @@ df7a5ca854315d3e66a4f3c70d419b5c7e601f23061c3dddfb9d7cf2e8918368  ./README.md
 5a8fac8d0f3d9c9c187be44b6852e9c2a380996f87fe2c64d09f0aef23525b0c  ./RELEASE_NOTES_0.7.0.md
 90734ab0d085027b590af3e9295dc97fa73bf975dfa1ee858aaf84f80952669b  ./RELEASE_NOTES_0.7.1.md
 7122ad3b4a532577f3d63700691407cd905d6da127b90d5cd3da5a97dc2ba542  ./RELEASE_NOTES_0.8.0.md
+4cc6ea4db7d1621c9834476c2450256246894bbfdeddc726b3b2bca9a215fc53  ./RELEASE_NOTES_0.8.1.md
 49268ab7a46ee91fc4afc2e2bd1d148084cfe64afef629110becfb48ca41ffb6  ./UPDATES.md
 ef558e96f1e4a1092cc214de800eac0ceeb833d921babcdbb0db63ae605ef6ba  ./UPGRADE.md
 1c2aec52ced435c33d3c195ce2c3b6f39c64a89b488c46693ab0d380de264391  ./VALIDATION.md
@@ -61,11 +62,11 @@ a9086bb5b0f158056e0db9c0262b4e8f211a78d4b6b409c744bfcd279b867a5a  ./lib/sla.mjs
 832b4f24ad98497e539d603e0832901393fd69d881dc242c29bcce3a740b69a6  ./lib/updates.mjs
 d6c87eabc9f47e24d30f8f5fef6630f7bb2172b34ab5018506b06e499df80a7e  ./lib/usernames.mjs
 31e47315c3d1439b7c976291793bd34aebbedf2a3a4d5b3e3f6b038d1f60e357  ./lib/v8.mjs
-0ae77ab4de2637f24a362147ac00ebd7a74605e62ee462602b8ec7b858c7e886  ./lib/version.mjs
+45c3f48af89068f3e08a1190a2bf437cc2418bd691b36cdbc4359239acb0d9c9  ./lib/version.mjs
 c214af75d209a10cee33f9ec524b87016a33eeeba829e7dfd31f81ac7eb77a67  ./lib/webhooks.mjs
 1d5ea10e8794d4aed91f0a5c12591407f8c9dfa883bf6ec34d5bb4206b39c1d0  ./lib/workflows.mjs
 20a1fc570a97b8b1cc08c23bdfccb2aaf51d435ed75868c1b1c390aed305a71e  ./package-lock.json
-05e52feb3bb19bdb5157433b66cf0534c3953d2f2e2f92c2aa5b6cfe24108aa7  ./package.json
+90684c535b3b417bbde08398393b9f95f70341e649b791a10ade7f7b7413bf95  ./package.json
 98d1a693caf28644f4fe07fec5d845f24c67415c3ae02ec3c874f155d9ea3857  ./public/app.css
 c3b94aeaa409c045fab311563cb324deaf2d9a6b698b6fe289d629eaf4d54357  ./public/app.js
 5503b339639fcf7a0dd106cf5fe0fc0d19d240c252c16c7aed29726eaebe32f4  ./public/favicon.svg
@@ -96,7 +97,7 @@ b6c36d5bafc9f3a52ceefe3e1b591342e355d1c18616ee6e976caa80d5008342  ./tests/reset.
 aadc8378bae53c8cbb5241033a3ae25a8e6b5f1faa57b3d6b93f2acfda4c1d2e  ./tests/ui-render.test.mjs
 323b1081358a5a75f184aca194f1ffb04244cf396bb93417d5b149aaa7b8d443  ./tests/updater.test.mjs
 35991e0fa70c02d764a43929413c808d9cc953e95ec5a54df84ff283ba0bdf20  ./tests/v6-fixture.mjs
-09874bd3960f32917d5e9e2fffe4bea60fca304882f1da73b25770c35e11a7d6  ./tests/v6.test.mjs
+e4b97bb9e6f8f0653b831b752396d81913aff38f103eee6d87cd9229ea42df06  ./tests/v6.test.mjs
 9f65da1c049ee37b980cda979fd3e159393a6734ea1fe1e41b6baeeb7e8ca784  ./tests/v7.test.mjs
 468131970217cd59ac99726860f7aba8ce4a8d9e6afc0ea7ea375efb8be6f754  ./tests/v8-directory.test.mjs
 8ed8f5da1eb7f01c1369218fbdeace17587135784c06c01a1f150870ffa79707  ./tests/v8-security.test.mjs
