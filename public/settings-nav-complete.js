@@ -66,12 +66,14 @@ function recoverSettingsCenter() {
   if (!isSettingsRoute()) return;
   const main = document.querySelector('#main');
   if (!main || settingsCenterPresent(main) || !looksLikeLegacySettings(main)) return;
+  if (main.dataset.settingsRecovery === SETTINGS_NAV_VERSION) return;
 
   // settings-center.js may render before app.js finishes its own async route.
   // If app.js then replaces only main.innerHTML, the data marker survives and
   // settings-center.js incorrectly thinks its interface is still mounted.
   // Clear that stale marker and create one child-list mutation so its observer
-  // performs a real re-render.
+  // performs a real re-render. The recovery flag prevents a mutation loop if
+  // the Settings Center itself cannot mount for some unrelated reason.
   delete main.dataset.settingsCenterVersion;
   main.dataset.settingsRecovery = SETTINGS_NAV_VERSION;
   main.append(document.createComment(`settings-center-recover-${SETTINGS_NAV_VERSION}`));
@@ -80,6 +82,7 @@ function recoverSettingsCenter() {
 function completeSettingsNavigation() {
   if (!isSettingsRoute()) return;
 
+  const main = document.querySelector('#main');
   const nav = document.querySelector('.settings-nav');
   const version = document.querySelector('.version-chip');
   const versionLabel = `Wersja ${SETTINGS_NAV_VERSION}`;
@@ -88,6 +91,7 @@ function completeSettingsNavigation() {
     recoverSettingsCenter();
     return;
   }
+  if (main?.dataset.settingsRecovery) delete main.dataset.settingsRecovery;
 
   for (const group of nav.querySelectorAll('.settings-nav-group')) {
     const title = group.querySelector('h3')?.textContent?.trim();
