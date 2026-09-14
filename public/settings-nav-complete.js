@@ -14,7 +14,7 @@ const DIRECT_SETTINGS_LINKS = {
   ],
   'Zarządzanie usługami': [
     ['Projekty', '/#/projects'],
-    ['Szablony statusów i workflow', '/#/admin/templates'],
+    ['Szablony workflow i statusów', '/#/admin/templates'],
     ['Firmy i grupy klientów', '/#/admin/organizations'],
     ['Zatwierdzenia obiegu', '/#/settings?section=approvals']
   ],
