@@ -27,7 +27,6 @@ Nie wymaga `docker compose down` i nie usuwa wolumenu. Zatrzymanie oraz migracja
 ## Weryfikacja po aktualizacji
 
 ```bash
-cd /opt/itelade-desk
 docker compose ps
 docker compose logs --tail=80 desk
 docker compose exec desk node -e 'fetch("http://127.0.0.1:3000/healthz").then(r=>r.json()).then(console.log)'
