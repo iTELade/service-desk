@@ -27,6 +27,6 @@ jobs:
       - name: Syntax and static checks
         run: npm run check
       - name: Test suite
-        run: npm test
+        run: npm run test:ci
       - name: Upgrade script syntax
         run: bash -n scripts/upgrade.sh
