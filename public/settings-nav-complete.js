@@ -1,4 +1,4 @@
-const SETTINGS_NAV_VERSION = '1.0.5';
+const SETTINGS_NAV_VERSION = '1.0.6';
 
 const DIRECT_SETTINGS_LINKS = {
   'Ogólne': [
@@ -7,38 +7,39 @@ const DIRECT_SETTINGS_LINKS = {
   ],
   'Tożsamość i dostęp': [
     ['Użytkownicy', '/#/users'],
-    ['LDAP / Active Directory', '/#/directory'],
-    ['SSO / OIDC', '/#/admin/sso'],
-    ['MFA i moje konto', '/#/profile']
+    ['Katalog LDAP / Active Directory', '/#/directory'],
+    ['Logowanie SSO / OIDC', '/#/admin/sso'],
+    ['MFA i moje konto', '/#/profile'],
+    ['Wnioski o zmiany profilu', '/#/admin/approvals']
   ],
   'Zarządzanie usługami': [
     ['Projekty', '/#/projects'],
-    ['Szablony workflow', '/#/admin/templates'],
-    ['Zatwierdzenia', '/#/settings?section=approvals'],
-    ['Organizacje klientów', '/#/settings?section=organizations']
+    ['Szablony workflow i statusów', '/#/admin/templates'],
+    ['Firmy i grupy klientów', '/#/admin/organizations'],
+    ['Zatwierdzenia obiegu', '/#/settings?section=approvals']
   ],
   'Komunikacja': [
-    ['Poczta SMTP i kolejka', '/#/settings?section=communication'],
-    ['Skrzynki zespołów', '/#/admin/mail'],
-    ['Szablony powiadomień', '/#/admin/mail-templates']
+    ['Domyślna poczta SMTP i kolejka', '/#/settings?section=communication'],
+    ['Skrzynki zespołów · IMAP i SMTP', '/#/admin/mail'],
+    ['Szablony powiadomień e-mail', '/#/admin/mail-templates']
   ],
   'Integracje': [
     ['Przegląd integracji', '/#/settings?section=integrations'],
-    ['GitHub Issues', '/#/settings?section=github'],
     ['Synchronizacja projektów', '/#/admin/sync'],
+    ['GitHub Issues', '/#/settings?section=github'],
+    ['Webhooki', '/#/admin/webhooks'],
     ['Baza wiedzy', '/#/admin/knowledge'],
     ['Tokeny API', '/#/admin/api-tokens'],
-    ['Webhooki', '/#/admin/webhooks'],
     ['Wtyczki', '/#/settings?section=plugins']
   ],
   'Zasoby / CMDB': [
-    ['Środki trwałe / CMDB', '/#/settings?section=assets'],
+    ['Przegląd zasobów / CMDB', '/#/settings?section=assets'],
     ['Katalog środków trwałych', '/#/admin/assets']
   ],
   'System': [
     ['Diagnostyka i utrzymanie', '/#/settings?section=system'],
     ['Audyt', '/#/settings?section=audit'],
-    ['Aktualizacje', '/#/admin/updates'],
+    ['Wersja i aktualizacje', '/#/admin/updates'],
     ['Błędy modułów', '/#/admin/events'],
     ['Zaawansowane ustawienia systemu', '/#/admin-settings']
   ]
@@ -67,13 +68,6 @@ function recoverSettingsCenter() {
   const main = document.querySelector('#main');
   if (!main || settingsCenterPresent(main) || !looksLikeLegacySettings(main)) return;
   if (main.dataset.settingsRecovery === SETTINGS_NAV_VERSION) return;
-
-  // settings-center.js may render before app.js finishes its own async route.
-  // If app.js then replaces only main.innerHTML, the data marker survives and
-  // settings-center.js incorrectly thinks its interface is still mounted.
-  // Clear that stale marker and create one child-list mutation so its observer
-  // performs a real re-render. The recovery flag prevents a mutation loop if
-  // the Settings Center itself cannot mount for some unrelated reason.
   delete main.dataset.settingsCenterVersion;
   main.dataset.settingsRecovery = SETTINGS_NAV_VERSION;
   main.append(document.createComment(`settings-center-recover-${SETTINGS_NAV_VERSION}`));
@@ -81,7 +75,6 @@ function recoverSettingsCenter() {
 
 function completeSettingsNavigation() {
   if (!isSettingsRoute()) return;
-
   const main = document.querySelector('#main');
   const nav = document.querySelector('.settings-nav');
   const version = document.querySelector('.version-chip');
@@ -97,7 +90,6 @@ function completeSettingsNavigation() {
     const title = group.querySelector('h3')?.textContent?.trim();
     const links = DIRECT_SETTINGS_LINKS[title];
     if (!links) continue;
-
     for (const [label, href] of links) {
       if (group.querySelector(`a[href="${href}"]`)) continue;
       const link = document.createElement('a');
