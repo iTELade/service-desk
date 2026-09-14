@@ -67,10 +67,11 @@ function recoverSettingsCenter() {
   const main = document.querySelector('#main');
   if (!main || settingsCenterPresent(main) || !looksLikeLegacySettings(main)) return;
 
-  // settings-center.js may have rendered first and app.js may then overwrite only
-  // main.innerHTML. In that race the old data marker survives, causing the
-  // settings-center observer to think its UI is still mounted. Clear the marker
-  // and create a childList mutation so the real Settings Center renders again.
+  // settings-center.js may render before app.js finishes its own async route.
+  // If app.js then replaces only main.innerHTML, the data marker survives and
+  // settings-center.js incorrectly thinks its interface is still mounted.
+  // Clear that stale marker and create one child-list mutation so its observer
+  // performs a real re-render.
   delete main.dataset.settingsCenterVersion;
   main.dataset.settingsRecovery = SETTINGS_NAV_VERSION;
   main.append(document.createComment(`settings-center-recover-${SETTINGS_NAV_VERSION}`));
@@ -81,7 +82,8 @@ function completeSettingsNavigation() {
 
   const nav = document.querySelector('.settings-nav');
   const version = document.querySelector('.version-chip');
-  if (version) version.textContent = `Wersja ${SETTINGS_NAV_VERSION}`;
+  const versionLabel = `Wersja ${SETTINGS_NAV_VERSION}`;
+  if (version && version.textContent !== versionLabel) version.textContent = versionLabel;
   if (!nav) {
     recoverSettingsCenter();
     return;
