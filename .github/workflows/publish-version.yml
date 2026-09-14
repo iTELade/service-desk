@@ -2,7 +2,18 @@ name: Publish version from main
 on:
   push:
     branches: [main]
-    paths: [package.json]
+    paths:
+      - package.json
+      - package-lock.json
+      - Dockerfile
+      - .dockerignore
+      - compose.yaml
+      - server.mjs
+      - 'lib/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'updater/**'
+      - '.github/workflows/publish-version.yml'
 permissions:
   contents: write
   packages: write
