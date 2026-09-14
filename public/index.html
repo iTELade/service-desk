@@ -6,10 +6,17 @@
   <meta name="description" content="Service Desk — support portal and team workspace.">
   <title>Service Desk</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/app.css?v=0.8.0">
-  <script src="/i18n.js?v=0.8.0"></script>
-  <script type="module" src="/app.js?v=0.8.0"></script>
-  <script defer src="/security.js?v=0.8.0"></script>
+  <link rel="stylesheet" href="/app.css?v=1.0.1">
+  <script>
+    // Service Desk 1.0.1: the legacy Settings landing page is retired.
+    // Global administration now opens directly in the unified Administration Center.
+    if (location.hash === '#/settings' || location.hash.startsWith('#/settings?')) {
+      location.replace('/v8.html#overview');
+    }
+  </script>
+  <script src="/i18n.js?v=1.0.1"></script>
+  <script type="module" src="/app.js?v=1.0.1"></script>
+  <script defer src="/security.js?v=1.0.1"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
