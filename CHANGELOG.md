@@ -1,3 +1,13 @@
+## 1.0.3 - 2026-09-14
+
+- Rebuilt `/#/settings` as a complete Administration Center inside the normal Service Desk shell.
+- Replaced the previous chaotic tile wall with grouped navigation and one focused configuration area at a time.
+- Restored access to all administration areas: General, Identity & Access, Service Management, Communication, Integrations, Assets / CMDB and System.
+- Added direct administration for organization/registration, branding, SMTP and GitHub Issues inside Settings, with clear links to dedicated native submodules.
+- Retired the standalone `v8.html` administration interface; direct visits now redirect to `/#/settings`, and the old `v8.js` UI was removed.
+- Kept the one-way GitHub Issues flow and made label → priority mapping easier to edit using `label=P1` rows instead of raw JSON.
+- Bumped frontend cache keys and application version to 1.0.3; schema remains 8.
+
 ## 1.0.2 - 2026-09-14
 
 - Fixed the Settings regression introduced in 1.0.1: the administrator now remains in the native Service Desk shell instead of being redirected to `v8.html`.
