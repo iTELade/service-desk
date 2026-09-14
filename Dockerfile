@@ -1,6 +1,8 @@
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production PORT=3000 DATA_DIR=/app/data
 WORKDIR /app
+LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
+COPY LICENSE README.md ./
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY --chown=node:node server.mjs ./

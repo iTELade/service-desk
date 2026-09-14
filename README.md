@@ -49,3 +49,13 @@ npm test
 ```
 
 Testy nie łączą się z firmowym LDAP, skrzynkami ani produkcyjnym Dockerem. Przed wdrożeniem skonfiguruj kopię testową i sprawdź integracje swojej instalacji.
+
+## Licencja
+
+Copyright (C) 2026 Adam Dehmel (iTELade).
+
+Service Desk jest udostępniany na licencji **GNU Affero General Public License, wersja 3** (SPDX: `AGPL-3.0-only`). Pełny tekst znajduje się w [LICENSE](LICENSE). Licencja obejmuje kod i dokumentację tego projektu, z wyjątkiem komponentów zewnętrznych oznaczonych własnymi licencjami.
+
+Możesz używać, modyfikować i rozpowszechniać program, również komercyjnie, na warunkach AGPL-3.0. Program jest udostępniany bez gwarancji, w zakresie dozwolonym przez prawo. Jeśli udostępniasz zmodyfikowaną wersję przez sieć, zapewnij jej użytkownikom widoczną możliwość bezpłatnego pobrania odpowiedniego kodu źródłowego zgodnie z sekcją 13 licencji.
+
+Kod źródłowy: https://github.com/iTELade/service-desk. Przy dystrybucji obrazu udostępnij kod odpowiadający dokładnie temu obrazowi, wraz ze skryptami budowania i instalacji. Zachowaj informacje o prawach autorskich i licencjach zależności znajdujące się w ich pakietach; licencja projektu ich nie zastępuje.
