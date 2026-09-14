@@ -1,3 +1,10 @@
+## 1.0.2 - 2026-09-14
+
+- Fixed the Settings regression introduced in 1.0.1: the administrator now remains in the native Service Desk shell instead of being redirected to `v8.html`.
+- Restored the existing native Settings screen with the normal sidebar, top bar, theme and application routing.
+- Removed the active `/settings` dependency on the standalone 0.8-era `v8.html` Administration Center.
+- Bumped frontend cache keys and application version to 1.0.2 so installations already on 1.0.1 can receive the hotfix through the updater.
+
 ## 1.0.1 - 2026-09-14
 
 - Retired active custom global role/permission-set handling; the product now uses Global Administrator, Project Manager, Agent and Customer roles with project isolation and LDAP project mappings.

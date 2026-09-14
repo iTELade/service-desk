@@ -6,39 +6,10 @@
   <meta name="description" content="Service Desk — support portal and team workspace.">
   <title>Service Desk</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/app.css?v=1.0.1">
-  <script>
-    // Settings must stay inside the native Service Desk shell.
-    // Legacy 1.0.1 behavior removed: location.replace('/v8.html#overview')
-    (() => {
-      const normalizeSettingsRoute = () => {
-        if (location.hash === '#/settings' || location.hash.startsWith('#/settings?')) {
-          const suffix = location.hash.slice('#/settings'.length);
-          history.replaceState(null, '', location.pathname + location.search + '#/admin-settings' + suffix);
-        }
-      };
-      const syncSettingsNav = () => {
-        if (!location.hash.startsWith('#/admin-settings')) return;
-        document.querySelectorAll('a[href="#/settings"],a[href="/#/settings"]').forEach(link => {
-          link.classList.add('selected');
-          link.setAttribute('aria-current', 'page');
-        });
-      };
-      normalizeSettingsRoute();
-      addEventListener('hashchange', () => {
-        normalizeSettingsRoute();
-        queueMicrotask(syncSettingsNav);
-      });
-      addEventListener('DOMContentLoaded', () => {
-        const observer = new MutationObserver(syncSettingsNav);
-        observer.observe(document.body, {childList:true, subtree:true});
-        syncSettingsNav();
-      });
-    })();
-  </script>
-  <script src="/i18n.js?v=1.0.1"></script>
-  <script type="module" src="/app.js?v=1.0.1"></script>
-  <script defer src="/security.js?v=1.0.1"></script>
+  <link rel="stylesheet" href="/app.css?v=1.0.2">
+  <script src="/i18n.js?v=1.0.2"></script>
+  <script type="module" src="/app.js?v=1.0.2"></script>
+  <script defer src="/security.js?v=1.0.2"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
