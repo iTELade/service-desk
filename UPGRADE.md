@@ -4,10 +4,9 @@ Pełna paczka aktualizuje 0.4.0 i 0.5.0, zachowując bazę, użytkowników, zgł
 
 ## Zalecana aktualizacja pełną paczką
 
-Prześlij **Service_Desk_0.7.0.zip** do `/home/dehmead`. Polecenia zakładają dotychczasową instalację `/opt/itelade-desk` i nazwany wolumen `/app/data`.
+Prześlij **Service_Desk_0.7.0.zip** na serwer. Polecenia zakładają dotychczasową instalację `/opt/itelade-desk` i nazwany wolumen `/app/data`.
 
 ```bash
-cd /home/dehmead
 unzip -t Service_Desk_0.7.0.zip
 mkdir -p desk-update-0.7.0
 unzip Service_Desk_0.7.0.zip -d desk-update-0.7.0
@@ -28,7 +27,6 @@ Nie wymaga `docker compose down` i nie usuwa wolumenu. Zatrzymanie oraz migracja
 ## Weryfikacja po aktualizacji
 
 ```bash
-cd /opt/itelade-desk
 docker compose ps
 docker compose logs --tail=80 desk
 docker compose exec desk node -e 'fetch("http://127.0.0.1:3000/healthz").then(r=>r.json()).then(console.log)'
