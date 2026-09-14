@@ -29,7 +29,7 @@ test('native Settings Center and navigation expose all legacy administration are
 
   for (const label of [
     'Katalog LDAP / Active Directory','Logowanie SSO / OIDC','Wnioski o zmiany profilu',
-    'Szablony statusów i workflow','Firmy i grupy klientów','Poczta zespołów · IMAP i SMTP',
+    'Szablony workflow i statusów','Firmy i grupy klientów','Poczta zespołów · IMAP i SMTP',
     'Szablony e-mail','Synchronizacja projektów','Webhooki','Baza wiedzy','API i tokeny',
     'Katalog środków trwałych','Wersja i aktualizacje','Błędy modułów'
   ]) assert.ok(nav.includes(label), `missing legacy Settings label ${label}`);
