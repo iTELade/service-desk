@@ -1,0 +1,31 @@
+name: Fix release runtime
+on:
+  push:
+    branches: [release/1.0.1]
+    paths:
+      - scripts/fix-release-runtime.mjs
+      - .github/workflows/fix-release-runtime.yml
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.0.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/fix-release-runtime.mjs
+      - run: |
+          set -euo pipefail
+          rm scripts/fix-release-runtime.mjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: harden GitHub intake diagnostics and tests"
+          git push origin HEAD:release/1.0.1
