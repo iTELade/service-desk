@@ -12,6 +12,7 @@ on:
       - 'lib/**'
       - 'public/**'
       - 'scripts/**'
+      - 'tests/**'
       - 'updater/**'
       - '.github/workflows/publish-version.yml'
 permissions:
