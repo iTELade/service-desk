@@ -12,7 +12,7 @@ Service Desk 1.0.1 finishes the administration and access-control cleanup starte
 ## Administration Center
 - /#/settings routes directly to the unified Administration Center.
 - Administration is grouped into General, Identity & Access, Service Management, Communication, Integrations, Assets / CMDB and System.
-- Legacy 0.8 Control Center/RBAC product wording is removed from active UI.
+- Legacy permission-matrix and 0.8-era administration wording is removed from active UI.
 
 ## GitHub Issues
 - Supported flow: GitHub Issue → Service Desk ticket → GitHub comment with the ticket URL → mandatory GitHub Issue close.

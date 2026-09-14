@@ -117,7 +117,7 @@ Language is an instance-wide administrator setting. Users do not select a separa
 
 Service Desk can use the built-in updater with releases published from this repository. Stable releases include a `desk-release.json` manifest that identifies the exact GHCR image digest and database schema compatibility.
 
-Existing 0.8.x installations can upgrade to 1.0.0 through the built-in updater. Service Desk 1.0.1 keeps database schema version **8**, so this release does not require a new database migration.
+Existing supported 0.8.x and 1.0.0 installations can upgrade to 1.0.1 through the built-in updater. Service Desk 1.0.1 keeps database schema version **8**, so this release does not require a new database migration.
 
 See [UPDATES.md](UPDATES.md) and [UPGRADE.md](UPGRADE.md) for details.
 
