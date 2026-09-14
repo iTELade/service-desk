@@ -1,5 +1,1 @@
 blank_issues_enabled: false
-contact_links:
-  - name: Dyskusja / pytanie ogólne
-    url: https://github.com/iTELade/service-desk/discussions
-    about: Jeśli nie zgłaszasz błędu ani propozycji funkcji, użyj dyskusji lub skontaktuj się z maintainerem.
