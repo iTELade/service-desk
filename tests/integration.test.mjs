@@ -428,3 +428,37 @@ async function saveMap(projectId,w){
  const updated=(await admin.call('/projects/'+projectId+'/workflow')).data;
  return admin.call('/projects/'+projectId+'/workflow','PATCH',{...updated,rules:w.rules});
 }
+
+test('0.7.1: administrator edits details, blocks sessions, manages avatar and removes a local account',async()=>{
+ const created=await admin.call('/users','POST',{first_name:'Test',last_name:'Removal',email:'remove071@example.test',role:'customer',password:initial,is_internal:false});assert.equal(created.status,201,JSON.stringify(created.data));const id=created.data.user.id;
+ const target=new Client();await target.login('remove071@example.test');
+ let users=(await admin.call('/users')).data,u=users.find(x=>x.id===id);
+ let r=await admin.call('/users/'+id,'PATCH',{version:u.version,first_name:'Changed',last_name:'Surname',email:'changed071@example.test',active:false});assert.equal(r.status,200,JSON.stringify(r.data));assert.equal((await target.call('/me')).status,401);
+ u=(await admin.call('/users')).data.find(x=>x.id===id);assert.equal(u.name,'Changed Surname');assert.equal(u.email,'changed071@example.test');assert.equal(u.active,false);
+ r=await admin.call('/users/'+id+'/avatar','POST',{version:u.version,data:Buffer.from([137,80,78,71,13,10,26,10,0]).toString('base64')});assert.equal(r.status,200,JSON.stringify(r.data));
+ assert.equal((await alice.call('/users/'+id+'/delete','POST',{version:u.version})).status,403);
+ r=await admin.call('/users/'+id+'/delete','POST',{version:u.version});assert.equal(r.status,200,JSON.stringify(r.data));assert.ok(!(await admin.call('/users')).data.some(x=>x.id===id));
+ assert.equal((await target.call('/login','POST',{email:'changed071@example.test',password:initial})).status,401);
+ const me=(await admin.call('/me')).data.user;assert.equal((await admin.call('/users/'+me.id+'/delete','POST',{version:me.version})).status,400);
+});
+
+test('0.7.1: browser receives fresh assets and customer cannot edit any ticket details',async()=>{
+ for(const path of ['/app.js?v=0.7.1','/app.css?v=0.7.1']){const r=await fetch(base+path);assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'no-store');}
+ const t=(await alice.call('/tickets/'+key)).data.ticket;
+ for(const fields of [{title:'Forbidden change'},{description:'Forbidden change'},{custom_values:{}},{priority:'P1'},{reporter_id:agentId}]){const r=await alice.call('/tickets/'+key,'PATCH',{version:t.version,...fields});assert.ok([403,409].includes(r.status),JSON.stringify(r));}
+});
+
+test('0.7.1: confirmed reset restarts into a fresh installer without restoring bootstrap accounts',async()=>{
+ const {secretStore}=await import('../lib/secrets.mjs');
+ const smtp=(await admin.call('/desk/smtp')).data;
+ let r=await admin.call('/desk/smtp','POST',{version:smtp.version,enabled:true,host:'smtp.invalid',port:587,secure:false,user:'test',password:'test-only-secret',from_email:'desk@example.test'});assert.equal(r.status,200,JSON.stringify(r.data));
+ assert.equal((await alice.call('/system/reset','POST',{password:initial})).status,403);
+ r=await admin.call('/system/reset','POST',{password:permanent});assert.equal(r.status,200,JSON.stringify(r.data));
+ const disk=new DatabaseSync(join(dataDir,'desk.sqlite')),mail=disk.prepare("SELECT body FROM mail_outbox WHERE subject='Potwierdzenie usunięcia danych Service Desk' ORDER BY id DESC LIMIT 1").get();disk.close();assert.ok(mail);
+ const code=secretStore(dataDir).open(mail.body).match(/Kod resetu: (\d+)/)[1];
+ const exiting=once(child,'exit');r=await admin.call('/system/reset','POST',{password:permanent,code,confirmation:'USUŃ WSZYSTKO'});assert.equal(r.status,200,JSON.stringify(r.data));await exiting;
+ await start();const publicConfig=await admin.call('/public-config');assert.equal(publicConfig.data.setup_required,true);assert.equal((await admin.call('/me')).status,503);
+ const clean=new DatabaseSync(join(dataDir,'desk.sqlite'));assert.equal(clean.prepare('SELECT COUNT(*) n FROM users').get().n,0);assert.equal(clean.prepare('SELECT COUNT(*) n FROM projects').get().n,0);assert.equal(clean.prepare('SELECT COUNT(*) n FROM tickets').get().n,0);assert.equal(clean.prepare('PRAGMA integrity_check').get().integrity_check,'ok');assert.equal(clean.prepare('PRAGMA user_version').get().user_version,7);clean.close();
+ const {readFileSync}=await import('node:fs');const token=readFileSync(join(dataDir,'setup-token'),'utf8').trim();
+ r=await admin.call('/setup','POST',{token,company_name:'Fresh Company',brand_name:'Fresh Desk',first_name:'Fresh',last_name:'Admin',email:'fresh@example.test',password:permanent});assert.equal(r.status,201,JSON.stringify(r.data));const fresh=new Client();await fresh.login('fresh@example.test',permanent);assert.equal((await fresh.call('/meta')).status,200);
+});
