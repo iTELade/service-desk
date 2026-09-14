@@ -1,0 +1,70 @@
+name: Prepare Settings 1.0.6
+
+on:
+  push:
+    branches: [fix/settings-v106]
+    paths:
+      - .github/workflows/prepare-settings-v106.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/settings-v106
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Apply deterministic Settings route fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=None):
+              p=Path(path); s=p.read_text()
+              n=s.count(old)
+              if count is not None and n != count:
+                  raise SystemExit(f'{path}: expected {count} occurrences of {old!r}, found {n}')
+              if n == 0:
+                  raise SystemExit(f'{path}: missing {old!r}')
+              p.write_text(s.replace(old,new) if count is None else s.replace(old,new,count))
+
+          # The main router must never render the legacy settings form for #/settings.
+          replace('public/app.js', "case 'settings':content=await legacySettingsView();break;", "case 'settings':content=await settingsView();break;", 1)
+          replace('public/app.js', "async function settingsView(){return legacySettingsView();}", "async function settingsView(){return '<div class=\"loading settings-center-bootstrap\">Wczytywanie centrum administracji…</div>';}", 1)
+
+          # Align the real Settings Center marker with the release version.
+          replace('public/settings-center.js', "const SETTINGS_VERSION='1.0.3';", "const SETTINGS_VERSION='1.0.6';", 1)
+          replace('public/settings-nav-complete.js', "const SETTINGS_NAV_VERSION = '1.0.5';", "const SETTINGS_NAV_VERSION = '1.0.6';", 1)
+
+          # Existing regression fixtures must track the new release marker.
+          p=Path('tests/settings-center-race.test.mjs'); s=p.read_text().replace("'1.0.5'", "'1.0.6'").replace('1\\.0\\.5','1\\.0\\.6').replace('Wersja 1.0.5','Wersja 1.0.6'); p.write_text(s)
+
+          # Version + public cache busting.
+          replace('lib/version.mjs', "export const VERSION='1.0.5';", "export const VERSION='1.0.6';", 1)
+          replace('package.json', '"version": "1.0.5"', '"version": "1.0.6"', 1)
+          p=Path('public/index.html'); p.write_text(p.read_text().replace('v=1.0.5','v=1.0.6'))
+          PY
+          npm install --package-lock-only --ignore-scripts
+      - name: Validate before commit
+        run: |
+          npm ci
+          npm run check
+          npm run test:ci
+          bash -n scripts/upgrade.sh
+      - name: Commit prepared fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/app.js public/settings-center.js public/settings-nav-complete.js public/index.html lib/version.mjs package.json package-lock.json tests/settings-center-race.test.mjs tests/settings-route-regression.test.mjs
+          git commit -m 'fix: make native Settings Center the only settings route'
+          git push origin HEAD:fix/settings-v106
