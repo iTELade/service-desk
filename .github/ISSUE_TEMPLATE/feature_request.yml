@@ -1,0 +1,66 @@
+name: Propozycja funkcji
+description: Zaproponuj nową funkcję lub ulepszenie iTELade Service Desk
+title: "[FEATURE] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dzięki za propozycję. Opisz problem i oczekiwane rozwiązanie możliwie konkretnie.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / potrzeba
+      description: Jaki problem użytkownika lub administratora ma rozwiązać ta funkcja?
+      placeholder: Obecnie nie można...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proponowane rozwiązanie
+      description: Opisz, jak według Ciebie powinna działać nowa funkcja.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Obszar systemu
+      options:
+        - LDAP / logowanie / tożsamość
+        - Użytkownicy i uprawnienia
+        - Projekty
+        - Portal klienta
+        - Zgłoszenia / kolejki
+        - Workflow / statusy / automatyzacje
+        - ITSM / środki trwałe
+        - Powiadomienia / e-mail
+        - Aktualizacje / utrzymanie
+        - UI / UX
+        - API / integracje
+        - Instalacja / Docker
+        - Inne
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatywy / obejścia
+      description: Czy obecnie istnieje inne rozwiązanie tego problemu?
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Dodatkowy kontekst
+      description: Makiety, przykłady, linki lub inne informacje pomocne przy ocenie propozycji.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Potwierdzenie
+      options:
+        - label: Sprawdziłem istniejące zgłoszenia i nie znalazłem takiej samej propozycji.
+          required: true
