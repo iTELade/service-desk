@@ -1,0 +1,106 @@
+name: Zgłoszenie błędu
+description: Zgłoś problem lub nieprawidłowe działanie iTELade Service Desk
+title: "[BUG] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dzięki za zgłoszenie błędu. Uzupełnij poniższe informacje możliwie dokładnie — ułatwi to odtworzenie i naprawę problemu.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Opis problemu
+      description: Opisz, co działa nieprawidłowo.
+      placeholder: Co dokładnie się dzieje?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Kroki do odtworzenia
+      description: Podaj dokładne kroki pozwalające odtworzyć problem.
+      placeholder: |
+        1. Przejdź do ...
+        2. Kliknij ...
+        3. Ustaw ...
+        4. Pojawia się ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Oczekiwane zachowanie
+      description: Opisz, jak system powinien zachować się prawidłowo.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Aktualne zachowanie
+      description: Opisz, co dzieje się zamiast oczekiwanego rezultatu.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Wersja Service Desk
+      description: Podaj wersję, np. 0.7.1.
+      placeholder: 0.7.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Obszar systemu
+      options:
+        - LDAP / logowanie / tożsamość
+        - Użytkownicy i uprawnienia
+        - Projekty
+        - Portal klienta
+        - Zgłoszenia / kolejki
+        - Workflow / statusy / automatyzacje
+        - ITSM / środki trwałe
+        - Powiadomienia / e-mail
+        - Aktualizacje / utrzymanie
+        - UI / UX
+        - API / integracje
+        - Instalacja / Docker
+        - Inne
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logi / komunikaty błędów
+      description: Wklej istotne komunikaty błędów lub logi. Usuń hasła, tokeny i inne dane wrażliwe.
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Środowisko
+      description: Podaj istotne informacje o środowisku, np. system, przeglądarka, Docker, reverse proxy.
+      placeholder: Ubuntu 24.04, Docker 29.x, Brave/Chrome, Nginx Proxy Manager...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Dodatkowe informacje
+      description: Zrzuty ekranu, dodatkowy kontekst, obejścia problemu itp.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Potwierdzenie
+      options:
+        - label: Sprawdziłem istniejące zgłoszenia i nie znalazłem duplikatu.
+          required: true
+        - label: Usunąłem z logów i zrzutów ekranu dane wrażliwe, hasła i tokeny.
+          required: true
