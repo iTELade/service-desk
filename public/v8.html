@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Service Desk 0.8 Control Center</title>
+  <link rel="stylesheet" href="/app.css?v=0.8.0">
+  <script src="/i18n.js?v=0.8.0"></script>
+  <script type="module" src="/v8.js?v=0.8.0"></script>
+</head>
+<body>
+<main class="workspace-content" style="max-width:1500px;margin:auto;padding:24px">
+  <div class="page-heading"><div><div class="eyebrow">SERVICE DESK 0.8.0</div><h1>Administration Control Center</h1></div><a class="button" href="/#/settings">Back to Service Desk</a></div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="dashboard">Dashboard</button><button data-tab="rbac">RBAC</button><button data-tab="views">Queues</button>
+    <button data-tab="approvals">Approvals</button><button data-tab="organizations">Organizations</button><button data-tab="assets">Assets</button>
+    <button data-tab="audit">Audit</button><button data-tab="github">GitHub</button>
+  </nav>
+  <div id="status" class="notice" hidden></div>
+  <section id="content" class="panel detail-panel"><div class="loading">Loading…</div></section>
+</main>
+</body>
+</html>

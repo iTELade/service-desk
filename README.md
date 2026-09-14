@@ -59,3 +59,8 @@ Service Desk jest udostępniany na licencji **GNU Affero General Public License,
 Możesz używać, modyfikować i rozpowszechniać program, również komercyjnie, na warunkach AGPL-3.0. Program jest udostępniany bez gwarancji, w zakresie dozwolonym przez prawo. Jeśli udostępniasz zmodyfikowaną wersję przez sieć, zapewnij jej użytkownikom widoczną możliwość bezpłatnego pobrania odpowiedniego kodu źródłowego zgodnie z sekcją 13 licencji.
 
 Kod źródłowy: https://github.com/iTELade/service-desk. Przy dystrybucji obrazu udostępnij kod odpowiadający dokładnie temu obrazowi, wraz ze skryptami budowania i instalacji. Zachowaj informacje o prawach autorskich i licencjach zależności znajdujące się w ich pakietach; licencja projektu ich nie zastępuje.
+
+
+## Wydanie 0.8.0
+
+0.8.0 rozszerza Service Desk o globalny RBAC, zapisane kolejki i dashboard, approvals, rozszerzone organizacje klientów i lifecycle assetów, integrację GitHub Issues, angielski jako język domyślny oraz rozbudowane 2FA: QR dla TOTP i klucze sprzętowe FIDO2/WebAuthn. Integracja Knowledge Base pozostaje poza zakresem tego wydania.

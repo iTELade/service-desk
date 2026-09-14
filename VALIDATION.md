@@ -1,10 +1,25 @@
-# Walidacja 0.7.1
+# Walidacja 0.8.0
 
-- Node.js 24: 132/132 testy automatyczne przeszły, brak pominiętych testów.
-- HTTP/SQLite: edycja danych konta przez administratora, blokowanie sesji, zdjęcie, usunięcie konta, zakaz edycji szczegółów przez klienta.
-- Reset: rzeczywisty serwer HTTP, sprawdzenie hasła, kod z szyfrowanej kolejki SMTP, restart procesu, pusta baza, nowy instalator i utworzenie nowego administratora. Brak odtworzenia kont BOOTSTRAP_ADMIN.
-- Reset: wygasły kod, 5 niepoprawnych prób, zmienione konto, brak SMTP, ponowne użycie kodu.
-- DOM: zapis edytora użytkownika, zdarzenia dragstart/drop, ustawienia katalogów urządzeń i powiadamiania zespołu, brak pól repozytorium/tokenu.
-- Regresja: poczta, automatyzacja wysyłająca e-mail, synchronizacja, SLA, LDAP, 2FA, centralne mapy statusów, powiadomienia i uprawnienia.
+Przed publikacją `v0.8.0` wykonaj:
 
-Testy DOM nie zastępują pełnej kontroli wizualnej w prawdziwej przeglądarce. Nie wykonano lokalnie budowy Docker ani aktualizacji produkcyjnego serwera. GitHub Actions uruchamia ponownie testy i buduje obrazy amd64/arm64 przed publikacją wydania. Produkcyjna konfiguracja SMTP/IMAP wymaga testu wysyłki w ustawieniach.
+```bash
+sha256sum -c MANIFEST.sha256
+npm ci
+npm run check
+npm test
+bash -n scripts/upgrade.sh
+```
+
+Następnie sprawdź co najmniej:
+- logowanie lokalne, LDAP i SSO,
+- TOTP: konfigurację przez QR, kod ręczny i recovery codes,
+- FIDO2/WebAuthn: dodanie, logowanie i usunięcie klucza,
+- synchronizację LDAP i nadawanie Administratora,
+- kolejki, dashboard i zapisane widoki,
+- approvals, organizacje i środki trwałe,
+- inbound e-mail, API tokens i webhooki,
+- GitHub Issues → Service Desk,
+- `/healthz` zwracający wersję `0.8.0` i schemat `8`,
+- aktualizację z poprzedniej kopii danych oraz rollback.
+
+Integracja Knowledge Base nie należy do zakresu 0.8.0.

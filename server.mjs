@@ -1,4 +1,7 @@
 import {createReset,applyPendingReset} from './lib/reset.mjs';
+import {migrateV8} from './lib/migration-v8.mjs';
+import {createV8} from './lib/v8.mjs';
+import {createSecurityKeys} from './lib/security-keys.mjs';
 import {migrateV7} from './lib/migration-v7.mjs';
 import {createMfa} from './lib/mfa.mjs';
 import {createUpdates} from './lib/updates.mjs';
@@ -38,7 +41,7 @@ const resetBootstrap = applyPendingReset(dataDir);
 const db = new DatabaseSync(join(dataDir, 'desk.sqlite'));
 db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
 const schemaVersion = db.prepare('PRAGMA user_version').get().user_version;
-if (schemaVersion > 7) throw new Error('Baza wymaga nowszej wersji aplikacji.');
+if (schemaVersion > 8) throw new Error('Baza wymaga nowszej wersji aplikacji.');
 if (!schemaVersion) {
   db.exec(`BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -134,9 +137,11 @@ if(db.prepare('PRAGMA user_version').get().user_version<4)migrateV4(db);
 if(db.prepare('PRAGMA user_version').get().user_version<5)migrateV5(db);
 if(db.prepare('PRAGMA user_version').get().user_version<6)migrateV6(db);
 migrateV7(db);
+if(db.prepare('PRAGMA user_version').get().user_version<8)migrateV8(db);
 // Fresh installations do not need the legacy built-in automation account.
 if(!schemaVersion&&!db.prepare('SELECT id FROM projects LIMIT 1').get())db.prepare("DELETE FROM users WHERE email='bot@desk.invalid' AND password='!service'").run();
 const mfa=createMfa(db,{dataDir});
+const securityKeys=createSecurityKeys(db,{origin});
 const projects = createProjects(db);
 const installation=createInstallation(db,{dataDir,encodePassword,projects});
 if(installation.required())console.log('Kod instalacji WWW: '+installation.token());
@@ -147,6 +152,7 @@ const accounts = createAccounts(db,{origin,encodePassword,dataDir,env:resetBoots
 const desk=createDesk(db,projects,catalog,workflows),identity=createIdentity(db,projects,accounts,{origin,encodePassword}),sso=createSso(db,projects,{origin,dataDir});
 const reset=createReset(db,{dataDir,accounts,checkPassword,canReset:()=>!maintenance()&&!(process.env.CONTROL_DIR&&existsSync(join(process.env.CONTROL_DIR,'request.json'))),onReset:()=>{setTimeout(()=>process.exit(0),150).unref();}});
 const extensions=createExtensions(db,projects,catalog,workflows,desk,accounts,identity,sso,{origin,dataDir});
+const v8=createV8(db,{projects,desk,workflows,catalog,accounts,directory,origin,dataDir});
 // Wyrównuje koszt sprawdzenia nieistniejącego konta. Nie jest hasłem żadnego użytkownika.
 const dummyPassword = await encodePassword(randomBytes(32).toString('hex'));
 delete process.env.BOOTSTRAP_ADMIN_PASSWORD;
@@ -267,17 +273,21 @@ const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/app.css', ['app.css', 'text/css; charset=utf-8']],
+  ['/i18n.js', ['i18n.js', 'text/javascript; charset=utf-8']],
+  ['/security.js', ['security.js', 'text/javascript; charset=utf-8']],
+  ['/v8.html', ['v8.html', 'text/html; charset=utf-8']],
+  ['/v8.js', ['v8.js', 'text/javascript; charset=utf-8']],
   ['/favicon.svg', ['favicon.svg', 'image/svg+xml']]
 ]);
 const server = http.createServer(async (req,res)=>{
   securityHeaders(res);
   try {
     const {pathname,searchParams}=new URL(req.url,origin),method=req.method;
-    if(method==='GET'&&pathname==='/healthz'){db.prepare('SELECT 1').get();return json(res,200,{status:'ok',version:VERSION,schema:7});}
+    if(method==='GET'&&pathname==='/healthz'){db.prepare('SELECT 1').get();return json(res,200,{status:'ok',version:VERSION,schema:8});}
     if((reset.pending()||maintenance())&&pathname.startsWith('/api/')&&!(method==='GET'&&['/api/me','/api/meta','/api/public-config','/api/brand/logo','/api/desk/updates'].includes(pathname)))fail(503,'Trwa aktualizacja systemu. Spróbuj ponownie za chwilę.');
     const asset=assets.get(pathname)||(/^\/portal\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/.test(pathname)?assets.get('/'):null);
     if(asset&&['GET','HEAD'].includes(method)){const[file,type]=asset;res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store'});return res.end(method==='HEAD'?'':readFileSync(join(root,'public',file)));}
-    if(method==='GET'&&pathname==='/api/sso/callback'){const stateCookie=prod?'__Host-desk_sso':'desk_sso',browser=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(stateCookie+'='))?.slice(stateCookie.length+1);const u=await sso.callback(new URL(req.url,origin),browser);if(mfa.status(u).enabled){const challenge=mfa.challenge(u);res.setHeader('Set-Cookie',stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':''));res.writeHead(303,{Location:'/#/mfa/'+challenge});return res.end();}const token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',[cookie(token,12*3600),stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':'')]);res.writeHead(303,{Location:'/#/queue'});return res.end();}
+    if(method==='GET'&&pathname==='/api/sso/callback'){const stateCookie=prod?'__Host-desk_sso':'desk_sso',browser=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(stateCookie+'='))?.slice(stateCookie.length+1);const u=await sso.callback(new URL(req.url,origin),browser);if(mfa.status(u).enabled||securityKeys.hasKeys(u.id)){const challenge=mfa.challenge(u);res.setHeader('Set-Cookie',stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':''));res.writeHead(303,{Location:'/#/mfa/'+challenge});return res.end();}const token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',[cookie(token,12*3600),stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':'')]);res.writeHead(303,{Location:'/#/queue'});return res.end();}
     if(method==='GET'&&/^\/api\/sso\/[1-9][0-9]*\/start$/.test(pathname)){rateLimit('sso-start',200);const result=await sso.begin(Number(pathname.split('/')[3]));res.setHeader('Set-Cookie',(prod?'__Host-desk_sso':'desk_sso')+'='+result.browser+'; Path=/; HttpOnly; SameSite=Lax; Max-Age=600'+(prod?'; Secure':''));res.writeHead(303,{Location:result.url});return res.end();}
     if(method==='POST'&&/^\/api\/hooks\/[1-9][0-9]*$/.test(pathname)){rateLimit('incoming-hook',500);const b=await body(req),result=extensions.webhooks.incoming(Number(pathname.split('/')[3]),req.headers.authorization,b);extensions.events();return json(res,200,result);}
     if(pathname.startsWith('/api/v1/')){rateLimit('public-api',2000);const b=method==='GET'?{}:await body(req),result=extensions.api.run(req.headers.authorization,method,pathname,searchParams,b,req.headers['idempotency-key']);extensions.events();return json(res,result.status,result.value);}
@@ -297,12 +307,14 @@ const server = http.createServer(async (req,res)=>{
       if(!valid||fresh?.sso_only||!fresh?.active||!fresh.directory_active||fresh.version!==u.version)fail(401,'Nieprawidłowy e-mail, login lub hasło albo konto jest wyłączone.');
       if(fresh.registration_state==='pending_approval')fail(403,'Konto oczekuje na zatwierdzenie przez administratora.');
       if(fresh.registration_state==='pending_email')fail(403,'Potwierdź adres e-mail za pomocą linku aktywacyjnego.');
-      if(mfa.status(fresh).enabled)return json(res,200,{mfa_required:true,challenge:mfa.challenge(fresh)});
+      if(mfa.status(fresh).enabled||securityKeys.hasKeys(fresh.id))return json(res,200,{mfa_required:true,challenge:mfa.challenge(fresh),security_key_available:securityKeys.hasKeys(fresh.id)});
       const token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');
       db.prepare('INSERT INTO sessions(token,user_id,csrf,expires_at) VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);
       res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(fresh),csrf});
     }
     if(method==='POST'&&pathname==='/api/mfa/verify'){rateLimit('mfa-login',30);const b=await body(req),u=mfa.verify(b.challenge,b.code),token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(u),csrf});}
+    if(method==='POST'&&pathname==='/api/mfa/security-key/options'){rateLimit('mfa-key-options',30);const b=await body(req);return json(res,200,securityKeys.loginOptions(b.challenge));}
+    if(method==='POST'&&pathname==='/api/mfa/security-key/verify'){rateLimit('mfa-key-login',30);const b=await body(req),u=securityKeys.verifyLogin(b.challenge,b),token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(u),csrf});}
     if(method==='POST'&&pathname==='/api/accept-invite'){rateLimit('invite',100);const b=await body(req);return json(res,200,await identity.acceptInvite(b.token,b.password));}
     if(method==='POST'&&['/api/register','/api/resend-verification','/api/forgot-password','/api/verify-email','/api/reset-password'].includes(pathname)){
       rateLimit('account-total',200);const b=await body(req);
@@ -316,7 +328,7 @@ const server = http.createServer(async (req,res)=>{
     function admin(){if(user.role!=='admin')fail(403,'Dostęp tylko dla administratora.');}
     async function readBody(){const b=await body(req);authenticate();if(user.must_change&&pathname!=='/api/password')fail(403,'Najpierw zmień hasło tymczasowe.');return b;}
     authenticate();
-    if(pathname.startsWith('/api/mfa/')){rateLimit('mfa-settings:'+user.id,20);const action=pathname.split('/').at(-1);if(method==='GET'&&action==='status')return json(res,200,mfa.status(user));const b=await readBody();if(method!=='POST')fail(405,'Niedozwolona metoda.');if(action==='setup')return json(res,200,mfa.setup(user));if(action==='enable')return json(res,200,mfa.enable(user,b.code));if(action==='disable')return json(res,200,mfa.disable(user,b.code));fail(404,'Nieznana operacja.');}
+    if(pathname.startsWith('/api/mfa/')){rateLimit('mfa-settings:'+user.id,30);const action=pathname.split('/').at(-1);if(method==='GET'&&action==='status'){const a=mfa.status(user),k=securityKeys.status(user.id);return json(res,200,{...a,...k,enabled:a.enabled||k.security_key_enabled});}const b=await readBody();if(method!=='POST')fail(405,'Niedozwolona metoda.');if(pathname==='/api/mfa/security-key/register-options')return json(res,200,securityKeys.registrationOptions(user));if(pathname==='/api/mfa/security-key/register')return json(res,200,securityKeys.register(user,b));if(pathname==='/api/mfa/security-key/remove')return json(res,200,securityKeys.remove(user,b.id));if(action==='setup')return json(res,200,mfa.setup(user));if(action==='enable')return json(res,200,mfa.enable(user,b.code));if(action==='disable')return json(res,200,mfa.disable(user,b.code));fail(404,'Nieznana operacja.');}
     if(pathname==='/api/system/reset'&&method==='POST'){rateLimit('system-reset:'+user.id,10);const b=await readBody();const value=b.code?await reset.confirm(user,b):await reset.begin(user,b);return json(res,200,value);}
     if(method==='GET'&&pathname==='/api/me')return json(res,200,{user:safeUser(user),csrf:user.csrf});
     if(method==='POST'&&pathname==='/api/logout'){db.prepare('DELETE FROM sessions WHERE token=?').run(user.token);res.setHeader('Set-Cookie',cookie('',0));return json(res,200,{ok:true});}
@@ -334,6 +346,7 @@ const server = http.createServer(async (req,res)=>{
     if(method==='GET'&&/^\/api\/avatars\/[1-9][0-9]*$/.test(pathname)){const a=db.prepare('SELECT * FROM avatars WHERE user_id=?').get(Number(pathname.split('/')[3]));if(a){res.writeHead(200,{'Content-Type':a.mime,'Cache-Control':'no-store'});return res.end(Buffer.from(a.body));}res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(readFileSync(join(root,'public/favicon.svg')));}
     if(pathname.startsWith('/api/desk/updates')){const b=method==='GET'?{}:await readBody();return json(res,200,method==='GET'?updates.status(user):pathname.endsWith('/check')?await updates.check(user):pathname.endsWith('/install')?updates.request(b,user):updates.save(b,user));}
     if(pathname==='/api/desk/brand-logo'&&method==='POST')return json(res,200,installation.saveLogo(await readBody(),user));
+    const v8Result=await v8.handle(method,pathname,user,searchParams,readBody);if(v8Result)return json(res,v8Result.status,v8Result.value);
     const extensionResult=await extensions.handle(method,pathname,user,searchParams,readBody);if(extensionResult)return json(res,extensionResult.status,extensionResult.value);
     if(method==='GET'&&pathname==='/api/meta'){
       const visible=projects.list(user),assignees=[...new Map(visible.filter(p=>p.can_work).flatMap(p=>projects.agents(p,user)).map(a=>[a.id,a])).values()];
@@ -494,7 +507,7 @@ const server = http.createServer(async (req,res)=>{
       tx(()=>{
         // Preserve historical authorship with an inactive, anonymized record.
         db.prepare("UPDATE users SET active=0,directory_active=0,name='Usunięty użytkownik #'||id,first_name='',last_name='',email='deleted-'||id||'@invalid.example',username='deleted-'||id,password='!',role='customer',version=version+1 WHERE id=?").run(target.id);
-        for(const table of ['sessions','account_tokens','identity_tokens','avatars','user_mfa','mfa_challenges','project_members','organization_members','ticket_watchers'])db.prepare('DELETE FROM '+table+' WHERE user_id=?').run(target.id);
+        for(const table of ['sessions','account_tokens','identity_tokens','avatars','user_mfa','mfa_challenges','project_members','organization_members','ticket_watchers','v8_security_keys','v8_webauthn_challenges'])db.prepare('DELETE FROM '+table+' WHERE user_id=?').run(target.id);
         db.prepare('UPDATE api_tokens SET revoked_at=? WHERE user_id=?').run(now(),target.id);
         db.prepare("UPDATE profile_requests SET state='rejected',reviewer_id=?,reviewed_at=? WHERE user_id=? AND state='pending'").run(user.id,now(),target.id);
         projects.clearAssignments(target.id);projects.audit(null,user,'user.deleted',{user_id:target.id});
@@ -532,8 +545,8 @@ const server = http.createServer(async (req,res)=>{
   }
 });
 server.requestTimeout=15000;server.headersTimeout=10000;server.maxRequestsPerSocket=100;
-workflows.automation.start();extensions.start();updates.start();
+workflows.automation.start();extensions.start();v8.start();updates.start();
 server.listen(Number(process.env.PORT||3000),process.env.HOST||'0.0.0.0',()=>console.log(`Service Desk działa na porcie ${server.address().port}`));
 let stopping=false;
-function stop(){if(stopping)return;stopping=true;clearInterval(housekeeping);updates.stop();workflows.automation.stop();extensions.stop();directory.stop();accounts.stop();server.close(()=>{db.exec('PRAGMA wal_checkpoint(TRUNCATE)');db.close();process.exit(0);});setTimeout(()=>process.exit(1),10000).unref();}
+function stop(){if(stopping)return;stopping=true;clearInterval(housekeeping);updates.stop();v8.stop();workflows.automation.stop();extensions.stop();directory.stop();accounts.stop();server.close(()=>{db.exec('PRAGMA wal_checkpoint(TRUNCATE)');db.close();process.exit(0);});setTimeout(()=>process.exit(1),10000).unref();}
 process.on('SIGTERM',stop);process.on('SIGINT',stop);

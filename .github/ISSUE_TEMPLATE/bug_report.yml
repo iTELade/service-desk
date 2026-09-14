@@ -62,8 +62,8 @@ body:
     id: version
     attributes:
       label: Service Desk version / Wersja Service Desk
-      description: Enter the affected version, e.g. 0.7.1. / Podaj wersję, np. 0.7.1.
-      placeholder: 0.7.1
+      description: Enter the affected version, e.g. 0.8.0. / Podaj wersję, np. 0.8.0.
+      placeholder: 0.8.0
     validations:
       required: true
 

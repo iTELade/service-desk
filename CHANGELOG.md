@@ -1,3 +1,20 @@
+# Service Desk 0.8.0
+
+Major functional release. Database schema: 8.
+
+- LDAP global Administrator mappings and LDAP-group-backed custom RBAC.
+- English-first localization foundation with Polish language switching.
+- Business-hours SLA, inbound team e-mail, scoped API tokens and signed webhooks are retained and supported.
+- Global audit browser/export, saved/shared queues and operational dashboard.
+- Multi-stage approvals and expanded customer organization rules.
+- Asset lifecycle, warranty/replacement metadata, relationship graph and asset history.
+- GitHub Issues forwarding into Service Desk with persistent linking, confirmation comment and optional automatic close.
+- TOTP setup with a locally generated QR code and recovery codes.
+- FIDO2/WebAuthn hardware security keys as a second factor; multiple keys can be registered per account.
+- Knowledge Base integration #14 is intentionally excluded from this release.
+
+See `RELEASE_NOTES_0.8.0.md` for the full release scope.
+
 # Service Desk 0.7.1
 
 Poprawki istniejącej aplikacji, bez zmiany schematu bazy (nadal 7).

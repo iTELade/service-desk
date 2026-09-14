@@ -1,19 +1,21 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Service Desk — portal zgłoszeń i przestrzeń pracy zespołu.">
+  <meta name="description" content="Service Desk — support portal and team workspace.">
   <title>Service Desk</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/app.css?v=0.7.1">
-  <script type="module" src="/app.js?v=0.7.1"></script>
+  <link rel="stylesheet" href="/app.css?v=0.8.0">
+  <script src="/i18n.js?v=0.8.0"></script>
+  <script type="module" src="/app.js?v=0.8.0"></script>
+  <script defer src="/security.js?v=0.8.0"></script>
 </head>
 <body>
-  <a class="skip" href="#main">Przejdź do treści</a>
-  <div id="app"><main id="main" class="loading">Ładowanie Service Desk…</main></div>
+  <a class="skip" href="#main">Skip to content</a>
+  <div id="app"><main id="main" class="loading">Loading Service Desk…</main></div>
   <div id="notices" class="notices" role="status" aria-live="polite"></div>
   <dialog id="modal"></dialog>
-  <noscript>Włącz JavaScript, aby korzystać z portalu zgłoszeń.</noscript>
+  <noscript>Enable JavaScript to use the Service Desk portal.</noscript>
 </body>
 </html>
