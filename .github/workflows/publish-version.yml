@@ -36,14 +36,17 @@ jobs:
           if(!/^\d+\.\d+\.\d+$/.test(VERSION)||p.version!==VERSION)throw Error('Invalid version');
           appendFileSync(process.env.GITHUB_OUTPUT,`tag=v${VERSION}\nimage=ghcr.io/${process.env.GITHUB_REPOSITORY.toLowerCase()}\n`);
           NODE
-      - name: Check tag is unused
+      - name: Inspect existing release
+        id: release
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          if gh api "repos/$GH_REPO/git/ref/tags/$TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $TAG already exists. Increment the package version."
-            exit 1
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Existing stable release $TAG will be repaired/updated."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Install and test
         run: |
@@ -68,10 +71,11 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.version.outputs.tag }}
-      - name: Publish release and update manifest
+      - name: Publish release manifest
         env:
           TAG: ${{ steps.version.outputs.tag }}
           IMAGE: ${{ steps.version.outputs.image }}@${{ steps.build.outputs.digest }}
+          RELEASE_EXISTS: ${{ steps.release.outputs.exists }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
@@ -80,5 +84,10 @@ jobs:
           import {manifest} from './lib/releases.mjs';
           writeFileSync('desk-release.json',JSON.stringify(manifest({format:1,project:'service-desk',version:VERSION,image:process.env.IMAGE,schema:SCHEMA_VERSION,minimum_schema:6},process.env.GITHUB_REPOSITORY,process.env.TAG),null,2)+'\n');
           NODE
-          gh release create "$TAG" desk-release.json --target "$GITHUB_SHA" \
-            --title "Service Desk ${TAG#v}" --notes-file "RELEASE_NOTES_${TAG#v}.md"
+          if [[ "$RELEASE_EXISTS" == "true" ]]; then
+            gh release upload "$TAG" desk-release.json --clobber
+            gh release edit "$TAG" --title "Service Desk ${TAG#v}" --notes-file "RELEASE_NOTES_${TAG#v}.md"
+          else
+            gh release create "$TAG" desk-release.json --target "$GITHUB_SHA" \
+              --title "Service Desk ${TAG#v}" --notes-file "RELEASE_NOTES_${TAG#v}.md"
+          fi
