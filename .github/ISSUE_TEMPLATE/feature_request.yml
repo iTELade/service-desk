@@ -1,66 +1,79 @@
-name: Propozycja funkcji
-description: Zaproponuj nową funkcję lub ulepszenie iTELade Service Desk
+name: Feature request / Propozycja funkcji
+description: Suggest a new feature or improvement for iTELade Service Desk / Zaproponuj nową funkcję lub ulepszenie iTELade Service Desk
 title: "[FEATURE] "
 body:
   - type: markdown
     attributes:
       value: |
-        Dzięki za propozycję. Opisz problem i oczekiwane rozwiązanie możliwie konkretnie.
+        Thank you for your suggestion. Please describe the problem and the expected solution as clearly as possible.
+
+        Dziękujemy za propozycję. Opisz problem i oczekiwane rozwiązanie możliwie konkretnie.
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Preferred language / Preferowany język
+      description: Choose the language you prefer for communication in this issue. / Wybierz preferowany język komunikacji w tym zgłoszeniu.
+      options:
+        - English
+        - Polski
+    validations:
+      required: true
 
   - type: textarea
     id: problem
     attributes:
-      label: Problem / potrzeba
-      description: Jaki problem użytkownika lub administratora ma rozwiązać ta funkcja?
-      placeholder: Obecnie nie można...
+      label: Problem / Need — Problem / potrzeba
+      description: What user or administrator problem should this feature solve? / Jaki problem użytkownika lub administratora ma rozwiązać ta funkcja?
+      placeholder: Currently it is not possible to... / Obecnie nie można...
     validations:
       required: true
 
   - type: textarea
     id: solution
     attributes:
-      label: Proponowane rozwiązanie
-      description: Opisz, jak według Ciebie powinna działać nowa funkcja.
+      label: Proposed solution / Proponowane rozwiązanie
+      description: Describe how you think the feature should work. / Opisz, jak według Ciebie powinna działać nowa funkcja.
     validations:
       required: true
 
   - type: dropdown
     id: area
     attributes:
-      label: Obszar systemu
+      label: System area / Obszar systemu
       options:
-        - LDAP / logowanie / tożsamość
-        - Użytkownicy i uprawnienia
-        - Projekty
-        - Portal klienta
-        - Zgłoszenia / kolejki
-        - Workflow / statusy / automatyzacje
-        - ITSM / środki trwałe
-        - Powiadomienia / e-mail
-        - Aktualizacje / utrzymanie
+        - LDAP / Authentication / Identity — LDAP / logowanie / tożsamość
+        - Users & Permissions — Użytkownicy i uprawnienia
+        - Projects — Projekty
+        - Customer Portal — Portal klienta
+        - Issues / Queues — Zgłoszenia / kolejki
+        - Workflow / Statuses / Automation — Workflow / statusy / automatyzacje
+        - ITSM / Assets — ITSM / środki trwałe
+        - Notifications / Email — Powiadomienia / e-mail
+        - Updates / Maintenance — Aktualizacje / utrzymanie
         - UI / UX
-        - API / integracje
-        - Instalacja / Docker
-        - Inne
+        - API / Integrations — API / integracje
+        - Installation / Docker — Instalacja / Docker
+        - Other — Inne
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatywy / obejścia
-      description: Czy obecnie istnieje inne rozwiązanie tego problemu?
+      label: Alternatives / Workarounds — Alternatywy / obejścia
+      description: Is there currently another way to solve this problem? / Czy obecnie istnieje inne rozwiązanie tego problemu?
 
   - type: textarea
     id: additional
     attributes:
-      label: Dodatkowy kontekst
-      description: Makiety, przykłady, linki lub inne informacje pomocne przy ocenie propozycji.
+      label: Additional context / Dodatkowy kontekst
+      description: Mockups, examples, links or other information useful when evaluating the proposal. / Makiety, przykłady, linki lub inne informacje pomocne przy ocenie propozycji.
 
   - type: checkboxes
     id: checks
     attributes:
-      label: Potwierdzenie
+      label: Confirmation / Potwierdzenie
       options:
-        - label: Sprawdziłem istniejące zgłoszenia i nie znalazłem takiej samej propozycji.
+        - label: I checked existing issues and did not find the same feature request. / Sprawdziłem istniejące zgłoszenia i nie znalazłem takiej samej propozycji.
           required: true
