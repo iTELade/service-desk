@@ -1,4 +1,4 @@
-# iTELade Service Desk 1.0.2
+# iTELade Service Desk 1.0.3
 
 Self-hosted service desk / ITSM platform for customer support and internal IT operations. Service Desk provides customer portals, internal and external projects, ticket workflows, SLA, automation, assets, LDAP/SSO, email integration, API, webhooks, GitHub Issues intake and an extensible plugin foundation.
 
@@ -21,11 +21,27 @@ Service Desk is not an Atlassian product and is not intended to be a clone of Ji
 - audit log and saved queues,
 - approvals,
 - GitHub Issues → Service Desk intake,
-- Administration Center and diagnostics,
+- native Administration Center inside `/#/settings`,
 - plugin registry and lifecycle foundation,
 - global language selection: English, Polish and German.
 
 English is the default system language. The selected language is global for the whole instance and is configured by an administrator.
+
+## Administration
+
+`/#/settings` is the main Administration Center and stays inside the normal Service Desk shell. It uses grouped navigation and opens one focused settings area at a time instead of presenting a wall of unrelated tiles.
+
+Administration is grouped into:
+
+- **General** — organization, registration, language and branding,
+- **Identity & Access** — users, LDAP / Active Directory, SSO / OIDC and account security,
+- **Service Management** — projects, workflows, approvals and customer organizations,
+- **Communication** — global SMTP, team mailboxes, mail queue and notification templates,
+- **Integrations** — GitHub Issues, Knowledge Base, API tokens, webhooks and plugins,
+- **Assets / CMDB** — asset catalog and asset projects,
+- **System** — diagnostics, audit, updates, module errors and maintenance.
+
+The old standalone `v8.html` administration page is retired. Direct visits to it redirect to `/#/settings`.
 
 ## GitHub Issues integration
 
@@ -45,6 +61,8 @@ further handling only in Service Desk
 
 There is no Service Desk → GitHub ticket creation and no bidirectional comment or status synchronization in the supported 1.0 flow.
 
+The integration is configured from **Settings → Integrations → GitHub Issues**. The UI includes repository owner/name, Service Desk project, named request-type selection, reporter/service account, GitHub credential, label-to-priority mapping, closing comment, enable/disable, connection test and readable transfer history. Auto-close is mandatory only after the Service Desk ticket and GitHub comment have both succeeded.
+
 ## Plugin foundation
 
 Service Desk 1.0 introduces the plugin registry and lifecycle foundation. Plugin manifests can declare:
@@ -55,7 +73,7 @@ Service Desk 1.0 introduces the plugin registry and lifecycle foundation. Plugin
 - requested permissions,
 - supported locales.
 
-Plugins can be registered, enabled, disabled and removed from Administration. Plugin health and lifecycle history are exposed to the administration and diagnostics views. Runtime extension points will continue to expand in later 1.x releases.
+Plugins can be registered, enabled, disabled and removed from Administration. Plugin health and lifecycle history are exposed to administration and diagnostics views. Runtime extension points will continue to expand in later 1.x releases.
 
 ## Architecture
 
@@ -90,19 +108,6 @@ On first launch, open the Service Desk URL and enter the one-time installation c
 
 A fresh installation does not include demo tickets or customer accounts. Registration is disabled by default until an administrator configures it.
 
-## Administration
-
-Service Desk 1.0 includes the Administration Center with grouped configuration areas for:
-
-- General,
-- Identity & Access,
-- Service Management,
-- Communication,
-- Integrations,
-- System.
-
-The diagnostics view exposes application version, database schema version, Node.js version, uptime, mail queue state, failed background events, SMTP state and plugin health.
-
 ## Languages
 
 Supported system languages:
@@ -117,7 +122,7 @@ Language is an instance-wide administrator setting. Users do not select a separa
 
 Service Desk can use the built-in updater with releases published from this repository. Stable releases include a `desk-release.json` manifest that identifies the exact GHCR image digest and database schema compatibility.
 
-Existing supported 0.8.x and 1.0.0 and 1.0.1 installations can upgrade to 1.0.2 through the built-in updater. Service Desk 1.0.2 keeps database schema version **8**, so this release does not require a new database migration.
+Existing supported 0.8.x, 1.0.0, 1.0.1 and 1.0.2 installations can upgrade to 1.0.3 through the built-in updater. Service Desk 1.0.3 keeps database schema version **8**, so this release does not require a new database migration.
 
 See [UPDATES.md](UPDATES.md) and [UPGRADE.md](UPGRADE.md) for details.
 
@@ -169,8 +174,8 @@ Source code: https://github.com/iTELade/service-desk
 
 ## Current release
 
-**Service Desk 1.0.2**
+**Service Desk 1.0.3**
 
-Major 1.0 highlights are the reorganized Administration Center, diagnostics, German language support, plugin lifecycle foundation, simplified role model and the one-way GitHub Issues intake flow.
+1.0.3 completes the native Settings / Administration redesign: all administration categories are available from `/#/settings`, the standalone `v8.html` interface is retired, and the layout is organized around focused settings areas instead of a wall of tiles.
 
-Release: https://github.com/iTELade/service-desk/releases/tag/v1.0.2
+Release: https://github.com/iTELade/service-desk/releases/tag/v1.0.3
