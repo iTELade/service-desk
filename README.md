@@ -1,4 +1,4 @@
-# Service Desk 0.8.0
+# Service Desk 0.8.1
 
 Samodzielny system zgłoszeń: portal klienta, projekty wewnętrzne i zewnętrzne, katalog urządzeń, własne formularze, mapy statusów, automatyzacje, kalendarze SLA, LDAP, OpenID Connect, IMAP, SMTP, API i webhooki. Node.js 24, SQLite, Docker; jeden kontener aplikacji korzystający z trwałego wolumenu. Aktualizator jest opcjonalnym drugim kontenerem.
 
@@ -23,7 +23,7 @@ Otwórz domenę, wpisz jednorazowy kod z logów oraz nazwę organizacji, nazwę 
 
 ## Konfiguracja i obsługa
 
-- **CHANGELOG.md** — zmiany w 0.8.0.
+- **CHANGELOG.md** — zmiany w 0.8.1.
 - **MODULES.md** — projekty, poczta, SLA, LDAP/SSO, integracje i uprawnienia.
 - **AUTOMATION.md** — wyzwalacze, warunki, akcje i harmonogram.
 - **API.md** — tokeny i API przychodzące.
