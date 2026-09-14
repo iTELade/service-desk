@@ -1,0 +1,37 @@
+name: Prepare Service Desk 1.0.1
+
+on:
+  push:
+    branches:
+      - release/1.0.1
+    paths:
+      - scripts/prepare-1.0.1.mjs
+      - .github/workflows/prepare-1.0.1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.0.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply 1.0.1 source transformations
+        run: node scripts/prepare-1.0.1.mjs
+      - name: Commit prepared source tree
+        run: |
+          set -euo pipefail
+          rm scripts/prepare-1.0.1.mjs .github/workflows/prepare-1.0.1.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "release: prepare Service Desk 1.0.1"
+          git push origin HEAD:release/1.0.1
