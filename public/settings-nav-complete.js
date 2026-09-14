@@ -1,36 +1,91 @@
+const SETTINGS_NAV_VERSION = '1.0.5';
+
 const DIRECT_SETTINGS_LINKS = {
+  'Ogólne': [
+    ['Organizacja i rejestracja', '/#/settings?section=general'],
+    ['Wygląd i marka', '/#/settings?section=branding']
+  ],
   'Tożsamość i dostęp': [
     ['Użytkownicy', '/#/users'],
     ['LDAP / Active Directory', '/#/directory'],
-    ['SSO / OIDC', '/#/admin/sso']
+    ['SSO / OIDC', '/#/admin/sso'],
+    ['MFA i moje konto', '/#/profile']
   ],
   'Zarządzanie usługami': [
     ['Projekty', '/#/projects'],
-    ['Szablony workflow', '/#/admin/templates']
+    ['Szablony workflow', '/#/admin/templates'],
+    ['Zatwierdzenia', '/#/settings?section=approvals'],
+    ['Organizacje klientów', '/#/settings?section=organizations']
   ],
   'Komunikacja': [
+    ['Poczta SMTP i kolejka', '/#/settings?section=communication'],
     ['Skrzynki zespołów', '/#/admin/mail'],
     ['Szablony powiadomień', '/#/admin/mail-templates']
   ],
   'Integracje': [
+    ['Przegląd integracji', '/#/settings?section=integrations'],
+    ['GitHub Issues', '/#/settings?section=github'],
+    ['Synchronizacja projektów', '/#/admin/sync'],
     ['Baza wiedzy', '/#/admin/knowledge'],
     ['Tokeny API', '/#/admin/api-tokens'],
-    ['Webhooki', '/#/admin/webhooks']
+    ['Webhooki', '/#/admin/webhooks'],
+    ['Wtyczki', '/#/settings?section=plugins']
   ],
   'Zasoby / CMDB': [
+    ['Środki trwałe / CMDB', '/#/settings?section=assets'],
     ['Katalog środków trwałych', '/#/admin/assets']
   ],
   'System': [
+    ['Diagnostyka i utrzymanie', '/#/settings?section=system'],
+    ['Audyt', '/#/settings?section=audit'],
     ['Aktualizacje', '/#/admin/updates'],
-    ['Błędy modułów', '/#/admin/events']
+    ['Błędy modułów', '/#/admin/events'],
+    ['Zaawansowane ustawienia systemu', '/#/admin-settings']
   ]
 };
 
+function isSettingsRoute() {
+  return location.hash === '#/settings' || location.hash.startsWith('#/settings?');
+}
+
+function settingsCenterPresent(main = document.querySelector('#main')) {
+  return Boolean(main?.querySelector('.settings-center'));
+}
+
+function looksLikeLegacySettings(main = document.querySelector('#main')) {
+  if (!main) return false;
+  return Boolean(
+    main.querySelector('[data-form="settings"]') ||
+    main.querySelector('[data-v6="smtp"]') ||
+    main.textContent?.includes('Organizacja i rejestracja') ||
+    main.textContent?.includes('Domyślna poczta SMTP')
+  );
+}
+
+function recoverSettingsCenter() {
+  if (!isSettingsRoute()) return;
+  const main = document.querySelector('#main');
+  if (!main || settingsCenterPresent(main) || !looksLikeLegacySettings(main)) return;
+
+  // settings-center.js may have rendered first and app.js may then overwrite only
+  // main.innerHTML. In that race the old data marker survives, causing the
+  // settings-center observer to think its UI is still mounted. Clear the marker
+  // and create a childList mutation so the real Settings Center renders again.
+  delete main.dataset.settingsCenterVersion;
+  main.dataset.settingsRecovery = SETTINGS_NAV_VERSION;
+  main.append(document.createComment(`settings-center-recover-${SETTINGS_NAV_VERSION}`));
+}
+
 function completeSettingsNavigation() {
+  if (!isSettingsRoute()) return;
+
   const nav = document.querySelector('.settings-nav');
   const version = document.querySelector('.version-chip');
-  if (version) version.textContent = 'Wersja 1.0.4';
-  if (!nav) return;
+  if (version) version.textContent = `Wersja ${SETTINGS_NAV_VERSION}`;
+  if (!nav) {
+    recoverSettingsCenter();
+    return;
+  }
 
   for (const group of nav.querySelectorAll('.settings-nav-group')) {
     const title = group.querySelector('h3')?.textContent?.trim();
@@ -48,8 +103,18 @@ function completeSettingsNavigation() {
   }
 }
 
-const observer = new MutationObserver(completeSettingsNavigation);
+let completionScheduled = false;
+function scheduleSettingsNavigation() {
+  if (completionScheduled) return;
+  completionScheduled = true;
+  queueMicrotask(() => {
+    completionScheduled = false;
+    completeSettingsNavigation();
+  });
+}
+
+const observer = new MutationObserver(scheduleSettingsNavigation);
 observer.observe(document.documentElement, {childList: true, subtree: true});
-window.addEventListener('hashchange', completeSettingsNavigation);
-window.addEventListener('DOMContentLoaded', completeSettingsNavigation);
-if (document.readyState !== 'loading') completeSettingsNavigation();
+window.addEventListener('hashchange', scheduleSettingsNavigation);
+window.addEventListener('DOMContentLoaded', scheduleSettingsNavigation);
+if (document.readyState !== 'loading') scheduleSettingsNavigation();
