@@ -1,3 +1,11 @@
+## 1.0.1 - 2026-09-14
+
+- Retired active custom global role/permission-set handling; the product now uses Global Administrator, Project Manager, Agent and Customer roles with project isolation and LDAP project mappings.
+- Made the Administration Center the Settings entry point and separated Assets / CMDB as a first-class administration category.
+- Completed GitHub Issues one-way intake administration with CRUD, enable/disable, connection testing, named request-type selection, readable status/history, mandatory auto-close, deduplication and failure-safe retry behavior.
+- Centralized active 1.0.1 version reporting and cache busting.
+- Added 1.0.1 regression coverage and aligned CI/release validation with npm run test:ci.
+
 # Service Desk 0.8.0
 
 Major functional release. Database schema: 8.
