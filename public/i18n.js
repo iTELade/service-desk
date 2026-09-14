@@ -24,6 +24,7 @@
     ['Klient / zgłaszający','Customer / requester'],['Zapisz konfigurację LDAP','Save LDAP configuration'],['Sprawdź i pokaż zmiany','Check and preview changes'],
     ['Historia synchronizacji','Synchronization history'],['Ustawienia systemu','System settings'],['Wersja i aktualizacje','Version and updates'],
     ['Organizacja i rejestracja','Organization and registration'],['Nazwa organizacji','Organization name'],['Nazwa systemu','System name'],
+    ['Język systemu','System language'],['Angielski','English'],['Polski','Polish'],['Język obowiązuje wszystkich użytkowników i ekrany publiczne.','The language applies to all users and public screens.'],
     ['Domyślna poczta SMTP','Default SMTP'],['Kolejka poczty','Mail queue'],['Reset systemu','System reset'],['Powiadomienia','Notifications'],
     ['Baza wiedzy — integracja','Knowledge Base integration'],['API i tokeny','API and tokens'],['Webhooki','Webhooks'],['Środki trwałe','Assets'],
     ['Firmy i grupy klientów','Customer organizations'],['Synchronizacja projektów','Project synchronization'],['Poczta zespołów · IMAP i SMTP','Team mail · IMAP and SMTP'],
@@ -33,11 +34,13 @@
     ['Loading Service Desk…','Wczytywanie Service Desk…'],['Skip to content','Przejdź do treści'],['Enable JavaScript to use the Service Desk portal.','Włącz JavaScript, aby korzystać z portalu Service Desk.']
   ];
 
-  const getLocale = () => localStorage.getItem('desk.locale') || 'en';
+  let locale = 'en';
+  let configLoaded = false;
+
+  function normalize(value) { return value === 'pl' ? 'pl' : 'en'; }
 
   function translateText(value) {
     let out = String(value ?? '');
-    const locale = getLocale();
     for (const [pl, en] of pairs) {
       if (locale === 'en') out = out.replaceAll(pl, en);
       else out = out.replaceAll(en, pl);
@@ -60,52 +63,80 @@
     for (const child of node.childNodes) translateNode(child);
   }
 
-  function setLocale(locale) {
-    const normalized = locale === 'pl' ? 'pl' : 'en';
-    localStorage.setItem('desk.locale', normalized);
-    location.reload();
+  function injectSettingsLanguage(root = document) {
+    const form = root.querySelector?.('form[data-form="settings"]') || (root.matches?.('form[data-form="settings"]') ? root : null);
+    if (!form || form.querySelector('[name="language"]')) return;
+    const registration = form.querySelector('[name="registration_mode"]')?.closest('label');
+    const label = document.createElement('label');
+    label.dataset.systemLanguage = 'true';
+    label.innerHTML = `Język systemu<select name="language"><option value="en">Angielski</option><option value="pl">Polski</option></select><small>Język obowiązuje wszystkich użytkowników i ekrany publiczne.</small>`;
+    label.querySelector('select').value = locale;
+    if (registration) registration.after(label); else form.prepend(label);
+    translateNode(label);
+  }
+
+  function applyLanguage(next) {
+    locale = normalize(next);
+    document.documentElement.lang = locale;
+    document.title = translateText(document.title);
+    translateNode(document.body);
+    injectSettingsLanguage(document);
+  }
+
+  async function loadSystemLanguage() {
+    try {
+      const response = await fetch('/api/public-config', {credentials:'same-origin', cache:'no-store'});
+      if (!response.ok) throw new Error('public config unavailable');
+      const config = await response.json();
+      configLoaded = true;
+      applyLanguage(config.language);
+    } catch {
+      configLoaded = true;
+      applyLanguage('en');
+    }
+  }
+
+  async function waitForSavedLanguage(expected) {
+    for (let attempt = 0; attempt < 16; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      try {
+        const response = await fetch('/api/public-config', {credentials:'same-origin', cache:'no-store'});
+        if (!response.ok) continue;
+        const config = await response.json();
+        if (normalize(config.language) === expected) {
+          if (locale !== expected) location.reload();
+          return;
+        }
+      } catch {}
+    }
   }
 
   window.DeskLocale = {
-    get locale() { return getLocale(); },
-    set: setLocale,
-    t: translateText
+    get locale() { return locale; },
+    get global() { return true; },
+    t: translateText,
+    refresh: loadSystemLanguage
   };
 
-  document.documentElement.lang = getLocale();
+  document.documentElement.lang = 'en';
 
   addEventListener('DOMContentLoaded', () => {
-    document.title = translateText(document.title);
-    translateNode(document.body);
-
-    new MutationObserver(mutations => {
+    const observer = new MutationObserver(mutations => {
       for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) translateNode(node);
+        for (const node of mutation.addedNodes) {
+          translateNode(node);
+          if (node.nodeType === Node.ELEMENT_NODE) injectSettingsLanguage(node);
+        }
       }
-    }).observe(document.body, {childList:true, subtree:true});
-
-    const box = document.createElement('div');
-    box.className = 'desk-language-switch';
-    box.setAttribute('role', 'group');
-    box.setAttribute('aria-label', getLocale() === 'pl' ? 'Język interfejsu' : 'Interface language');
-    box.innerHTML = '<button type="button" data-lang="en">EN</button><button type="button" data-lang="pl">PL</button>';
-    Object.assign(box.style, {
-      position:'fixed', right:'12px', bottom:'12px', zIndex:'10000', display:'flex', gap:'4px',
-      padding:'4px', borderRadius:'10px', background:'rgba(10,18,32,.92)', boxShadow:'0 6px 24px rgba(0,0,0,.25)'
     });
-    for (const button of box.querySelectorAll('button')) {
-      const active = button.dataset.lang === getLocale();
-      button.setAttribute('aria-pressed', active ? 'true' : 'false');
-      Object.assign(button.style, {
-        minWidth:'38px', padding:'7px 9px', borderRadius:'7px', cursor:'pointer',
-        border: active ? '1px solid #fff' : '1px solid rgba(255,255,255,.25)',
-        background: active ? '#fff' : 'transparent', color: active ? '#111827' : '#fff', fontWeight:'700'
-      });
-    }
-    box.addEventListener('click', event => {
-      const button = event.target.closest('[data-lang]');
-      if (button) setLocale(button.dataset.lang);
-    });
-    document.body.append(box);
+    observer.observe(document.body, {childList:true, subtree:true});
+    void loadSystemLanguage();
   });
+
+  document.addEventListener('submit', event => {
+    const form = event.target.closest?.('form[data-form="settings"]');
+    if (!form) return;
+    const expected = normalize(form.elements.language?.value || locale);
+    if (expected !== locale) void waitForSavedLanguage(expected);
+  }, true);
 })();
