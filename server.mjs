@@ -1,3 +1,5 @@
+import {migrateV7} from './lib/migration-v7.mjs';
+import {createMfa} from './lib/mfa.mjs';
 import {createUpdates} from './lib/updates.mjs';
 import {maintenance} from './lib/maintenance.mjs';
 import http from 'node:http';
@@ -34,7 +36,7 @@ mkdirSync(dataDir, { recursive: true, mode: 0o700 });
 const db = new DatabaseSync(join(dataDir, 'desk.sqlite'));
 db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
 const schemaVersion = db.prepare('PRAGMA user_version').get().user_version;
-if (schemaVersion > 6) throw new Error('Baza wymaga nowszej wersji aplikacji.');
+if (schemaVersion > 7) throw new Error('Baza wymaga nowszej wersji aplikacji.');
 if (!schemaVersion) {
   db.exec(`BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -128,7 +130,9 @@ if(db.prepare('PRAGMA user_version').get().user_version<2)migrateV2(db);
 if(db.prepare('PRAGMA user_version').get().user_version<3)migrateV3(db);
 if(db.prepare('PRAGMA user_version').get().user_version<4)migrateV4(db);
 if(db.prepare('PRAGMA user_version').get().user_version<5)migrateV5(db);
-migrateV6(db);
+if(db.prepare('PRAGMA user_version').get().user_version<6)migrateV6(db);
+migrateV7(db);
+const mfa=createMfa(db,{dataDir});
 const projects = createProjects(db);
 const installation=createInstallation(db,{dataDir,encodePassword,projects});
 if(installation.required())console.log('Kod instalacji WWW: '+installation.token());
@@ -264,11 +268,11 @@ const server = http.createServer(async (req,res)=>{
   securityHeaders(res);
   try {
     const {pathname,searchParams}=new URL(req.url,origin),method=req.method;
-    if(method==='GET'&&pathname==='/healthz'){db.prepare('SELECT 1').get();return json(res,200,{status:'ok',version:VERSION,schema:6});}
+    if(method==='GET'&&pathname==='/healthz'){db.prepare('SELECT 1').get();return json(res,200,{status:'ok',version:VERSION,schema:7});}
     if(maintenance()&&pathname.startsWith('/api/')&&!(method==='GET'&&['/api/me','/api/meta','/api/public-config','/api/brand/logo','/api/desk/updates'].includes(pathname)))fail(503,'Trwa aktualizacja systemu. Spróbuj ponownie za chwilę.');
     const asset=assets.get(pathname)||(/^\/portal\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/.test(pathname)?assets.get('/'):null);
     if(asset&&['GET','HEAD'].includes(method)){const[file,type]=asset;res.writeHead(200,{'Content-Type':type});return res.end(method==='HEAD'?'':readFileSync(join(root,'public',file)));}
-    if(method==='GET'&&pathname==='/api/sso/callback'){const stateCookie=prod?'__Host-desk_sso':'desk_sso',browser=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(stateCookie+'='))?.slice(stateCookie.length+1);const u=await sso.callback(new URL(req.url,origin),browser);const token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',[cookie(token,12*3600),stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':'')]);res.writeHead(303,{Location:'/#/queue'});return res.end();}
+    if(method==='GET'&&pathname==='/api/sso/callback'){const stateCookie=prod?'__Host-desk_sso':'desk_sso',browser=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(stateCookie+'='))?.slice(stateCookie.length+1);const u=await sso.callback(new URL(req.url,origin),browser);if(mfa.status(u).enabled){const challenge=mfa.challenge(u);res.setHeader('Set-Cookie',stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':''));res.writeHead(303,{Location:'/#/mfa/'+challenge});return res.end();}const token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',[cookie(token,12*3600),stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':'')]);res.writeHead(303,{Location:'/#/queue'});return res.end();}
     if(method==='GET'&&/^\/api\/sso\/[1-9][0-9]*\/start$/.test(pathname)){rateLimit('sso-start',200);const result=await sso.begin(Number(pathname.split('/')[3]));res.setHeader('Set-Cookie',(prod?'__Host-desk_sso':'desk_sso')+'='+result.browser+'; Path=/; HttpOnly; SameSite=Lax; Max-Age=600'+(prod?'; Secure':''));res.writeHead(303,{Location:result.url});return res.end();}
     if(method==='POST'&&/^\/api\/hooks\/[1-9][0-9]*$/.test(pathname)){rateLimit('incoming-hook',500);const b=await body(req),result=extensions.webhooks.incoming(Number(pathname.split('/')[3]),req.headers.authorization,b);extensions.events();return json(res,200,result);}
     if(pathname.startsWith('/api/v1/')){rateLimit('public-api',2000);const b=method==='GET'?{}:await body(req),result=extensions.api.run(req.headers.authorization,method,pathname,searchParams,b,req.headers['idempotency-key']);extensions.events();return json(res,result.status,result.value);}
@@ -285,13 +289,15 @@ const server = http.createServer(async (req,res)=>{
       const u=db.prepare('SELECT * FROM users WHERE email=? OR ldap_login=? OR username=? ORDER BY email=? DESC LIMIT 1').get(login,login,login,login);
       const valid=u?.auth_source==='ldap'?await directory.authenticate(u,b.password):await checkPassword(b.password,u?.password||dummyPassword);
       const fresh=u?db.prepare('SELECT * FROM users WHERE id=?').get(u.id):null;
-      if(!valid||fresh?.account_kind==='service'||fresh?.sso_only||!fresh?.active||!fresh.directory_active||fresh.version!==u.version)fail(401,'Nieprawidłowy e-mail, login lub hasło albo konto jest wyłączone.');
+      if(!valid||fresh?.sso_only||!fresh?.active||!fresh.directory_active||fresh.version!==u.version)fail(401,'Nieprawidłowy e-mail, login lub hasło albo konto jest wyłączone.');
       if(fresh.registration_state==='pending_approval')fail(403,'Konto oczekuje na zatwierdzenie przez administratora.');
       if(fresh.registration_state==='pending_email')fail(403,'Potwierdź adres e-mail za pomocą linku aktywacyjnego.');
+      if(mfa.status(fresh).enabled)return json(res,200,{mfa_required:true,challenge:mfa.challenge(fresh)});
       const token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');
       db.prepare('INSERT INTO sessions(token,user_id,csrf,expires_at) VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);
       res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(fresh),csrf});
     }
+    if(method==='POST'&&pathname==='/api/mfa/verify'){rateLimit('mfa-login',30);const b=await body(req),u=mfa.verify(b.challenge,b.code),token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(u),csrf});}
     if(method==='POST'&&pathname==='/api/accept-invite'){rateLimit('invite',100);const b=await body(req);return json(res,200,await identity.acceptInvite(b.token,b.password));}
     if(method==='POST'&&['/api/register','/api/resend-verification','/api/forgot-password','/api/verify-email','/api/reset-password'].includes(pathname)){
       rateLimit('account-total',200);const b=await body(req);
@@ -305,6 +311,7 @@ const server = http.createServer(async (req,res)=>{
     function admin(){if(user.role!=='admin')fail(403,'Dostęp tylko dla administratora.');}
     async function readBody(){const b=await body(req);authenticate();if(user.must_change&&pathname!=='/api/password')fail(403,'Najpierw zmień hasło tymczasowe.');return b;}
     authenticate();
+    if(pathname.startsWith('/api/mfa/')){rateLimit('mfa-settings:'+user.id,20);const action=pathname.split('/').at(-1);if(method==='GET'&&action==='status')return json(res,200,mfa.status(user));const b=await readBody();if(method!=='POST')fail(405,'Niedozwolona metoda.');if(action==='setup')return json(res,200,mfa.setup(user));if(action==='enable')return json(res,200,mfa.enable(user,b.code));if(action==='disable')return json(res,200,mfa.disable(user,b.code));fail(404,'Nieznana operacja.');}
     if(method==='GET'&&pathname==='/api/me')return json(res,200,{user:safeUser(user),csrf:user.csrf});
     if(method==='POST'&&pathname==='/api/logout'){db.prepare('DELETE FROM sessions WHERE token=?').run(user.token);res.setHeader('Set-Cookie',cookie('',0));return json(res,200,{ok:true});}
     if(method==='POST'&&pathname==='/api/password'){
@@ -352,7 +359,7 @@ const server = http.createServer(async (req,res)=>{
     const workflowRoute=pathname.match(/^\/api\/projects\/([1-9][0-9]*)\/workflow$/);
     if(workflowRoute){const id=Number(workflowRoute[1]);
       if(method==='GET'){projects.requireProject(id,user,true);return json(res,200,workflows.get(id));}
-      if(method==='PATCH'){const b=await readBody();return json(res,200,workflows.save(id,b,user));}
+      if(method==='PATCH'){projects.requireProject(id,user,true);const b=await readBody(),current=workflows.get(id);if(['initial','statuses','transitions'].some(k=>b[k]!==undefined&&JSON.stringify(b[k])!==JSON.stringify(current[k])))fail(403,'Statusy i przejścia edytuj w szablonach w ustawieniach.');return json(res,200,workflows.save(id,{...current,version:b.version,rules:b.rules??current.rules},user));}
     }
     const automationRoute=pathname.match(/^\/api\/projects\/([1-9][0-9]*)\/automation(?:\/([1-9][0-9]*)\/retry)?$/);
     if(automationRoute){const id=Number(automationRoute[1]);
@@ -411,7 +418,7 @@ const server = http.createServer(async (req,res)=>{
       let t=ticketFor(ticketRoute[1],user),p=projects.project(t.project_id),canWork=projects.canWork(user,p);
       if(method==='GET'&&!ticketRoute[2]){
         workflows.automation.processDue(t.id);t=ticketFor(ticketRoute[1],user);
-        const comments=db.prepare(`SELECT c.id,c.body,c.internal,c.created_at,u.account_kind='service' is_bot,u.name author_name,u.username,u.id author_id FROM comments c JOIN users u ON u.id=c.author_id WHERE c.ticket_id=?${canWork?'':' AND c.internal=0'} ORDER BY c.id`).all(t.id);
+        const comments=db.prepare(`SELECT c.id,c.body,c.internal,c.created_at,c.origin IN ('automation','sync') is_bot,u.name author_name,u.username,u.id author_id FROM comments c JOIN users u ON u.id=c.author_id WHERE c.ticket_id=?${canWork?'':' AND c.internal=0'} ORDER BY c.id`).all(t.id);
         const activity=!canWork?[]:db.prepare("SELECT a.id,a.body,a.created_at,CASE WHEN a.automation_rule IS NOT NULL THEN 'Automatyzacja' ELSE u.name END actor_name FROM activity a JOIN users u ON u.id=a.actor_id WHERE a.ticket_id=? ORDER BY a.id DESC").all(t.id);
         return json(res,200,{ticket:ticketWithSla(t,user),comments:comments.map(c=>desk.commentExtras(c,t,user)),activity,agents:projects.agents(p,user),sync:canWork?extensions.sync.available(t,user):[]});
       }
@@ -433,6 +440,7 @@ const server = http.createServer(async (req,res)=>{
       if(method==='PATCH'&&!ticketRoute[2]){
         const b=await readBody();workflows.automation.processDue(t.id);t=ticketFor(ticketRoute[1],user);p=projects.project(t.project_id);canWork=projects.canWork(user,p);
         if(p.archived||t.archived_at)fail(409,'Projekt lub zgłoszenie jest zarchiwizowane.');
+        if(!canWork)fail(403,'Klient może dodawać odpowiedzi, ale nie może edytować zgłoszenia.');
         if(!canWork&&t.customer_reply_locked)fail(403,'Zgłoszenie jest zablokowane dla odpowiedzi i ponownego otwarcia przez klienta.');
         if(t.status==='closed')fail(409,'Zamknięta sprawa jest ostateczna. Możesz utworzyć nowe lub sklonować zgłoszenie.');
         if(b.version!==t.version)fail(409,'Zgłoszenie zmieniło się w tle. Odśwież je i ponów zmianę.');
@@ -475,7 +483,6 @@ const server = http.createServer(async (req,res)=>{
       if(b.version!==target.version)fail(409,'Konto zmieniło się. Odśwież stronę.');
       if(Object.keys(b).some(k=>!['version','role','active','is_internal','new_password','approve'].includes(k)))fail(400,'Nieznane pole użytkownika.');
       if(target.auth_source==='ldap'&&['role','is_internal','new_password','approve'].some(k=>Object.hasOwn(b,k)))fail(400,'Rolę i dane tego konta ustala LDAP. Lokalnie możesz włączyć lub zablokować dostęp.');
-      if(target.account_kind==='service'&&(b.new_password!==undefined||b.role&&b.role!=='agent'))fail(400,'Konto serwisowe nie ma hasła ani roli administratora lub klienta.');
       for(const key of ['active','is_internal','approve'])if(b[key]!==undefined&&typeof b[key]!=='boolean')fail(400,'Nieprawidłowe pole: '+key);
       const role=b.role===undefined?target.role:choice(b.role,{admin:1,agent:1,customer:1},'rola'),active=b.active===undefined?target.active:Number(b.active),internal=b.is_internal===undefined?target.is_internal:Number(b.is_internal);
       if(target.id===user.id&&(!active||role!=='admin'))fail(400,'Nie możesz odebrać sobie dostępu administratora.');

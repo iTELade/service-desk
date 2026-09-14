@@ -1,3 +1,4 @@
+import {migrateV7} from '../lib/migration-v7.mjs';
 import {migrateV6} from '../lib/migration-v6.mjs';
 import {migrateV5} from '../lib/migration-v5.mjs';
 import {DatabaseSync} from 'node:sqlite';
@@ -15,7 +16,7 @@ export function legacyDb(){
   return db;
 }
 export function fixture(){
-  const db=legacyDb();migrateV2(db);migrateV3(db);migrateV4(db);migrateV5(db);migrateV6(db);const projects=createProjects(db),admin=db.prepare('SELECT * FROM users WHERE id=1').get();
+  const db=legacyDb();migrateV2(db);migrateV3(db);migrateV4(db);migrateV5(db);migrateV6(db);migrateV7(db);const projects=createProjects(db),admin=db.prepare('SELECT * FROM users WHERE id=1').get();
   const dataDir=mkdtempSync(join(tmpdir(),'itelade-unit-'));
   return {db,projects,admin,dataDir,close(){db.close();rmSync(dataDir,{recursive:true,force:true});}};
 }

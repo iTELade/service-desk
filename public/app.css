@@ -90,3 +90,18 @@ body{color:var(--ink);background:var(--surface-soft)}.topbar{min-height:74px}.br
 .release-notes{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-height:24rem;overflow:auto;background:var(--surface-soft,#f5f7fb);padding:1rem;border-radius:10px}.release-job{border:1px solid var(--line);border-radius:10px;padding:1rem;margin-top:1rem}.release-job p{overflow-wrap:anywhere}
 @media(max-width:600px){.topbar{flex-wrap:wrap;gap:.6rem}.topbar>div{min-width:0;gap:.5rem}.topbar .project-switch{min-width:0;flex:1}.topbar select{max-width:100%;min-width:0}.topbar>div:last-child{margin-left:auto}.notification-bell{flex-shrink:0}}
 [data-theme="dark"] input::placeholder,[data-theme="dark"] textarea::placeholder{color:#9ba9bc;opacity:1}
+
+/* 0.7: readable hover states, spaced links, workflow ordering. */
+:root[data-theme="dark"] tbody tr:hover,
+html[data-theme="dark"] tbody tr:hover,
+[data-theme="dark"] tbody tr:hover td { background: #1c2b40; color: #e6edf7; }
+.ticket-link-row { display:flex; align-items:center; flex-wrap:wrap; gap:.65rem; }
+.ticket-link-row button { margin-left:auto; flex-shrink:0; }
+.ticket-link-row small { padding:.25rem .5rem; border-radius:4px; background:var(--surface-alt,#25374c); }
+.sidebar .avatar { width:36px;height:36px;border-radius:50%;object-fit:cover; }
+[data-v6="template"] .workflow-status-row { cursor:grab; }
+[data-v6="template"] .workflow-status-row:active { cursor:grabbing; }
+#update-notice { position:fixed; bottom:12px; right:16px; z-index:40; max-width:calc(100vw - 32px); padding:14px 20px; border:1px solid #4c8be8; border-radius:10px; background:#102b4b; color:#fff; box-shadow:0 4px 24px #0004; }
+#update-notice a { color:#9ad9ff; margin-left:12px; }
+#update-notice[hidden] { display:none; }
+.mfa-secret { display:block; padding:16px; overflow-wrap:anywhere; font-size:18px; letter-spacing:2px; }

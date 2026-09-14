@@ -7,7 +7,7 @@ Ustawienia znajdują się w **Ustawieniach**. LDAP jest pod linkiem „Katalog L
 Przykład: **CW → ITA**. Nazwy i kierunki są dowolne.
 
 1. Utwórz oba projekty i ich formularze. Nadaj zespołowi dostęp do obu.
-2. W Użytkownikach utwórz konto serwisowe, np. „Zespół wsparcia”. Przypisz je jako agenta do obu projektów. Domyślny Service Desk Bot ma takie przypisania do projektów utworzonych przez aplikację.
+2. W Użytkownikach utwórz zwykłe konto użytkownika, np. „Zespół wsparcia”. Przypisz je jako agenta do obu projektów. Domyślny Service Desk Bot ma takie przypisania do projektów utworzonych przez aplikację.
 3. Ustawienia → Synchronizacja projektów → Dodaj. Wybierz projekt źródłowy, docelowy, autora wyświetlanego i nazwę przycisku, np. „Wyślij do ITA”.
 4. Wybierz kierunek komentarzy: oba, do źródła, do celu lub brak. Notatki wewnętrzne są osobną opcją, domyślnie wyłączoną; po skopiowaniu pozostają wewnętrzne.
 5. Dodaj tylko potrzebne mapowania statusów w każdym kierunku. Statusy nie muszą mieć tej samej nazwy. Puste mapowanie nie zmienia statusu. Przejście musi być dozwolone na mapie docelowej.
@@ -40,7 +40,7 @@ Skrzynki muszą wcześniej istnieć w Mailcow. Ustawienia → Poczta zespołów 
 - „Nowi nadawcy” jest domyślnie wyłączone. Po włączeniu nieznany nadawca nowego wątku może otrzymać konto klienta i link aktywacyjny; domeny możesz ograniczyć. Nieznany nadawca nie uzyskuje dostępu do istniejącego wątku na podstawie numeru w temacie.
 - Aktywuj kanał. Odczyt następuje co około 15 sekund, w porcjach do 100 numerów UID. Historia pokaże przetworzenie/pominięcie i przyczynę.
 
-Odpowiedzi używają Message-ID/In-Reply-To/References, a numer w nawiasach w temacie jest mechanizmem pomocniczym. Aktualizacje trafiają do zgłaszającego i opiekuna z dostępem; nie do autora tego samego komentarza, kont serwisowych ani automatycznie całej firmy. Notatki wewnętrzne nie są wysyłane klientom.
+Odpowiedzi używają Message-ID/In-Reply-To/References, a numer w nawiasach w temacie jest mechanizmem pomocniczym. Po aktualizacji klienta wiadomość dostają obserwatorzy, opiekun i twórca sprawy, jeśli jest inną osobą. Po aktualizacji agenta: zgłaszający i obserwatorzy. Autor nie dostaje własnej aktualizacji; nowa sprawa otrzymuje potwierdzenie. Dostęp odbiorców jest sprawdzany ponownie przed wysyłką. Notatki wewnętrzne nie są wysyłane klientom.
 
 Wiadomość zawiera linię **Odpowiedz powyżej tej linii**. Wpisz odpowiedź nad nią. Parser usuwa typowe cytaty; bardzo niestandardowe formatowanie klienta pocztowego może wymagać ręcznego usunięcia cytatu. Wiadomości automatyczne i listowe są pomijane, aby uniknąć pętli. Zamknięta sprawa odrzuca dalszą odpowiedź i wysyła instrukcję nowego zgłoszenia.
 
@@ -61,7 +61,7 @@ Obsługiwany protokół: **OpenID Connect**. Możesz dodać kilka konfiguracji, 
 5. Dla istniejącego konta kliknij „Powiąż konto” i podaj jego rzeczywisty subject `sub` od dostawcy. W Keycloak jest to ID użytkownika. Aplikacja celowo nie scala kont wyłącznie po e-mailu.
 6. Opcjonalne automatyczne tworzenie kont wymaga zweryfikowanego e-maila od dostawcy i zgodnej domeny. Powstaje wyłącznie klient, nie administrator/agent.
 
-Zachowaj aktywnego lokalnego administratora do awarii dostawcy. Konto serwisowe nie może zalogować się przez SSO. LDAP nadal może synchronizować konta i członkostwa, a jawne powiązanie SSO może wskazywać takie konto. Ustawienia wyłączenia kont pozostają obowiązujące.
+Zachowaj aktywnego lokalnego administratora do awarii dostawcy. LDAP nadal może synchronizować konta i członkostwa, a jawne powiązanie SSO może wskazywać takie konto. Ustawienia wyłączenia kont pozostają obowiązujące.
 
 ## SLA i czas
 
@@ -79,7 +79,7 @@ Moduł czasu pokazuje **czas kalendarzowy** w kolejnych statusach, sumuje powrot
 
 ## Statusy, szablony i rozwiązanie
 
-Szablon obejmuje statusy, przejścia i stan początkowy. Edytujesz go bezpośrednio w Ustawieniach → Szablony obiegów, wraz z mapą strzałek. Zmiany obejmują przypisane projekty; serwer najpierw waliduje wszystkie mapy, istniejące zgłoszenia i reguły. Szablon można usunąć wyłącznie, gdy nie używa go żaden projekt, również zarchiwizowany. Nowe projekty korzystają z szablonu domyślnego. Lokalna zmiana struktury mapy projektu odłącza go od szablonu; edycja samych reguł nie odłącza. Reguły pozostają niezależne w każdym projekcie.
+Szablon obejmuje statusy, przejścia i stan początkowy. Edytujesz go bezpośrednio w Ustawieniach → Szablony obiegów, wraz z mapą strzałek. Zmiany obejmują przypisane projekty; serwer najpierw waliduje wszystkie mapy, istniejące zgłoszenia i reguły. Szablon można usunąć wyłącznie, gdy nie używa go żaden projekt, również zarchiwizowany. Nowe projekty korzystają z szablonu domyślnego. Statusy i przejścia można edytować wyłącznie w centralnym szablonie; projekt nie może odłączyć mapy. Reguły pozostają niezależne w każdym projekcie.
 
 Projekt → Opcje: wskaż statusy otwierające okno rozwiązania oraz wymagalność tekstu. Kategoria „Zamknięte” jest zawsze ostateczna, niezależnie od nazwy statusu. Nie można odblokować jej automatyzacją. Do okresu oczekiwania na klienta używaj kategorii „Rozwiązane”, nie „Zamknięte”.
 
@@ -89,11 +89,11 @@ Utwórz projekt typu Środki trwałe. W katalogu dodawaj urządzenia, nazwę, ty
 
 Urządzenie można podpiąć do istniejącej sprawy albo utworzyć z niego nową. W tym drugim przypadku zapis sprawy i powiązania jest jedną transakcją. Powiązania pozostają zespołowe. Katalog nie wykonuje skanowania sieci, inwentaryzacji z agentów ani księgowej amortyzacji.
 
-## Profile, organizacje, konta serwisowe
+## Profile, organizacje i konta użytkowników
 
 Nazwy lokalne: pięć pierwszych liter nazwiska i dwie imienia; krótkie nazwisko jest uzupełniane literami imienia do siedmiu znaków. Jeśli oba człony są krótkie, pozostałe znaki uzupełnia numer. Kolizje dodają kolejne litery imienia, następnie numer. Znaki są normalizowane. Przykład Adam Dehmel → dehmead. Administrator może wybrać nazwę podczas tworzenia; klient nie może jej ustawić ani zmienić. Zmiana nazwiska nie zmienia nazwy konta. LDAP używa sAMAccountName.
 
-Konto utworzone z hasłem administratora nie wymaga zmiany przy pierwszym logowaniu; puste hasło wymaga działającego SMTP i powoduje wysłanie jednorazowego zaproszenia ważnego 48 godzin. Konto serwisowe nie ma hasła, rejestracji ani logowania; nadaj mu tylko potrzebne członkostwa projektów.
+Konto utworzone z hasłem administratora nie wymaga zmiany przy pierwszym logowaniu; puste hasło wymaga działającego SMTP i powoduje wysłanie jednorazowego zaproszenia ważnego 48 godzin. Autor automatyzacji jest zwykłym kontem użytkownika; nadaj mu tylko potrzebne członkostwa projektów. Dawne konta serwisowe zachowują identyfikatory i historię.
 
 Profil → zmiana imienia/nazwiska: wniosek do administratorów. Zmiana e-maila: kod na stary adres, potem osobny kod na nowy; każdy etap ma 10 minut i do pięciu prób. Brak dostępu do starego adresu wymaga uzasadnienia i decyzji administratora. Zmiana adresu kończy bieżące sesje. LDAP zarządza swoimi danymi tożsamości.
 
@@ -111,4 +111,14 @@ Przychodzące: POST `/api/hooks/ID`, `Authorization: Bearer SEKRET` i JSON:
 {"event_id":"unikalna-operacja-123","ticket_key":"CW-42"}
 ```
 
-Konfiguracja wiąże endpoint z projektem i kontem serwisowym. Reguła projektu z wyzwalaczem „Odebranie webhooka” wykonuje właściwe akcje. Ten sam event_id nie uruchamia ponownie operacji. Sekret przechowuj poza frontendem i kodem strony publicznej.
+Konfiguracja wiąże endpoint z projektem i wybranym kontem użytkownika. Reguła projektu z wyzwalaczem „Odebranie webhooka” wykonuje właściwe akcje. Ten sam event_id nie uruchamia ponownie operacji. Sekret przechowuj poza frontendem i kodem strony publicznej.
+
+## Ustawienia dodane w 0.7.0
+
+- **Ustawienia → Szablony e-mail**: cztery edytowalne szablony domyślne oraz własne. Wyzwalacze: utworzenie sprawy, komentarz, zmiana statusu, aktualizacja pól lub wyłącznie akcja automatyzacji. Szablon uczestników przypisany do projektu zastępuje globalny szablon uczestników tego zdarzenia.
+- **Projekt → Obsługa i wygląd**: automatyczne obserwowanie działań agenta oraz informacja o nowych sprawach dla kierowników lub zespołu. Obserwatorzy i ich liczba są ukryci przed klientem.
+- **Projekt → SLA**: w mierniku wybierz konkretne formularze i zaznacz widoczność dla klienta, jeśli jest potrzebna. Pusta lista formularzy obejmuje wszystkie.
+- **Moje konto → Weryfikacja dwuetapowa**: skonfiguruj TOTP w aplikacji uwierzytelniającej, potwierdź kodem i zachowaj jednorazowe kody odzyskiwania. Każde logowanie, również przez SSO, wymaga wtedy dodatkowego kroku. Wyłączenie 2FA wymaga kodu.
+- **Użytkownicy → Edytuj**: opcja aktywności konta pozwala zablokować logowanie i sesje. Synchronizacja LDAP nie zastępuje lokalnej blokady konta.
+- **Poczta zespołów**: własne SMTP jest obowiązkowe dla przypisanego kanału; IMAP można wyłączyć. Wyłączenie kanału zatrzymuje jego wysyłkę, bez powrotu do głównego SMTP. Projekt bez przypisanego kanału korzysta z głównego SMTP. Stare kanały używające głównego SMTP trzeba uzupełnić przed wznowieniem ich wysyłki.
+- **Statusy i automatyzacja**: akcja „Wyślij e-mail z szablonu” wskazuje zapisany aktywny szablon. Autor komentarza może być dowolnym aktywnym użytkownikiem z dostępem do sprawy; autor notatki wewnętrznej musi należeć do zespołu.

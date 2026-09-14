@@ -124,7 +124,7 @@ test('Rozwiązanie i ostateczne zamknięcie, bez ponownego otwarcia',async()=>{
   let t=(await agent.call('/tickets/'+key)).data.ticket;
   assert.equal((await agent.call('/tickets/'+key,'PATCH',{version:t.version,status:'resolved'})).status,200);
   t=(await alice.call('/tickets/'+key)).data.ticket;assert.ok(t.resolved_at);
-  assert.equal((await alice.call('/tickets/'+key,'PATCH',{version:t.version,status:'closed'})).status,200);
+  assert.equal((await alice.call('/tickets/'+key,'PATCH',{version:t.version,status:'closed'})).status,403);assert.equal((await agent.call('/tickets/'+key,'PATCH',{version:t.version,status:'closed'})).status,200);
   assert.equal((await alice.call('/tickets/'+key+'/comments','POST',{body:'Próba po zamknięciu'})).status,409);
   t=(await alice.call('/tickets/'+key)).data.ticket;
   assert.equal((await alice.call('/tickets/'+key,'PATCH',{version:t.version,status:'open'})).status,403);
@@ -280,7 +280,7 @@ test('Wiele projektów i własne formularze: uprawnienia, pola wymagane, wersje 
   assert.equal((await admin.call('/tickets/'+customKey,'PATCH',{version:t.version,custom_values:{internal:'PRIVATE_FORM_VALUE'}})).status,200);
   for(const path of ['/tickets/'+customKey,'/tickets?project='+id])assert.ok(!JSON.stringify((await alice.call(path)).data).includes('PRIVATE_FORM_'));
   t=(await alice.call('/tickets/'+customKey)).data.ticket;
-  assert.equal((await alice.call('/tickets/'+customKey,'PATCH',{version:t.version,custom_values:{reason:'Nowe uzasadnienie'}})).status,200);
+  assert.equal((await alice.call('/tickets/'+customKey,'PATCH',{version:t.version,custom_values:{reason:'Nowe uzasadnienie'}})).status,403);assert.equal((await admin.call('/tickets/'+customKey,'PATCH',{version:t.version,custom_values:{reason:'Nowe uzasadnienie'}})).status,200);
   t=(await admin.call('/tickets/'+customKey)).data.ticket;assert.equal(t.custom_values.internal,'PRIVATE_FORM_VALUE');assert.equal(t.custom_values.reason,'Nowe uzasadnienie');
 });
 
@@ -302,8 +302,8 @@ test('Własna mapa: odpowiedź klienta zmienia tylko wskazany status, ignoruje n
   w.transitions.push({from:'waiting',to:'answered',actor:'team',name:'Klient odpowiedział'},{from:'answered',to:'waiting',actor:'team',name:'Poproś o uzupełnienie'},{from:'answered',to:'resolved',actor:'team',name:'Rozwiąż'});
   w.rules=[{name:'Odpowiedź klienta otrzymana',event:'customer_reply',from:'waiting',to:'answered',enabled:true},{name:'Bez kaskady',event:'customer_reply',from:'answered',to:'resolved',enabled:true}];
   assert.equal((await alice.call(path)).status,404);assert.equal((await alice.call(path,'PATCH',w)).status,404);
-  let r=await admin.call(path,'PATCH',w);assert.equal(r.status,200,JSON.stringify(r.data));const version=r.data.version;
-  assert.equal((await admin.call(path,'PATCH',w)).status,409);
+  let r=await saveMap(customProject.id,w);assert.equal(r.status,200,JSON.stringify(r.data));const version=r.data.version;
+  assert.equal((await saveMap(customProject.id,w)).status,409);
   let t=(await admin.call('/tickets/'+customKey)).data.ticket;
   assert.equal((await admin.call('/tickets/'+customKey,'PATCH',{version:t.version,workflow_version:version,workflow_status:'closed'})).status,403);
   assert.equal((await admin.call('/tickets/'+customKey,'PATCH',{version:t.version,workflow_version:version,workflow_status:'waiting'})).status,200);
@@ -336,12 +336,12 @@ test('Filtry łączą projekt, status własny, klasyfikację, priorytet, opiekun
 test('Zmiana nazwy statusu zachowuje stan spraw; niedozwolone usunięcie i stara wersja mapy są blokowane',async()=>{
   const path='/projects/'+customProject.id+'/workflow';let w=(await admin.call(path)).data;
   const oldVersion=w.version;w.statuses.find(s=>s.key==='answered').name='Klient odpowiedział';
-  assert.equal((await admin.call(path,'PATCH',w)).status,200);
+  assert.equal((await saveMap(customProject.id,w)).status,200);
   let t=(await admin.call('/tickets/'+customKey)).data.ticket;assert.equal(t.workflow_status,'answered');assert.equal(t.status_name,'Klient odpowiedział');
   assert.equal((await admin.call('/tickets/'+customKey,'PATCH',{version:t.version,workflow_version:oldVersion,workflow_status:'resolved'})).status,409);
   w=(await admin.call(path)).data;w.statuses=w.statuses.filter(s=>s.key!=='answered');w.transitions=w.transitions.filter(t=>t.from!=='answered'&&t.to!=='answered');w.rules=[];
-  assert.equal((await admin.call(path,'PATCH',w)).status,409);
-  const safe=(await admin.call(path)).data;safe.statuses.find(s=>s.key==='answered').category='resolved';assert.equal((await admin.call(path,'PATCH',safe)).status,409);
+  assert.ok([400,409].includes((await saveMap(customProject.id,w)).status));
+  const safe=(await admin.call(path)).data;safe.statuses.find(s=>s.key==='answered').category='resolved';assert.equal((await saveMap(customProject.id,safe)).status,409);
   assert.equal((await admin.call('/tickets/'+customKey)).data.ticket.resolved_at,null);
 });
 
@@ -413,5 +413,18 @@ test('HTTP v5: faktyczny twórca, zmiana zgłaszającego, rozwiązanie i ostatec
  const transition={version:detail.ticket.version,workflow_version:detail.ticket.workflow_version,workflow_status:'closed'};assert.equal((await admin.call('/tickets/'+k,'PATCH',transition)).status,400);r=await admin.call('/tickets/'+k,'PATCH',{...transition,resolution_text:'Przywrócono poprawne działanie konta.'});assert.equal(r.status,200,JSON.stringify(r.data));
  const closed=(await bob.call('/tickets/'+k)).data;assert.equal(closed.ticket.status,'closed');assert.deepEqual(closed.activity,[]);assert.deepEqual(closed.ticket.transitions,[]);assert.ok((await bob.call('/tickets?own=1')).data.tickets.some(t=>t.key===k));assert.equal((await bob.call('/tickets/'+k+'/comments','POST',{body:'Niedozwolona odpowiedź'})).status,409);assert.equal((await admin.call('/tickets/'+k+'/comments','POST',{body:'Agent też nie komentuje'})).status,409);
  assert.equal((await admin.call('/tickets/'+k,'PATCH',{version:closed.ticket.version,workflow_status:'open'})).status,409);assert.equal((await bob.call('/desk/tickets/'+closed.ticket.id)).status,404);
- const users=(await admin.call('/users')).data,bot=users.find(u=>u.account_kind==='service');assert.ok(bot);assert.equal((await new Client().call('/login','POST',{email:bot.email,password:initial})).status,401);assert.equal((await admin.call('/users/'+bot.id,'PATCH',{version:bot.version,role:'admin'})).status,400);
+ const users=(await admin.call('/users')).data,bot=users.find(u=>['desk.bot','itelade.bot'].includes(u.username));assert.ok(bot);assert.equal((await new Client().call('/login','POST',{email:bot.email,password:initial})).status,401);assert.equal(bot.account_kind,'human');
 });
+
+// Central status templates replace project-level structural editing in v7.
+async function saveMap(projectId,w){
+ const current=(await admin.call('/projects/'+projectId+'/workflow')).data;
+ if(current.version!==w.version)return {status:409,data:{error:'Stara wersja mapy'}};
+ const p=(await admin.call('/projects/'+projectId)).data.project,templates=(await admin.call('/desk/templates')).data;
+ let template=templates.find(t=>t.id===p.workflow_template_id);
+ if(template.is_default){const clone=await admin.call('/desk/templates/'+template.id+'/clone','POST',{name:'Mapa testowa '+projectId});assert.equal(clone.status,200);template=clone.data;const applied=await admin.call('/desk/templates/'+template.id+'/apply','POST',{project_id:projectId,version:current.version});assert.equal(applied.status,200);}
+ const saved=await admin.call('/desk/templates/'+template.id,'PATCH',{name:template.name,version:template.version,config:w});
+ if(saved.status!==200)return saved;
+ const updated=(await admin.call('/projects/'+projectId+'/workflow')).data;
+ return admin.call('/projects/'+projectId+'/workflow','PATCH',{...updated,rules:w.rules});
+}

@@ -30,8 +30,8 @@ test('Kreator własnego formularza renderuje etykiety, kolejność, widoczność
 });
 
 test('Mapa statusów i filtry renderują własne nazwy oraz zachowują warunki przy przełączaniu kolejki',async()=>{
-  const u=ui(),w=defaultWorkflow();w.version=3;w.statuses.push({key:'answered',name:'Klient odpowiedział',category:'in_progress'});w.transitions.push({from:'waiting',to:'answered',actor:'team',name:'Odpowiedź'});u.context.mock=async()=>w;
-  const html=await u.call('workflowView(S.meta.projects[0])');assert.equal((html.match(/<form\b/g)||[]).length,1);assert.match(html,/Klient odpowiedział/);assert.match(html,/data-state-key="answered"/);assert.match(html,/name="rule_event"/);
+  const u=ui(),w=defaultWorkflow();w.version=3;w.statuses.push({key:'answered',name:'Klient odpowiedział',category:'in_progress'});w.transitions.push({from:'waiting',to:'answered',actor:'team',name:'Odpowiedź'});u.context.mock=async path=>path.endsWith('/workflow')?w:[];
+  const html=await u.call('workflowView(S.meta.projects[0])');assert.equal((html.match(/<form\b/g)||[]).length,1);assert.match(html,/Klient odpowiedział/);assert.match(html,/data-state="answered"/);assert.ok(!html.includes('name="state_name"'));assert.match(html,/name="rule_event"/);
   const link=u.call("queueTabLink(new URLSearchParams('project=2&priority=P1&q=VPN&page=4'),'mine')");const params=new URLSearchParams(link.split('?')[1]);assert.equal(params.get('project'),'2');assert.equal(params.get('priority'),'P1');assert.equal(params.get('q'),'VPN');assert.equal(params.get('queue'),'mine');assert.equal(params.has('page'),false);
   const filters=u.call("filters(new URLSearchParams('project=1&state=1:waiting&status=waiting&assignee=2'))");assert.match(filters,/value="1:waiting" selected/);assert.match(filters,/value="2" selected>Agent/);assert.match(filters,/name="status"/);
 });
@@ -42,7 +42,7 @@ test('Dane dynamicznego formularza serializują liczbę, checkbox i wielokrotny 
 });
 
 test('Gotowy schemat nie jest dostępny, a edytor zachowuje własne reguły',async()=>{
-  const u=ui(),w=defaultWorkflow();w.version=1;u.context.mock=async()=>w;
+  const u=ui(),w=defaultWorkflow();w.version=1;u.context.mock=async path=>path.endsWith('/workflow')?w:[];
   const html=await u.call('workflowView(S.meta.projects[0])');assert.ok(!html.includes('resolution-preset'));assert.ok(!html.includes('Gotowy schemat'));assert.match(html,/Dodaj regułę/);
 });
 

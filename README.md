@@ -1,4 +1,4 @@
-# Service Desk 0.6.0
+# Service Desk 0.7.0
 
 Samodzielny system zgłoszeń: portal klienta, projekty wewnętrzne i zewnętrzne, katalog urządzeń, własne formularze, mapy statusów, automatyzacje, kalendarze SLA, LDAP, OpenID Connect, IMAP, SMTP, API i webhooki. Node.js 24, SQLite, Docker; jeden kontener aplikacji korzystający z trwałego wolumenu. Aktualizator jest opcjonalnym drugim kontenerem.
 
@@ -23,7 +23,7 @@ Otwórz domenę, wpisz jednorazowy kod z logów oraz nazwę organizacji, nazwę 
 
 ## Konfiguracja i obsługa
 
-- **CHANGELOG.md** — zmiany w 0.6.0.
+- **CHANGELOG.md** — zmiany w 0.7.0.
 - **MODULES.md** — projekty, poczta, SLA, LDAP/SSO, integracje i uprawnienia.
 - **AUTOMATION.md** — wyzwalacze, warunki, akcje i harmonogram.
 - **API.md** — tokeny i API przychodzące.
@@ -49,3 +49,7 @@ npm test
 ```
 
 Testy nie łączą się z firmowym LDAP, skrzynkami ani produkcyjnym Dockerem. Przed wdrożeniem skonfiguruj kopię testową i sprawdź integracje swojej instalacji.
+
+## Wydanie 0.7.0
+
+Instrukcja publikacji: **GITHUB_UPLOAD.md**. Zmiany i ważne różnice w poczcie oraz obiegach opisano w **CHANGELOG.md**. Raport wykonanych testów i ograniczenia: **VALIDATION.md**. Kontrakt przyszłej integracji z osobną bazą wiedzy: **KNOWLEDGE_INTEGRATION.md**.

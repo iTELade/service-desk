@@ -61,7 +61,7 @@ test('Rzeczywisty STARTTLS: połączenie LDAP jest podnoszone do TLS przed wysł
   const f=await setup({startTLS:true});try{const p=await f.directory.getPreview(f.admin);assert.equal(p.created,1);f.directory.apply({preview_id:p.preview_id},f.admin);const u=f.db.prepare("SELECT * FROM users WHERE auth_source='ldap'").get();assert.equal(await f.directory.authenticate(u,'test-user-password'),true);assert.equal(f.state.plainBinds,0);assert.ok(f.state.secureBinds>=3);assert.deepEqual(f.state.errors,[]);}finally{await f.close();}
 });
 test('LDAPS odrzuca niezaufany certyfikat, zanim prześle hasło',async()=>{
-  const f=await setup();try{f.directory.save({version:1,config:{ca_pem:''}},f.admin);await assert.rejects(f.directory.getPreview(f.admin),/certyfikatu/);assert.equal(f.state.secureBinds,0);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM users WHERE account_kind=CHAR(104,117,109,97,110)').get().n,1);}finally{await f.close();}
+  const f=await setup();try{f.directory.save({version:1,config:{ca_pem:''}},f.admin);await assert.rejects(f.directory.getPreview(f.admin),/certyfikatu/);assert.equal(f.state.secureBinds,0);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM users WHERE account_kind=CHAR(104,117,109,97,110) AND username NOT IN (CHAR(100,101,115,107,46,98,111,116),CHAR(105,116,101,108,97,100,101,46,98,111,116))').get().n,1);}finally{await f.close();}
 });
 test('STARTTLS sprawdza zgodność nazwy serwera z certyfikatem',async()=>{
   const f=await setup({startTLS:true,ipSAN:false});try{await assert.rejects(f.directory.getPreview(f.admin),/certyfikatu/);assert.equal(f.state.secureBinds,0);assert.equal(f.state.plainBinds,0);}finally{await f.close();}

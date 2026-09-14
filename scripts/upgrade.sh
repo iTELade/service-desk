@@ -19,16 +19,16 @@ desk_image=$(docker inspect --format '{{.Image}}' "$desk_id")
 desk_volume=$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Name}}{{end}}{{end}}' "$desk_id")
 [ -n "$desk_volume" ] || { echo 'Wymagany nazwany wolumen /app/data. Przy bind mount wykonaj migrację ręczną.'; exit 1; }
 desk_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-desk_backup="$desk_live/backups/before-0.6.0-$desk_stamp"
+desk_backup="$desk_live/backups/before-0.7.0-$desk_stamp"
 mkdir -p "$desk_backup"
 printf '%s\n' "$desk_image" > "$desk_backup/image-id.txt"
 printf '%s\n' "$desk_volume" > "$desk_backup/volume.txt"
 docker tag "$desk_image" "service-desk:rollback-$desk_stamp"
 tar --exclude='./backups' --exclude='./node_modules' --exclude='./data' --exclude='./.git' --exclude='./.upgrade.lock' -czf "$desk_backup/code.tar.gz" .
 # Build first; the existing container remains untouched if building fails.
-echo 'Buduję 0.6.0 przy zachowaniu obecnego kontenera.'
-docker build -t service-desk:0.6.0 "$desk_source"
-docker run --rm --network none --entrypoint node service-desk:0.6.0 -e 'import("./lib/version.mjs").then(x=>{if(x.VERSION!=="0.6.0")process.exit(1)})'
+echo 'Buduję 0.7.0 przy zachowaniu obecnego kontenera.'
+docker build -t service-desk:0.7.0 "$desk_source"
+docker run --rm --network none --entrypoint node service-desk:0.7.0 -e 'import("./lib/version.mjs").then(x=>{if(x.VERSION!=="0.7.0")process.exit(1)})'
 desk_rollback=0
 desk_data_ready=0
 desk_updater_was_running=0
@@ -68,7 +68,7 @@ if [ "$(docker inspect --format '{{.State.Running}}' "$desk_id")" = true ]; then
 mkdir -p "$desk_backup/data"
 docker cp -a "$desk_id:/app/data/." "$desk_backup/data/"
 # Integrity check uses a read-only copy; it does not start the new application or migrate data.
-docker run --rm --network none --user 0 --entrypoint node -v "$desk_backup/data:/backup" service-desk:0.6.0 -e 'const {DatabaseSync}=require("node:sqlite"),fs=require("fs");const d=new DatabaseSync("/backup/desk.sqlite");if(d.prepare("PRAGMA integrity_check").get().integrity_check!=="ok")throw Error("Kopia uszkodzona");const v=d.prepare("PRAGMA user_version").get().user_version;if(![4,5,6].includes(v))throw Error("Wymagany schemat 4, 5 lub 6");d.close();if(fs.readFileSync("/backup/master.key").length!==32)throw Error("Nieprawidłowy master.key")'
+docker run --rm --network none --user 0 --entrypoint node -v "$desk_backup/data:/backup" service-desk:0.7.0 -e 'const {DatabaseSync}=require("node:sqlite"),fs=require("fs");const d=new DatabaseSync("/backup/desk.sqlite");if(d.prepare("PRAGMA integrity_check").get().integrity_check!=="ok")throw Error("Kopia uszkodzona");const v=d.prepare("PRAGMA user_version").get().user_version;if(![4,5,6,7].includes(v))throw Error("Wymagany schemat 4, 5, 6 lub 7");d.close();if(fs.readFileSync("/backup/master.key").length!==32)throw Error("Nieprawidłowy master.key")'
 desk_data_ready=1
 # Overlay application files. .env, data and previous backups are not in the package.
 (cd "$desk_source" && tar --exclude='./node_modules' --exclude='./.env' --exclude='./data' --exclude='./backups' --exclude='./.git' -cf - .) | tar -xf - -C "$desk_live"
@@ -77,17 +77,17 @@ for desk_setting in "DESK_CONTAINER_NAME=$desk_name" "DESK_DATA_VOLUME=$desk_vol
   desk_key=${desk_setting%%=*}
   if ! grep -q "^${desk_key}=" .env; then printf '\n%s\n' "$desk_setting" >> .env; fi
 done
-docker tag service-desk:0.6.0 service-desk:current
+docker tag service-desk:0.7.0 service-desk:current
 docker compose config --quiet
 docker compose up -d --no-build --no-deps desk
 desk_ok=0
 for ((desk_try=0;desk_try<60;desk_try++)); do
-  if docker exec "$desk_name" node -e 'fetch("http://127.0.0.1:3000/healthz",{signal:AbortSignal.timeout(3000)}).then(async r=>{const x=await r.json();if(!r.ok||x.version!=="0.6.0"||x.schema!==6)process.exit(1)}).catch(()=>process.exit(1))' >/dev/null 2>&1; then desk_ok=1; break; fi
+  if docker exec "$desk_name" node -e 'fetch("http://127.0.0.1:3000/healthz",{signal:AbortSignal.timeout(3000)}).then(async r=>{const x=await r.json();if(!r.ok||x.version!=="0.7.0"||x.schema!==7)process.exit(1)}).catch(()=>process.exit(1))' >/dev/null 2>&1; then desk_ok=1; break; fi
   sleep 2
 done
 [ "$desk_ok" = 1 ]
 desk_rollback=0
 trap - ERR INT TERM
-printf '\nAktualizacja do 0.6.0 zakończona. Kopia: %s\n' "$desk_backup"
+printf '\nAktualizacja do 0.7.0 zakończona. Kopia: %s\n' "$desk_backup"
 if [ "$desk_updater_was_running" = 1 ]; then echo 'Aktualizator pozostaje zatrzymany. Po weryfikacji uruchom: docker compose --profile updates up -d --build updater'; fi
 docker compose ps

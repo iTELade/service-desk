@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: updater/Dockerfile
-    image: service-desk-updater:0.6.0
+    image: service-desk-updater:0.7.0
     container_name: ${DESK_CONTAINER_NAME:-itelade-desk}-updater
     restart: unless-stopped
     environment:

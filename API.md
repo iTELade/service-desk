@@ -2,7 +2,7 @@
 
 ## Webhook
 
-Ustawienia → Webhooki → kierunek **przychodzący**, projekt i konto serwisowe. Sekret jest pokazany raz. Żądanie:
+Ustawienia → Webhooki → kierunek **przychodzący**, projekt i konto użytkownika. Sekret jest pokazany raz. Żądanie:
 
 ```http
 POST /api/hooks/ID
@@ -16,7 +16,7 @@ W automatyzacji projektu skonfiguruj zdarzenie webhook oraz jego warunki i akcje
 
 ## API v1
 
-Ustawienia → API i tokeny → Utwórz token. Wybierz aktywne konto serwisowe z dostępem do projektu, zakresy i ważność (1–365 dni). Token działa tylko w wybranym projekcie; nie loguje do WWW. Można go odwołać w panelu.
+Ustawienia → API i tokeny → Utwórz token. Wybierz aktywne konto użytkownika z dostępem do projektu, zakresy i ważność (1–365 dni). Token działa tylko w wybranym projekcie; nie loguje do WWW. Można go odwołać w panelu.
 
 Nagłówek `Authorization: Bearer desk_…`. Wszystkie operacje POST wymagają `Idempotency-Key` długości 8–200 znaków. Użyj innego klucza dla innej operacji. Ponowienie identycznego żądania zwraca zachowaną odpowiedź; ponowne użycie klucza dla zmienionej treści daje 409.
 
@@ -37,7 +37,7 @@ Przykład tworzenia:
 {"reporter_id":12,"request_type_id":3,"request_type_version":1,"title":"Problem z kontem","description":"Opis problemu","priority":"P3","custom_values":{}}
 ```
 
-Formularz ustala klasyfikację i może zastąpić ukryty tytuł/opis wartością administratora. Zgłaszający musi mieć aktywne konto i dostęp do portalu projektu. Autor operacji jest kontem serwisowym i pozostaje w historii.
+Formularz ustala klasyfikację i może zastąpić ukryty tytuł/opis wartością administratora. Zgłaszający musi mieć aktywne konto i dostęp do portalu projektu. Autor operacji jest wybranym kontem użytkownika i pozostaje w historii.
 
 Komentarz: `{"body":"Treść odpowiedzi","internal":false}`.
 
