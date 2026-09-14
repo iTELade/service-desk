@@ -1,0 +1,119 @@
+name: Bug report / Zgłoszenie błędu
+description: Report a problem or incorrect behavior in iTELade Service Desk / Zgłoś problem lub nieprawidłowe działanie iTELade Service Desk
+title: "[BUG] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please provide as much detail as possible to help us reproduce and fix the issue.
+
+        Dziękujemy za zgłoszenie błędu. Uzupełnij poniższe informacje możliwie dokładnie — ułatwi to odtworzenie i naprawę problemu.
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Preferred language / Preferowany język
+      description: Choose the language you prefer for communication in this issue. / Wybierz preferowany język komunikacji w tym zgłoszeniu.
+      options:
+        - English
+        - Polski
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem description / Opis problemu
+      description: Describe what is not working correctly. / Opisz, co działa nieprawidłowo.
+      placeholder: What exactly is happening? / Co dokładnie się dzieje?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Kroki do odtworzenia
+      description: Provide exact steps that allow the issue to be reproduced. / Podaj dokładne kroki pozwalające odtworzyć problem.
+      placeholder: |
+        1. Go to ... / Przejdź do ...
+        2. Click ... / Kliknij ...
+        3. Set ... / Ustaw ...
+        4. Observe ... / Pojawia się ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / Oczekiwane zachowanie
+      description: Describe how the system should behave. / Opisz, jak system powinien zachować się prawidłowo.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / Aktualne zachowanie
+      description: Describe what happens instead. / Opisz, co dzieje się zamiast oczekiwanego rezultatu.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Service Desk version / Wersja Service Desk
+      description: Enter the affected version, e.g. 0.7.1. / Podaj wersję, np. 0.7.1.
+      placeholder: 0.7.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: System area / Obszar systemu
+      options:
+        - LDAP / Authentication / Identity — LDAP / logowanie / tożsamość
+        - Users & Permissions — Użytkownicy i uprawnienia
+        - Projects — Projekty
+        - Customer Portal — Portal klienta
+        - Issues / Queues — Zgłoszenia / kolejki
+        - Workflow / Statuses / Automation — Workflow / statusy / automatyzacje
+        - ITSM / Assets — ITSM / środki trwałe
+        - Notifications / Email — Powiadomienia / e-mail
+        - Updates / Maintenance — Aktualizacje / utrzymanie
+        - UI / UX
+        - API / Integrations — API / integracje
+        - Installation / Docker — Instalacja / Docker
+        - Other — Inne
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error messages — Logi / komunikaty błędów
+      description: Paste relevant logs or error messages. Remove passwords, tokens and other sensitive data. / Wklej istotne komunikaty błędów lub logi. Usuń hasła, tokeny i inne dane wrażliwe.
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / Środowisko
+      description: Provide relevant environment details such as OS, browser, Docker and reverse proxy. / Podaj istotne informacje o środowisku, np. system, przeglądarka, Docker, reverse proxy.
+      placeholder: Ubuntu 24.04, Docker 29.x, Brave/Chrome, Nginx Proxy Manager...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional information / Dodatkowe informacje
+      description: Screenshots, additional context, workarounds, etc. / Zrzuty ekranu, dodatkowy kontekst, obejścia problemu itp.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation / Potwierdzenie
+      options:
+        - label: I checked existing issues and did not find a duplicate. / Sprawdziłem istniejące zgłoszenia i nie znalazłem duplikatu.
+          required: true
+        - label: I removed passwords, tokens and other sensitive data from logs and screenshots. / Usunąłem z logów i zrzutów ekranu dane wrażliwe, hasła i tokeny.
+          required: true

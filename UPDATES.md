@@ -49,3 +49,6 @@ Dokumentacja bazowa: [Docker Engine API](https://docs.docker.com/reference/api/e
 ## Od wersji 0.7.0
 
 Repozytorium jest stałe: `iTELade/service-desk`; sprawdzanie nowych stabilnych wydań działa automatycznie co 6 godzin. Administrator otrzymuje komunikat u dołu strony. Opublikowane wydanie musi mieć poprawny `desk-release.json` utworzony przez workflow po budowie obrazu — sam tag nie wystarczy. Instalacja nadal wymaga uruchomionego kontenera aktualizatora i ręcznego zlecenia w panelu.
+
+## Publikacja od 0.7.1
+Zmiana wersji w package.json na main uruchamia publish-version.yml. Workflow sprawdza manifest, testy i składnię, buduje Docker i dopiero wtedy tworzy tag oraz Release z desk-release.json. Istniejącego tagu nie nadpisuje. Ekran aktualizacji nie wymaga wpisywania repozytorium ani tokenu; pakiet GHCR musi być publiczny.

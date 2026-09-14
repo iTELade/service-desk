@@ -105,3 +105,9 @@ html[data-theme="dark"] tbody tr:hover,
 #update-notice a { color:#9ad9ff; margin-left:12px; }
 #update-notice[hidden] { display:none; }
 .mfa-secret { display:block; padding:16px; overflow-wrap:anywhere; font-size:18px; letter-spacing:2px; }
+
+/* 0.7.1: all portal interactive surfaces follow the selected theme. */
+:root[data-theme="dark"] .portal-workspace :is(.service-card,.service-card:hover,.ticket-row:hover,.issue-row:hover,tr:hover,button:hover,a.button:hover){background:#24354a;color:#e6edf7;border-color:#425775}
+:root[data-theme="dark"] .portal-workspace :is(.service-card:hover,.ticket-row:hover,.issue-row:hover,tr:hover) :is(strong,span,b,td,a){color:inherit}
+.status-drag-handle{display:inline-flex;cursor:grab;user-select:none;padding:.4rem .7rem;margin-bottom:.5rem;border:1px dashed var(--border);border-radius:6px;color:var(--muted)}
+.status-drag-handle:active{cursor:grabbing}.workflow-status-row:has(.status-drag-handle:active){opacity:.65}

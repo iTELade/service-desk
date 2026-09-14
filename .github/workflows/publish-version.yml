@@ -1,0 +1,84 @@
+name: Publish version from main
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+permissions:
+  contents: write
+  packages: write
+concurrency:
+  group: publish-version-main
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Validate package, manifest and release version
+        id: version
+        run: |
+          set -euo pipefail
+          sha256sum -c MANIFEST.sha256
+          node --input-type=module <<'NODE'
+          import {readFileSync,appendFileSync} from 'node:fs';
+          import {VERSION} from './lib/version.mjs';
+          const p=JSON.parse(readFileSync('package.json'));
+          if(!/^\d+\.\d+\.\d+$/.test(VERSION)||p.version!==VERSION)throw Error('Invalid version');
+          appendFileSync(process.env.GITHUB_OUTPUT,`tag=v${VERSION}\nimage=ghcr.io/${process.env.GITHUB_REPOSITORY.toLowerCase()}\n`);
+          NODE
+      - name: Check tag is unused
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/$GH_REPO/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists. Increment the package version."
+            exit 1
+          fi
+      - name: Install and test
+        run: |
+          npm ci
+          npm run check
+          npm test
+          bash -n scripts/upgrade.sh
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.version.outputs.image }}:${{ steps.version.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.tag }}
+      - name: Publish release and update manifest
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          IMAGE: ${{ steps.version.outputs.image }}@${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {writeFileSync} from 'node:fs';
+          import {VERSION,SCHEMA_VERSION} from './lib/version.mjs';
+          import {manifest} from './lib/releases.mjs';
+          writeFileSync('desk-release.json',JSON.stringify(manifest({format:1,project:'service-desk',version:VERSION,image:process.env.IMAGE,schema:SCHEMA_VERSION,minimum_schema:6},process.env.GITHUB_REPOSITORY,process.env.TAG),null,2)+'\n');
+          NODE
+          gh release create "$TAG" desk-release.json --target "$GITHUB_SHA" \
+            --title "Service Desk ${TAG#v}" --notes-file "RELEASE_NOTES_${TAG#v}.md"

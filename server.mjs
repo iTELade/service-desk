@@ -1,3 +1,4 @@
+import {createReset,applyPendingReset} from './lib/reset.mjs';
 import {migrateV7} from './lib/migration-v7.mjs';
 import {createMfa} from './lib/mfa.mjs';
 import {createUpdates} from './lib/updates.mjs';
@@ -21,7 +22,7 @@ import { defaultSla } from './lib/core.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes, createHash, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,6 +34,7 @@ if (prod && !origin.startsWith('https://')) throw new Error('APP_URL musi używa
 const cookieName = prod ? '__Host-itelade_session' : 'itelade_session';
 const dataDir = process.env.DATA_DIR || join(root, 'data');
 mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+const resetBootstrap = applyPendingReset(dataDir);
 const db = new DatabaseSync(join(dataDir, 'desk.sqlite'));
 db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
 const schemaVersion = db.prepare('PRAGMA user_version').get().user_version;
@@ -118,7 +120,7 @@ async function checkPassword(value, encoded) {
   const key = await hashPassword(value, salt, 64, { N: 16384, r: 8, p: 1 });
   return timingSafeEqual(key, Buffer.from(stored, 'hex'));
 }
-if (!db.prepare('SELECT id FROM users LIMIT 1').get() && process.env.BOOTSTRAP_ADMIN_EMAIL && process.env.BOOTSTRAP_ADMIN_PASSWORD) {
+if (!resetBootstrap && !db.prepare('SELECT id FROM users LIMIT 1').get() && process.env.BOOTSTRAP_ADMIN_EMAIL && process.env.BOOTSTRAP_ADMIN_PASSWORD) {
   const email = emailValue(process.env.BOOTSTRAP_ADMIN_EMAIL);
   const encoded = await encodePassword(process.env.BOOTSTRAP_ADMIN_PASSWORD);
   tx(() => {
@@ -132,6 +134,8 @@ if(db.prepare('PRAGMA user_version').get().user_version<4)migrateV4(db);
 if(db.prepare('PRAGMA user_version').get().user_version<5)migrateV5(db);
 if(db.prepare('PRAGMA user_version').get().user_version<6)migrateV6(db);
 migrateV7(db);
+// Fresh installations do not need the legacy built-in automation account.
+if(!schemaVersion&&!db.prepare('SELECT id FROM projects LIMIT 1').get())db.prepare("DELETE FROM users WHERE email='bot@desk.invalid' AND password='!service'").run();
 const mfa=createMfa(db,{dataDir});
 const projects = createProjects(db);
 const installation=createInstallation(db,{dataDir,encodePassword,projects});
@@ -139,8 +143,9 @@ if(installation.required())console.log('Kod instalacji WWW: '+installation.token
 const updates=createUpdates(db,projects,{dataDir,controlDir:process.env.CONTROL_DIR});
 const catalog=createCatalog(db,projects),workflows=createWorkflows(db,projects);
 const directory = createDirectory(db,projects,{dataDir});
-const accounts = createAccounts(db,{origin,encodePassword,dataDir});
+const accounts = createAccounts(db,{origin,encodePassword,dataDir,env:resetBootstrap?{}:process.env});
 const desk=createDesk(db,projects,catalog,workflows),identity=createIdentity(db,projects,accounts,{origin,encodePassword}),sso=createSso(db,projects,{origin,dataDir});
+const reset=createReset(db,{dataDir,accounts,checkPassword,canReset:()=>!maintenance()&&!(process.env.CONTROL_DIR&&existsSync(join(process.env.CONTROL_DIR,'request.json'))),onReset:()=>{setTimeout(()=>process.exit(0),150).unref();}});
 const extensions=createExtensions(db,projects,catalog,workflows,desk,accounts,identity,sso,{origin,dataDir});
 // Wyrównuje koszt sprawdzenia nieistniejącego konta. Nie jest hasłem żadnego użytkownika.
 const dummyPassword = await encodePassword(randomBytes(32).toString('hex'));
@@ -269,9 +274,9 @@ const server = http.createServer(async (req,res)=>{
   try {
     const {pathname,searchParams}=new URL(req.url,origin),method=req.method;
     if(method==='GET'&&pathname==='/healthz'){db.prepare('SELECT 1').get();return json(res,200,{status:'ok',version:VERSION,schema:7});}
-    if(maintenance()&&pathname.startsWith('/api/')&&!(method==='GET'&&['/api/me','/api/meta','/api/public-config','/api/brand/logo','/api/desk/updates'].includes(pathname)))fail(503,'Trwa aktualizacja systemu. Spróbuj ponownie za chwilę.');
+    if((reset.pending()||maintenance())&&pathname.startsWith('/api/')&&!(method==='GET'&&['/api/me','/api/meta','/api/public-config','/api/brand/logo','/api/desk/updates'].includes(pathname)))fail(503,'Trwa aktualizacja systemu. Spróbuj ponownie za chwilę.');
     const asset=assets.get(pathname)||(/^\/portal\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/.test(pathname)?assets.get('/'):null);
-    if(asset&&['GET','HEAD'].includes(method)){const[file,type]=asset;res.writeHead(200,{'Content-Type':type});return res.end(method==='HEAD'?'':readFileSync(join(root,'public',file)));}
+    if(asset&&['GET','HEAD'].includes(method)){const[file,type]=asset;res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store'});return res.end(method==='HEAD'?'':readFileSync(join(root,'public',file)));}
     if(method==='GET'&&pathname==='/api/sso/callback'){const stateCookie=prod?'__Host-desk_sso':'desk_sso',browser=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(stateCookie+'='))?.slice(stateCookie.length+1);const u=await sso.callback(new URL(req.url,origin),browser);if(mfa.status(u).enabled){const challenge=mfa.challenge(u);res.setHeader('Set-Cookie',stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':''));res.writeHead(303,{Location:'/#/mfa/'+challenge});return res.end();}const token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',[cookie(token,12*3600),stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':'')]);res.writeHead(303,{Location:'/#/queue'});return res.end();}
     if(method==='GET'&&/^\/api\/sso\/[1-9][0-9]*\/start$/.test(pathname)){rateLimit('sso-start',200);const result=await sso.begin(Number(pathname.split('/')[3]));res.setHeader('Set-Cookie',(prod?'__Host-desk_sso':'desk_sso')+'='+result.browser+'; Path=/; HttpOnly; SameSite=Lax; Max-Age=600'+(prod?'; Secure':''));res.writeHead(303,{Location:result.url});return res.end();}
     if(method==='POST'&&/^\/api\/hooks\/[1-9][0-9]*$/.test(pathname)){rateLimit('incoming-hook',500);const b=await body(req),result=extensions.webhooks.incoming(Number(pathname.split('/')[3]),req.headers.authorization,b);extensions.events();return json(res,200,result);}
@@ -312,6 +317,7 @@ const server = http.createServer(async (req,res)=>{
     async function readBody(){const b=await body(req);authenticate();if(user.must_change&&pathname!=='/api/password')fail(403,'Najpierw zmień hasło tymczasowe.');return b;}
     authenticate();
     if(pathname.startsWith('/api/mfa/')){rateLimit('mfa-settings:'+user.id,20);const action=pathname.split('/').at(-1);if(method==='GET'&&action==='status')return json(res,200,mfa.status(user));const b=await readBody();if(method!=='POST')fail(405,'Niedozwolona metoda.');if(action==='setup')return json(res,200,mfa.setup(user));if(action==='enable')return json(res,200,mfa.enable(user,b.code));if(action==='disable')return json(res,200,mfa.disable(user,b.code));fail(404,'Nieznana operacja.');}
+    if(pathname==='/api/system/reset'&&method==='POST'){rateLimit('system-reset:'+user.id,10);const b=await readBody();const value=b.code?await reset.confirm(user,b):await reset.begin(user,b);return json(res,200,value);}
     if(method==='GET'&&pathname==='/api/me')return json(res,200,{user:safeUser(user),csrf:user.csrf});
     if(method==='POST'&&pathname==='/api/logout'){db.prepare('DELETE FROM sessions WHERE token=?').run(user.token);res.setHeader('Set-Cookie',cookie('',0));return json(res,200,{ok:true});}
     if(method==='POST'&&pathname==='/api/password'){
@@ -325,7 +331,7 @@ const server = http.createServer(async (req,res)=>{
       tx(()=>{db.prepare('UPDATE users SET password=?,must_change=0,version=version+1 WHERE id=?').run(encoded,user.id);db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(user.id,user.token);db.prepare('DELETE FROM account_tokens WHERE user_id=?').run(user.id);});extensions.events();return json(res,200,{ok:true});
     }
     if(user.must_change)fail(403,'Najpierw zmień hasło tymczasowe.');
-    if(method==='GET'&&/^\/api\/avatars\/[1-9][0-9]*$/.test(pathname)){const a=db.prepare('SELECT * FROM avatars WHERE user_id=?').get(Number(pathname.split('/')[3]));if(a){res.writeHead(200,{'Content-Type':a.mime});return res.end(Buffer.from(a.body));}res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(readFileSync(join(root,'public/favicon.svg')));}
+    if(method==='GET'&&/^\/api\/avatars\/[1-9][0-9]*$/.test(pathname)){const a=db.prepare('SELECT * FROM avatars WHERE user_id=?').get(Number(pathname.split('/')[3]));if(a){res.writeHead(200,{'Content-Type':a.mime,'Cache-Control':'no-store'});return res.end(Buffer.from(a.body));}res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(readFileSync(join(root,'public/favicon.svg')));}
     if(pathname.startsWith('/api/desk/updates')){const b=method==='GET'?{}:await readBody();return json(res,200,method==='GET'?updates.status(user):pathname.endsWith('/check')?await updates.check(user):pathname.endsWith('/install')?updates.request(b,user):updates.save(b,user));}
     if(pathname==='/api/desk/brand-logo'&&method==='POST')return json(res,200,installation.saveLogo(await readBody(),user));
     const extensionResult=await extensions.handle(method,pathname,user,searchParams,readBody);if(extensionResult)return json(res,extensionResult.status,extensionResult.value);
@@ -471,27 +477,48 @@ const server = http.createServer(async (req,res)=>{
       }
     }
     if(pathname==='/api/users'){
-      if(method==='GET'){admin();return json(res,200,db.prepare('SELECT * FROM users ORDER BY registration_state DESC,name').all().map(safeUser));}
+      if(method==='GET'){admin();return json(res,200,db.prepare("SELECT * FROM users WHERE NOT (active=0 AND password='!' AND email='deleted-'||id||'@invalid.example') ORDER BY registration_state DESC,name").all().map(safeUser));}
       if(method==='POST'){
         const b=await readBody();admin();const created=await identity.create(b,user);return json(res,201,{user:safeUser(created)});
       }
+    }
+    const userOperation=pathname.match(/^\/api\/users\/([1-9][0-9]*)\/(avatar|delete)$/);
+    if(userOperation&&method==='POST'){
+      const b=await readBody();admin();const target=db.prepare('SELECT * FROM users WHERE id=?').get(Number(userOperation[1]));
+      if(!target)fail(404,'Nie znaleziono użytkownika.');
+      if(b.version!==target.version)fail(409,'Konto zmieniło się. Odśwież widok.');
+      if(userOperation[2]==='avatar'){const result=identity.avatar(target,b);projects.audit(null,user,'user.avatar_updated',{user_id:target.id});return json(res,200,result);}
+      if(target.id===user.id)fail(400,'Nie możesz usunąć swojego konta.');
+      if(target.auth_source!=='local')fail(400,'Konto z katalogu zewnętrznego można zablokować. Usuń je u dostawcy tożsamości.');
+      if(target.role==='admin'&&target.active&&db.prepare("SELECT COUNT(*) n FROM users WHERE role='admin' AND active=1 AND auth_source='local' AND registration_state='active'").get().n<2)fail(400,'Musi pozostać aktywny administrator lokalny.');
+      tx(()=>{
+        // Preserve historical authorship with an inactive, anonymized record.
+        db.prepare("UPDATE users SET active=0,directory_active=0,name='Usunięty użytkownik #'||id,first_name='',last_name='',email='deleted-'||id||'@invalid.example',username='deleted-'||id,password='!',role='customer',version=version+1 WHERE id=?").run(target.id);
+        for(const table of ['sessions','account_tokens','identity_tokens','avatars','user_mfa','mfa_challenges','project_members','organization_members','ticket_watchers'])db.prepare('DELETE FROM '+table+' WHERE user_id=?').run(target.id);
+        db.prepare('UPDATE api_tokens SET revoked_at=? WHERE user_id=?').run(now(),target.id);
+        db.prepare("UPDATE profile_requests SET state='rejected',reviewer_id=?,reviewed_at=? WHERE user_id=? AND state='pending'").run(user.id,now(),target.id);
+        projects.clearAssignments(target.id);projects.audit(null,user,'user.deleted',{user_id:target.id});
+      });return json(res,200,{ok:true});
     }
     const userRoute=pathname.match(/^\/api\/users\/([1-9][0-9]*)$/);
     if(userRoute&&method==='PATCH'){
       const b=await readBody();admin();let target=db.prepare('SELECT * FROM users WHERE id=?').get(Number(userRoute[1]));
       if(!target)fail(404,'Nie znaleziono użytkownika.');
       if(b.version!==target.version)fail(409,'Konto zmieniło się. Odśwież stronę.');
-      if(Object.keys(b).some(k=>!['version','role','active','is_internal','new_password','approve'].includes(k)))fail(400,'Nieznane pole użytkownika.');
-      if(target.auth_source==='ldap'&&['role','is_internal','new_password','approve'].some(k=>Object.hasOwn(b,k)))fail(400,'Rolę i dane tego konta ustala LDAP. Lokalnie możesz włączyć lub zablokować dostęp.');
+      if(Object.keys(b).some(k=>!['version','role','active','is_internal','new_password','approve','first_name','last_name','email'].includes(k)))fail(400,'Nieznane pole użytkownika.');
+      if(target.auth_source==='ldap'&&['role','is_internal','new_password','approve','first_name','last_name','email'].some(k=>Object.hasOwn(b,k)))fail(400,'Rolę i dane tego konta ustala LDAP. Lokalnie możesz włączyć lub zablokować dostęp.');
       for(const key of ['active','is_internal','approve'])if(b[key]!==undefined&&typeof b[key]!=='boolean')fail(400,'Nieprawidłowe pole: '+key);
       const role=b.role===undefined?target.role:choice(b.role,{admin:1,agent:1,customer:1},'rola'),active=b.active===undefined?target.active:Number(b.active),internal=b.is_internal===undefined?target.is_internal:Number(b.is_internal);
       if(target.id===user.id&&(!active||role!=='admin'))fail(400,'Nie możesz odebrać sobie dostępu administratora.');
       if(b.approve&&target.registration_state!=='pending_approval')fail(400,'Konto nie oczekuje na zatwierdzenie administratora.');
+      const first=b.first_name===undefined?target.first_name:textValue(b.first_name,'Imię',1,60),last=b.last_name===undefined?target.last_name:textValue(b.last_name,'Nazwisko',0,80),mail=b.email===undefined?target.email:emailValue(b.email);
+      if(db.prepare('SELECT id FROM users WHERE email=? AND id<>?').get(mail,target.id))fail(409,'Adres e-mail jest już zajęty.');
       const encoded=b.new_password===undefined?target.password:await encodePassword(b.new_password);authenticate();admin();
       target=db.prepare('SELECT * FROM users WHERE id=?').get(target.id);if(b.version!==target.version)fail(409,'Konto zmieniło się. Odśwież stronę.');
       tx(()=>{
         if(target.role==='admin'&&(!active||role!=='admin')&&db.prepare("SELECT COUNT(*) n FROM users WHERE role='admin' AND active=1 AND auth_source='local' AND registration_state='active'").get().n<2)fail(400,'Musi pozostać aktywny administrator lokalny.');
         db.prepare('UPDATE users SET role=?,active=?,is_internal=?,password=?,must_change=?,registration_state=?,version=version+1 WHERE id=?').run(role,active,internal,encoded,b.new_password!==undefined?0:target.must_change,b.approve?'active':target.registration_state,target.id);
+        db.prepare('UPDATE users SET first_name=?,last_name=?,name=?,email=? WHERE id=?').run(first,last,(first+' '+last).trim()||target.name,mail,target.id);
         db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);db.prepare('DELETE FROM account_tokens WHERE user_id=?').run(target.id);projects.clearAssignments(target.id);
         projects.audit(null,user,b.approve?'user.approved':'user.updated',{user_id:target.id,role,active:Boolean(active),is_internal:Boolean(internal),password_reset:b.new_password!==undefined});
       });extensions.events();return json(res,200,{ok:true});
