@@ -20,8 +20,8 @@ const DIRECT_SETTINGS_LINKS = {
   ],
   'Komunikacja': [
     ['Domyślna poczta SMTP i kolejka', '/#/settings?section=communication'],
-    ['Poczta zespołów · IMAP i SMTP', '/#/admin/mail'],
-    ['Szablony e-mail', '/#/admin/mail-templates']
+    ['Skrzynki zespołów · IMAP i SMTP', '/#/admin/mail'],
+    ['Szablony powiadomień e-mail', '/#/admin/mail-templates']
   ],
   'Integracje': [
     ['Przegląd integracji', '/#/settings?section=integrations'],
@@ -29,7 +29,7 @@ const DIRECT_SETTINGS_LINKS = {
     ['GitHub Issues', '/#/settings?section=github'],
     ['Webhooki', '/#/admin/webhooks'],
     ['Baza wiedzy', '/#/admin/knowledge'],
-    ['API i tokeny', '/#/admin/api-tokens'],
+    ['Tokeny API', '/#/admin/api-tokens'],
     ['Wtyczki', '/#/settings?section=plugins']
   ],
   'Zasoby / CMDB': [
