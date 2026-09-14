@@ -23,13 +23,13 @@ async function render(tab){activeTab=tab;location.hash=tab;document.querySelecto
       ])}`);return;
     }
     if(tab==='general'){
-      const s=await api('/settings');c.innerHTML=section('Organization & language','Global settings used by the complete Service Desk instance.',`<form data-settings class="panel"><div class="form-row"><label>System name<input name="brand_name" required maxlength="80" value="${e(s.brand_name||'Service Desk')}"></label><label>Organization name<input name="company_name" required maxlength="100" value="${e(s.company_name||s.brand_name||'Service Desk')}"></label></div><div class="form-row"><label>System language<select name="language"><option value="en"${s.language==='en'?' selected':''}>English</option><option value="pl"${s.language==='pl'?' selected':''}>Polski</option><option value="de"${s.language==='de'?' selected':''}>Deutsch</option></select><small>One language applies globally to all users and public screens.</small></label><label>Registration<select name="registration_mode"><option value="closed"${s.registration_mode==='closed'?' selected':''}>Closed</option><option value="approval"${s.registration_mode==='approval'?' selected':''}>Administrator approval</option><option value="email"${s.registration_mode==='email'?' selected':''}>Email verification</option></select></label></div><label>Allowed registration domains (one per line)<textarea name="allowed_domains" rows="5">${e((s.allowed_domains||[]).join('\n'))}</textarea></label><button class="primary">Save global settings</button><input type="hidden" name="version" value="${s.version}"></form>`);return;
+      const s=await api('/settings');c.innerHTML=section('Organization & language','Global settings used by the complete Service Desk instance.',`<form data-settings class="panel"><div class="form-row"><label>System name<input name="brand_name" required maxlength="80" value="${e(s.brand_name||'Service Desk')}"></label><label>Organization name<input name="company_name" required maxlength="100" value="${e(s.company_name||s.brand_name||'Service Desk')}"></label></div><div class="form-row"><label>System language<select name="language"><option value="en"${s.language==='en'?' selected':''}>English</option><option value="pl"${s.language==='pl'?' selected':''}>Polski</option><option value="de"${s.language==='de'?' selected':''}>Deutsch</option></select><small>One language applies globally to all users and public screens.</small></label><label>Registration<select name="registration_mode"><option value="closed"${s.registration_mode==='closed'?' selected':''}>Closed</option><option value="approval"${s.registration_mode==='approval'?' selected':''}>Administrator approval</option><option value="email"${s.registration_mode==='email'?' selected':''}>Email verification</option></select></label></div><label>Allowed registration domains (one per line)<textarea name="allowed_domains" rows="5">${e((s.allowed_domains||[]).join('\n'))}</textarea></label><button class="primary">Save global settings</button><input type="hidden" name="version" value="${s.version}"></form><p><a class="button" href="/#/admin-settings">Brand logo and advanced settings</a></p>`);return;
     }
     if(tab==='identity'){
       const [ldap,sso]=await Promise.all([api('/ldap'),api('/desk/sso')]);c.innerHTML=section('Users, LDAP & SSO','Identity sources are separated from project permissions.',cards([
         {title:'Users',text:`${users.length} accounts in Service Desk.`,status:status(true,'Available'),link:'/#/users'},
-        {title:'LDAP / Active Directory',text:ldap.enabled?'Directory synchronization enabled.':'Directory integration disabled.',status:status(Boolean(ldap.enabled),'Enabled','Disabled'),link:'/v8.html#identity'},
-        {title:'SSO / OIDC',text:`${sso.length} configured provider(s).`,status:status(sso.some(x=>x.enabled),'Enabled','Disabled'),link:'/v8.html#identity'},
+        {title:'LDAP / Active Directory',text:ldap.enabled?'Directory synchronization enabled.':'Directory integration disabled.',status:status(Boolean(ldap.enabled),'Enabled','Disabled'),link:'/#/directory'},
+        {title:'SSO / OIDC',text:`${sso.length} configured provider(s).`,status:status(sso.some(x=>x.enabled),'Enabled','Disabled'),link:'/#/admin/sso'},
         {title:'Role model',text:'Global Administrator, Project Manager, Agent and Customer. Roles are fixed; project access is assigned per project or through LDAP mappings.',status:status(true,'Fixed model')}
       ]));return;
     }
@@ -45,17 +45,17 @@ async function render(tab){activeTab=tab;location.hash=tab;document.querySelecto
       const views=await api('/desk/v8/views');c.innerHTML=section('Projects & workflows','Project-level administration remains delegated to Project Managers.',`${cards([
         {title:'Projects',text:`${meta.projects.length} visible project(s).`,status:status(true,'Available'),link:'/#/projects'},
         {title:'Request forms',text:'Per-project request types and customer forms.',status:status(true,'Available'),link:'/#/projects'},
-        {title:'Workflow templates',text:'Reusable status and transition definitions.',status:status(true,'Available'),link:'/v8.html#identity'},
+        {title:'Workflow templates',text:'Reusable status and transition definitions.',status:status(true,'Available'),link:'/#/admin/templates'},
         {title:'Saved queues',text:`${views.length} saved/shared view(s).`,status:status(true,'Available')}
       ])}<hr><h3>Project administration</h3><p>Open a project to manage its members, Project Managers, request forms, workflow, SLA and portal settings.</p>`);return;
     }
     if(tab==='communication'){
       const [smtp,outbox,mail]=await Promise.all([api('/desk/smtp'),api('/desk/outbox'),api('/desk/mail')]);const failed=outbox.filter(x=>x.status==='failed').length,queued=outbox.filter(x=>x.status==='queued').length;
       c.innerHTML=section('Mail & notifications','Global SMTP and project/team mail channels.',`${cards([
-        {title:'Global SMTP',text:smtp.configured?`${smtp.host||''}:${smtp.port||''}`:'Configure a default outbound mail server.',status:status(Boolean(smtp.configured))},
-        {title:'Mail queue',text:`${queued} queued, ${failed} failed.`,status:status(!failed,'Healthy','Failures')},
-        {title:'Team mailboxes',text:`${mail.length} configured IMAP/SMTP channel(s).`,status:status(mail.some(x=>x.enabled),'Active','No active channel')},
-        {title:'Notifications',text:'In-app and email notifications with project rules.',status:status(true,'Available')}
+        {title:'Global SMTP',text:smtp.configured?`${smtp.host||''}:${smtp.port||''}`:'Configure a default outbound mail server.',status:status(Boolean(smtp.configured)),link:'/#/admin-settings'},
+        {title:'Mail queue',text:`${queued} queued, ${failed} failed.`,status:status(!failed,'Healthy','Failures'),link:'/#/admin-settings'},
+        {title:'Team mailboxes',text:`${mail.length} configured IMAP/SMTP channel(s).`,status:status(mail.some(x=>x.enabled),'Active','No active channel'),link:'/#/admin/mail'},
+        {title:'Notifications',text:'In-app and email notifications with project rules.',status:status(true,'Available'),link:'/#/admin/mail-templates'}
       ])}`);return;
     }
     if(tab==='integrations'){
@@ -77,8 +77,8 @@ async function render(tab){activeTab=tab;location.hash=tab;document.querySelecto
     if(tab==='maintenance'){
       const [u,events]=await Promise.all([api('/desk/updates'),api('/desk/events')]);c.innerHTML=section('Updates & maintenance','Update status, recovery information and failed background jobs.',`${cards([
         {title:'Installed version',text:u.version||'Current application version',status:status(true,u.version||'Current')},
-        {title:'Update agent',text:u.agent_online===false?'Updater agent is offline.':'Updater state available.',status:status(u.agent_online!==false,'Online','Offline')},
-        {title:'Failed module events',text:`${events.length} failed event(s).`,status:status(!events.length,'Healthy','Needs attention')}
+        {title:'Update agent',text:u.agent_online===false?'Updater agent is offline.':'Updater state available.',status:status(u.agent_online!==false,'Online','Offline'),link:'/#/admin/updates'},
+        {title:'Failed module events',text:`${events.length} failed event(s).`,status:status(!events.length,'Healthy','Needs attention'),link:'/#/admin/events'},{title:'Brand, SMTP, queue & factory reset',text:'Advanced configuration retained from earlier Settings screens.',status:status(true,'Available'),link:'/#/admin-settings'}
       ])}${events.length?`<h3>Recent failures</h3><pre class="code-box">${e(JSON.stringify(events.slice(0,30),null,2))}</pre>`:''}`);return;
     }
     if(tab==='approvals'){
