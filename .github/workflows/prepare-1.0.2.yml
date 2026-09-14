@@ -1,0 +1,101 @@
+name: Prepare 1.0.2 native Settings hotfix
+on:
+  push:
+    branches: [release/1.0.2]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.0.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Prepare release files
+        run: |
+          set -euo pipefail
+          npm install --package-lock-only --ignore-scripts
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Native Settings: no redirect and no standalone Administration Center dependency.
+          p=Path('public/app.js')
+          s=p.read_text()
+          old="case 'settings':location.replace('/v8.html#overview');return;"
+          new="case 'settings':content=await legacySettingsView();break;"
+          if old not in s:
+              raise SystemExit('Expected Settings redirect not found in app.js')
+          s=s.replace(old,new)
+          s=s.replace("async function settingsView(){location.replace('/v8.html#overview');return '<div class=\"loading\">Opening Administration Center…</div>';}","async function settingsView(){return legacySettingsView();}")
+          p.write_text(s)
+
+          # Remove the temporary index-level route workaround now that the application router is correct.
+          p=Path('public/index.html')
+          s=p.read_text()
+          s=re.sub(r'\n  <script>\n    // Settings must stay inside the native Service Desk shell\..*?\n  </script>', '', s, flags=re.S)
+          s=s.replace('?v=1.0.1','?v=1.0.2')
+          p.write_text(s)
+
+          # Keep dormant compatibility UI/cache references internally coherent, although Settings no longer routes there.
+          for fn in ['public/v8.html','public/v8.js']:
+              p=Path(fn); s=p.read_text(); s=s.replace('1.0.1','1.0.2'); p.write_text(s)
+
+          # Update regression assertions to the 1.0.2 behavior while retaining the 1.0.1 feature tests.
+          p=Path('tests/release-1.0.1.test.mjs')
+          s=p.read_text()
+          s=s.replace("test('1.0.1 version and cache busting are consistent',()=>{assert.equal(VERSION,'1.0.1');", "test('1.0.2 version and cache busting are consistent',()=>{assert.equal(VERSION,'1.0.2');")
+          s=s.replace("assert.equal(pkg.version,'1.0.1');assert.equal(lock.version,'1.0.1');assert.equal(lock.packages[''].version,'1.0.1');", "assert.equal(pkg.version,'1.0.2');assert.equal(lock.version,'1.0.2');assert.equal(lock.packages[''].version,'1.0.2');")
+          s=s.replace("assert.match(html,/\\?v=1\\.0\\.1/);", "assert.match(html,/\\?v=1\\.0\\.2/);")
+          old_settings="assert.ok(index.includes(\"location.replace('/v8.html#overview')\"));assert.ok(app.includes(\"case 'settings':location.replace('/v8.html#overview');return;\"));"
+          new_settings="assert.ok(!index.includes(\"location.replace('/v8.html#overview')\"));assert.ok(app.includes(\"case 'settings':content=await legacySettingsView();break;\"));assert.ok(!app.includes(\"case 'settings':location.replace('/v8.html#overview');return;\"));"
+          if old_settings not in s:
+              raise SystemExit('Expected 1.0.1 Settings regression assertion not found')
+          s=s.replace(old_settings,new_settings)
+          p.write_text(s)
+
+          # Changelog and README current-release references.
+          p=Path('CHANGELOG.md'); s=p.read_text();
+          entry="""## 1.0.2 - 2026-09-14\n\n- Fixed the Settings regression introduced in 1.0.1: the administrator now remains in the native Service Desk shell instead of being redirected to `v8.html`.\n- Restored the existing native Settings screen with the normal sidebar, top bar, theme and application routing.\n- Removed the active `/settings` dependency on the standalone 0.8-era `v8.html` Administration Center.\n- Bumped frontend cache keys and application version to 1.0.2 so installations already on 1.0.1 can receive the hotfix through the updater.\n\n"""
+          if not s.startswith('## 1.0.2'):
+              s=entry+s
+          p.write_text(s)
+
+          p=Path('README.md'); s=p.read_text();
+          s=s.replace('# iTELade Service Desk 1.0.1','# iTELade Service Desk 1.0.2',1)
+          s=s.replace('**Service Desk 1.0.1**','**Service Desk 1.0.2**')
+          s=s.replace('releases/tag/v1.0.1','releases/tag/v1.0.2')
+          s=s.replace('1.0.0 installations can upgrade to 1.0.1','1.0.0 and 1.0.1 installations can upgrade to 1.0.2')
+          s=s.replace('Service Desk 1.0.1 keeps database schema version **8**','Service Desk 1.0.2 keeps database schema version **8**')
+          p.write_text(s)
+
+          Path('RELEASE_NOTES_1.0.2.md').write_text("""# Service Desk 1.0.2\n\nService Desk 1.0.2 is a UI routing hotfix for administrators already running 1.0.1.\n\n## Settings\n- **Settings stays inside the normal Service Desk application.**\n- `/#/settings` renders the native Settings view with the standard sidebar, top bar, theme and navigation.\n- The Settings entry point no longer redirects to `/v8.html`.\n- Existing global configuration remains available through the native settings and existing module routes.\n\n## Upgrade\n- Application version: **1.0.2**.\n- Database schema remains **8**; no schema migration is required.\n- Front-end cache keys are bumped to 1.0.2.\n- The new semantic version is intentional: installations already on 1.0.1 need a strictly newer version for the built-in updater to offer this hotfix.\n""")
+          PY
+      - name: Verify prepared release
+        run: |
+          set -euo pipefail
+          grep -q '"version": "1.0.2"' package-lock.json
+          grep -q "case 'settings':content=await legacySettingsView();break;" public/app.js
+          ! grep -q "case 'settings':location.replace('/v8.html#overview');return;" public/app.js
+          ! grep -q "location.replace('/v8.html#overview')" public/index.html
+          npm ci
+          npm run check
+          npm run test:ci
+          bash -n scripts/upgrade.sh
+      - name: Commit prepared release
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json public/app.js public/index.html public/v8.html public/v8.js tests/release-1.0.1.test.mjs README.md CHANGELOG.md RELEASE_NOTES_1.0.2.md
+          if git diff --cached --quiet; then
+            echo 'No generated changes.'
+            exit 0
+          fi
+          git commit -m 'Complete Service Desk 1.0.2 native Settings hotfix'
+          git push origin HEAD:release/1.0.2
