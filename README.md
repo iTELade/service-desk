@@ -1,4 +1,4 @@
-# iTELade Service Desk 1.0.0
+# iTELade Service Desk 1.0.1
 
 Self-hosted service desk / ITSM platform for customer support and internal IT operations. Service Desk provides customer portals, internal and external projects, ticket workflows, SLA, automation, assets, LDAP/SSO, email integration, API, webhooks, GitHub Issues intake and an extensible plugin foundation.
 
@@ -117,7 +117,7 @@ Language is an instance-wide administrator setting. Users do not select a separa
 
 Service Desk can use the built-in updater with releases published from this repository. Stable releases include a `desk-release.json` manifest that identifies the exact GHCR image digest and database schema compatibility.
 
-Existing 0.8.x installations can upgrade to 1.0.0 through the built-in updater. Service Desk 1.0.0 keeps database schema version **8**, so this release does not require a new database migration.
+Existing 0.8.x installations can upgrade to 1.0.0 through the built-in updater. Service Desk 1.0.1 keeps database schema version **8**, so this release does not require a new database migration.
 
 See [UPDATES.md](UPDATES.md) and [UPGRADE.md](UPGRADE.md) for details.
 
@@ -169,8 +169,8 @@ Source code: https://github.com/iTELade/service-desk
 
 ## Current release
 
-**Service Desk 1.0.0**
+**Service Desk 1.0.1**
 
 Major 1.0 highlights are the reorganized Administration Center, diagnostics, German language support, plugin lifecycle foundation, simplified role model and the one-way GitHub Issues intake flow.
 
-Release: https://github.com/iTELade/service-desk/releases/tag/v1.0.0
+Release: https://github.com/iTELade/service-desk/releases/tag/v1.0.1
