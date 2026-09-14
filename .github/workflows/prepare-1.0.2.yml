@@ -59,6 +59,15 @@ jobs:
           s=s.replace(old_settings,new_settings)
           p.write_text(s)
 
+          # Updater test must offer a strictly newer fixture than the application under test.
+          p=Path('tests/v6.test.mjs')
+          s=p.read_text()
+          old="const m={version:'1.0.2',schema:8,minimum_schema:6,tag:'v1.0.2',image:'ghcr.io/itelade/service-desk@sha256:'+'a'.repeat(64)};"
+          new="const m={version:'1.0.3',schema:8,minimum_schema:6,tag:'v1.0.3',image:'ghcr.io/itelade/service-desk@sha256:'+'a'.repeat(64)};"
+          if old not in s:
+              raise SystemExit('Expected updater fixture not found')
+          p.write_text(s.replace(old,new))
+
           # Changelog and README current-release references.
           p=Path('CHANGELOG.md'); s=p.read_text();
           entry="""## 1.0.2 - 2026-09-14\n\n- Fixed the Settings regression introduced in 1.0.1: the administrator now remains in the native Service Desk shell instead of being redirected to `v8.html`.\n- Restored the existing native Settings screen with the normal sidebar, top bar, theme and application routing.\n- Removed the active `/settings` dependency on the standalone 0.8-era `v8.html` Administration Center.\n- Bumped frontend cache keys and application version to 1.0.2 so installations already on 1.0.1 can receive the hotfix through the updater.\n\n"""
@@ -92,7 +101,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add package-lock.json public/app.js public/index.html public/v8.html public/v8.js tests/release-1.0.1.test.mjs README.md CHANGELOG.md RELEASE_NOTES_1.0.2.md
+          git add package-lock.json public/app.js public/index.html public/v8.html public/v8.js tests/release-1.0.1.test.mjs tests/v6.test.mjs README.md CHANGELOG.md RELEASE_NOTES_1.0.2.md
           if git diff --cached --quiet; then
             echo 'No generated changes.'
             exit 0
