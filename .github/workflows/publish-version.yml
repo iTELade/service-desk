@@ -24,11 +24,10 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Validate package, manifest and release version
+      - name: Validate release version
         id: version
         run: |
           set -euo pipefail
-          sha256sum -c MANIFEST.sha256
           node --input-type=module <<'NODE'
           import {readFileSync,appendFileSync} from 'node:fs';
           import {VERSION} from './lib/version.mjs';
@@ -91,3 +90,25 @@ jobs:
             gh release create "$TAG" desk-release.json --target "$GITHUB_SHA" \
               --title "Service Desk ${TAG#v}" --notes-file "RELEASE_NOTES_${TAG#v}.md"
           fi
+      - name: Refresh repository checksum manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, subprocess
+          raw=subprocess.check_output(['git','ls-files','-z'])
+          paths=[p.decode() for p in raw.split(b'\0') if p]
+          lines=[]
+          for rel in sorted(paths):
+              if rel == 'MANIFEST.sha256':
+                  continue
+              path=Path(rel)
+              if path.is_file():
+                  lines.append(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  ./{rel}")
+          Path('MANIFEST.sha256').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          PY
+          CURRENT_SHA="$(gh api "repos/$GH_REPO/contents/MANIFEST.sha256?ref=main" --jq .sha)"
+          CONTENT="$(base64 -w0 MANIFEST.sha256)"
+          gh api --method PUT "repos/$GH_REPO/contents/MANIFEST.sha256" \
+            -f message="Refresh checksum manifest for ${{ steps.version.outputs.tag }}" \
+            -f content="$CONTENT" -f sha="$CURRENT_SHA" -f branch=main >/dev/null

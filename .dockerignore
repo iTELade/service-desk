@@ -4,6 +4,5 @@ data
 backups
 tests
 node_modules
-README.md
 *.zip
 .sites-runtime

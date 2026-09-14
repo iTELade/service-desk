@@ -9,8 +9,7 @@
   "scripts": {
     "start": "node server.mjs",
     "check": "node scripts/check.mjs",
-    "test": "node ./scripts/run-tests.mjs",
-    "test:ci": "node ./scripts/run-tests.mjs"
+    "test": "node ./scripts/run-tests.mjs"
   },
   "dependencies": {
     "imapflow": "2.0.2",
