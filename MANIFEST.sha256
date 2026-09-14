@@ -3,7 +3,7 @@
 1a4a95988f472bff92171767e8c67e7f6cc68feb597f5f729ddad92ccb09fc64  ./.github/ISSUE_TEMPLATE/bug_report.yml
 1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb  ./.github/ISSUE_TEMPLATE/config.yml
 98464db95e7174b0e6a9061fc6f296d4fc807d3ebbe0db8aa6c7d538cf0d8ae7  ./.github/ISSUE_TEMPLATE/feature_request.yml
-fa21f69a97796d3ce02f4da6123c0907d526b86719cd5bcf4bde6393cb77ec85  ./.github/workflows/publish-version.yml
+3fb4c77fff87f0219b68bce8ff01c21c3eae6d4f75ba6c5dedf7761e47962169  ./.github/workflows/publish-version.yml
 e32b7972a57071bdb118ea9058fe1a64b2a8fe7115fa7386deb94d1b8784893a  ./.github/workflows/release.yml
 c11bb6f194ddaa3e5b6b066b466a1179a39a3f2a9658d070596832f7cdd66e70  ./.gitignore
 60b75698e586ce4203faf4556be89c397f2cefa0dd45708ab220bd7d79aa56dc  ./API.md
@@ -69,7 +69,7 @@ c214af75d209a10cee33f9ec524b87016a33eeeba829e7dfd31f81ac7eb77a67  ./lib/webhooks
 98d1a693caf28644f4fe07fec5d845f24c67415c3ae02ec3c874f155d9ea3857  ./public/app.css
 c3b94aeaa409c045fab311563cb324deaf2d9a6b698b6fe289d629eaf4d54357  ./public/app.js
 5503b339639fcf7a0dd106cf5fe0fc0d19d240c252c16c7aed29726eaebe32f4  ./public/favicon.svg
-8654c25966026b90403a69b50b89c54b495c5621e4d3b02fcdf46c17a60e6602  ./public/i18n.js
+e1a6afb28326134d93201c20b816bcd7a0f7cce594c8636b1f1848d853caa200  ./public/i18n.js
 d00309ded68d12a9a43dba635e1ad3c13715e3f29d0a46f2fb62d4d0a642a4ca  ./public/index.html
 901d3848e17f84fa3d493af6e94a8f0f8c91417f0634e721b78125f5c9be2ba4  ./public/security.js
 67d1bff26b2782a13af5ec2ebee27bae8f4814a81b22422e010bb97e2816fadc  ./public/v8.html
