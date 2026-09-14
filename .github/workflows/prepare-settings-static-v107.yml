@@ -1,0 +1,98 @@
+name: Prepare Settings Static Assets 1.0.7
+
+on:
+  push:
+    branches: [hotfix/settings-static-assets-v107]
+    paths:
+      - .github/workflows/prepare-settings-static-v107.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/settings-static-assets-v107
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Fix static asset serving and bump 1.0.7
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, expected=1):
+              p=Path(path); s=p.read_text()
+              n=s.count(old)
+              if n != expected:
+                  raise SystemExit(f'{path}: expected {expected} occurrences of {old!r}, found {n}')
+              p.write_text(s.replace(old,new))
+
+          # Root cause of the 404s visible in DevTools: the HTTP static allowlist
+          # did not contain the three Settings Center assets even though index.html
+          # referenced them and Docker copied them into /app/public.
+          server=Path('server.mjs')
+          s=server.read_text()
+          needle="  ['/app.css', ['app.css', 'text/css; charset=utf-8']],\n"
+          addition=(needle+
+              "  ['/settings.css', ['settings.css', 'text/css; charset=utf-8']],\n"
+              "  ['/settings-center.js', ['settings-center.js', 'text/javascript; charset=utf-8']],\n"
+              "  ['/settings-nav-complete.js', ['settings-nav-complete.js', 'text/javascript; charset=utf-8']],\n")
+          if s.count(needle) != 1:
+              raise SystemExit('server.mjs: static asset insertion point changed')
+          if '/settings-center.js' in s or '/settings-nav-complete.js' in s or "['/settings.css'" in s:
+              raise SystemExit('server.mjs: settings static assets already registered')
+          server.write_text(s.replace(needle, addition, 1))
+
+          replace('lib/version.mjs', "export const VERSION='1.0.6';", "export const VERSION='1.0.7';")
+          replace('package.json', '"version": "1.0.6"', '"version": "1.0.7"')
+
+          for path in ['public/index.html','public/settings-center.js','public/settings-nav-complete.js','tests/settings-center-race.test.mjs','tests/settings-route-regression.test.mjs']:
+              p=Path(path); text=p.read_text();
+              if '1.0.6' in text:
+                  p.write_text(text.replace('1.0.6','1.0.7').replace('1\\.0\\.6','1\\.0\\.7'))
+
+          Path('tests/settings-static-assets.test.mjs').write_text(r'''import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const server = readFileSync(new URL('../server.mjs', import.meta.url), 'utf8');
+const index = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+
+test('Settings Center files referenced by index are served by the HTTP static asset map', () => {
+  const assets = [
+    ['/settings.css', 'settings.css'],
+    ['/settings-center.js', 'settings-center.js'],
+    ['/settings-nav-complete.js', 'settings-nav-complete.js']
+  ];
+  for (const [url, file] of assets) {
+    assert.ok(index.includes(`${url}?v=1.0.7`), `index must reference ${url} with 1.0.7 cache key`);
+    assert.ok(server.includes(`['${url}', ['${file}',`), `server static map must serve ${url}`);
+  }
+});
+''')
+
+          Path('RELEASE_NOTES_1.0.7.md').write_text('''# Service Desk 1.0.7\n\n## Settings Center static asset hotfix\n\nThe 1.0.6 HTML referenced the native Settings Center assets, but the Node HTTP server did not expose those files in its explicit static asset allowlist. Browsers therefore received HTTP 404 for `settings.css`, `settings-center.js` and `settings-nav-complete.js`, leaving `/#/settings` permanently on the loading placeholder.\n\n### Fixed\n\n- serve `/settings.css`, `/settings-center.js` and `/settings-nav-complete.js` from the production HTTP server;\n- keep `/#/settings` on the native organized Settings Center;\n- add a regression test that verifies every Settings Center asset referenced by `index.html` is present in the server static map;\n- bump cache keys and application version to 1.0.7.\n\nDatabase schema remains **8**. No migration is required.\n''')
+          PY
+          npm install --package-lock-only --ignore-scripts
+      - name: Validate hotfix
+        run: |
+          npm ci
+          npm run check
+          npm run test:ci
+          bash -n scripts/upgrade.sh
+      - name: Commit prepared hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add server.mjs lib/version.mjs package.json package-lock.json public/index.html public/settings-center.js public/settings-nav-complete.js tests/settings-center-race.test.mjs tests/settings-route-regression.test.mjs tests/settings-static-assets.test.mjs RELEASE_NOTES_1.0.7.md
+          git commit -m 'fix: serve native Settings Center assets in 1.0.7'
+          git push origin HEAD:hotfix/settings-static-assets-v107
