@@ -49,7 +49,3 @@ npm test
 ```
 
 Testy nie łączą się z firmowym LDAP, skrzynkami ani produkcyjnym Dockerem. Przed wdrożeniem skonfiguruj kopię testową i sprawdź integracje swojej instalacji.
-
-## Wydanie 0.7.0
-
-Instrukcja publikacji: **GITHUB_UPLOAD.md**. Zmiany i ważne różnice w poczcie oraz obiegach opisano w **CHANGELOG.md**. Raport wykonanych testów i ograniczenia: **VALIDATION.md**. Kontrakt przyszłej integracji z osobną bazą wiedzy: **KNOWLEDGE_INTEGRATION.md**.
