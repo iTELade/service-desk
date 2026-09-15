@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 def replace(path, old, new, expected=1):
     p=Path(path)
@@ -10,20 +11,16 @@ def replace(path, old, new, expected=1):
 
 ui=Path('public/settings-center.js')
 s=ui.read_text()
-old="const projects=state.meta.projects.filter(p=>p.can_manage&&p.project_type!=='assets');"
-new="const projects=state.meta.projects.filter(p=>!p.archived);"
-if s.count(old)!=1:
-    raise SystemExit('GitHub project filter anchor changed')
-ui.write_text(s.replace(old,new,1))
+pattern=r"(async function renderGithub\(\)\{.*?const editing=.*?;const projects=).*?(;const projectId=)"
+s,n=re.subn(pattern,r"\1state.meta.projects.filter(p=>!p.archived)\2",s,count=1)
+if n!=1:
+    raise SystemExit(f'GitHub project filter anchor changed: {n}')
+ui.write_text(s)
 
 v8=Path('lib/v8.mjs')
 s=v8.read_text()
-old="""  function githubOptions(u,projectId){
-    admin(u);const p=projects.requireProject(integer(Number(projectId),'Project'),u,true);
-    return {request_types:db.prepare('SELECT id,name,version FROM request_types WHERE project_id=? AND enabled=1 ORDER BY name').all(p.id),reporters:db.prepare(\"SELECT id,name,email,role,account_kind FROM users WHERE active=1 AND role IN ('admin','agent') ORDER BY name,email\").all()};
-  }
-"""
-new="""  function githubReporters(){
+pattern=r"  function githubOptions\(u,projectId\)\{\n    admin\(u\);const p=projects\.requireProject\(integer\(Number\(projectId\),'Project'\),u,true\);\n    return \{request_types:db\.prepare\('SELECT id,name,version FROM request_types WHERE project_id=\? AND enabled=1 ORDER BY name'\)\.all\(p\.id\),reporters:.*?\};\n  \}\n"
+replacement="""  function githubReporters(){
     return db.prepare(\"SELECT id,name,email,role,account_kind FROM users WHERE active=1 AND COALESCE(directory_active,1)=1 AND COALESCE(registration_state,'active')='active' AND COALESCE(account_kind,'human') IN ('human','service') ORDER BY CASE WHEN account_kind='service' THEN 0 ELSE 1 END,name,email\").all();
   }
   function githubOptions(u,projectId){
@@ -31,14 +28,14 @@ new="""  function githubReporters(){
     return {request_types:db.prepare('SELECT id,name,version FROM request_types WHERE project_id=? AND enabled=1 ORDER BY name').all(p.id),reporters:githubReporters()};
   }
 """
-if s.count(old)!=1:
-    raise SystemExit('githubOptions anchor changed')
-s=s.replace(old,new,1)
-old2="reporter=db.prepare(\"SELECT * FROM users WHERE id=? AND active=1 AND role IN ('admin','agent')\").get(integer(Number(b.reporter_id),'Reporter'))"
-new2="reporter=githubReporters().find(x=>x.id===integer(Number(b.reporter_id),'Reporter'))"
-if s.count(old2)!=1:
-    raise SystemExit('reporter validation anchor changed')
-v8.write_text(s.replace(old2,new2,1))
+s,n=re.subn(pattern,replacement,s,count=1)
+if n!=1:
+    raise SystemExit(f'githubOptions anchor changed: {n}')
+pattern2=r"reporter=db\.prepare\(\"SELECT \* FROM users WHERE id=\? AND active=1 AND role IN \('admin','agent'\)\"\)\.get\(integer\(Number\(b\.reporter_id\),'Reporter'\)\)"
+s,n=re.subn(pattern2,"reporter=githubReporters().find(x=>x.id===integer(Number(b.reporter_id),'Reporter'))",s,count=1)
+if n!=1:
+    raise SystemExit(f'reporter validation anchor changed: {n}')
+v8.write_text(s)
 
 replace('lib/version.mjs',"export const VERSION='1.0.7';","export const VERSION='1.0.8';")
 replace('package.json','"version": "1.0.7"','"version": "1.0.8"')
@@ -55,7 +52,7 @@ if t.count(oldtest)!=1:
     raise SystemExit('GitHub functional test anchor changed')
 t=t.replace(oldtest,newtest,1)
 marker="test('GitHub Administration provides named dropdowns, CRUD controls and readable history',()=>{"
-extra="test('GitHub integration UI exposes every active project instead of hiding project types',()=>{const ui=source('public/settings-center.js');assert.match(ui,/state\\.meta\\.projects\\.filter\\(p=>!p\\.archived\\)/);assert.doesNotMatch(ui,/project_type!=='assets'/);assert.doesNotMatch(ui,/p\\.can_manage&&p\\.project_type/);});\n\n"
+extra="test('GitHub integration UI exposes every active project instead of hiding project types',()=>{const ui=source('public/settings-center.js');assert.match(ui,/state\\.meta\\.projects\\.filter\\(p=>!p\\.archived\\)/);const github=ui.slice(ui.indexOf('async function renderGithub'),ui.indexOf('async function renderPlugins'));assert.doesNotMatch(github,/project_type!=='assets'/);assert.doesNotMatch(github,/p\\.can_manage/);});\n\n"
 if marker not in t:
     raise SystemExit('GitHub UI test marker missing')
 test.write_text(t.replace(marker,extra+marker,1))
@@ -64,7 +61,7 @@ Path('RELEASE_NOTES_1.0.8.md').write_text("""# Service Desk 1.0.8
 
 ## GitHub Issues integration choices
 
-- Show every active Service Desk project visible to the Global Administrator in the GitHub Issues project selector.
+- Show every active Service Desk project visible to the Global Administrator in the GitHub Issues project selector, including project types previously hidden by the UI.
 - Allow every active human or service account to be selected as Reporter / service account.
 - Exclude inactive, directory-disabled and pending accounts.
 - Validate saved reporters with the same eligibility rules as the dropdown.
