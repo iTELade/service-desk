@@ -54,10 +54,11 @@ jobs:
           if not s.startswith('## 1.1.3'):
               s='## 1.1.3 - 2026-09-16\n\n- Reworked queue, settings and customer portal presentation toward a Jira Service Management-style information hierarchy.\n- Prevented same-route background refresh from replacing the queue with a full-page loading state.\n- Fixed unstable substring translation that could expand `Normalny` / `Sortowanie` repeatedly.\n- Added settings search, compact ticket badges, sticky queue headers and responsive filter disclosure.\n\n'+s
           p.write_text(s)
-          # Keep current-version regression checks aligned without rewriting release-specific 1.1.2 feature tests.
           for f in ['tests/settings-route-regression.test.mjs','tests/settings-static-assets.test.mjs','tests/settings-center-race.test.mjs']:
               p=Path(f)
-              if p.exists(): p.write_text(p.read_text().replace('1.1.2','1.1.3'))
+              if p.exists():
+                  s=p.read_text().replace('1.1.2','1.1.3').replace('1\\.1\\.2','1\\.1\\.3')
+                  p.write_text(s)
           PY
           npm install --package-lock-only --ignore-scripts
       - name: Validate
