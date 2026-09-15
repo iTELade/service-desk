@@ -38,9 +38,17 @@ replaceOnce('public/release-1.1.2.js',
   "    box.querySelector('[data-r112-save-prefs]').addEventListener('click',async()=>{const columns=[...box.querySelectorAll('.r112-column-toggles input:checked')].map(x=>x.value);if(!columns.includes('issue'))columns.unshift('issue');const data={project_id:project,columns,sort_primary:box.querySelector('[data-r112-sort1]').value,sort_secondary:box.querySelector('[data-r112-sort2]').value,quick_filter:box.querySelector('[data-r112-quick]').value};",
   "    box.querySelector('[data-r112-save-prefs]').addEventListener('click',async()=>{const checked=new Set([...box.querySelectorAll('.r112-column-toggles input:checked')].map(x=>x.value)),dragOrder=[...box.querySelectorAll('.r112-columns [data-column]')].map(x=>x.dataset.column),columns=[...dragOrder.filter(x=>checked.has(x)),...Object.keys(headers).filter(x=>checked.has(x)&&!dragOrder.includes(x))];if(!columns.includes('issue'))columns.unshift('issue');const data={project_id:project,columns,sort_primary:box.querySelector('[data-r112-sort1]').value,sort_secondary:box.querySelector('[data-r112-sort2]').value,quick_filter:box.querySelector('[data-r112-quick]').value};");
 
+replaceOnce('public/settings-center.js',"const SETTINGS_VERSION='1.1.1';","const SETTINGS_VERSION='1.1.2';");
+replaceOnce('public/settings-nav-complete.js',"const SETTINGS_NAV_VERSION = '1.1.1';","const SETTINGS_NAV_VERSION = '1.1.2';");
+replaceOnce('tests/settings-route-regression.test.mjs',"test('Settings Center asset versions are aligned with 1.1.1', () => {\n  assert.match(center, /const SETTINGS_VERSION='1\\.1\\.1';/);\n  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\\.1\\.1';/);\n});","test('Settings Center asset versions are aligned with 1.1.2', () => {\n  assert.match(center, /const SETTINGS_VERSION='1\\.1\\.2';/);\n  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\\.1\\.2';/);\n});");
+
 if(existsSync('MODULES.md')){
   const text=readFileSync('MODULES.md','utf8');
   if(text.startsWith('# Konfiguracja modułów Service Desk 0.6.0'))writeFileSync('MODULES.md',text.replace('# Konfiguracja modułów Service Desk 0.6.0','# Konfiguracja modułów Service Desk 1.1.2'));
+}
+if(existsSync('CHANGELOG.md')){
+  const text=readFileSync('CHANGELOG.md','utf8');
+  if(!text.startsWith('## 1.1.2'))writeFileSync('CHANGELOG.md',`## 1.1.2 - 2026-09-15\n\n- Added configurable staff queue columns/order, quick filters, secondary sorting and saved-view access.\n- Added protected public/internal ticket attachments with inbound IMAP attachment import.\n- Added permission-aware global search for tickets, staff-visible people, organizations and Assets/CMDB, with a Knowledge Base provider slot.\n- Refreshed README and release documentation for the 1.1.x line.\n\n${text}`);
 }
 for(const p of ['branch_marker.tmp','branch_marker2.tmp'])if(existsSync(p))rmSync(p);
 console.log('1.1.2 preparation complete');
