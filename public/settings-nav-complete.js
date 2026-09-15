@@ -1,4 +1,4 @@
-const SETTINGS_NAV_VERSION = '1.1.1';
+const SETTINGS_NAV_VERSION = '1.1.2';
 
 const DIRECT_SETTINGS_LINKS = {
   'Ogólne': [
