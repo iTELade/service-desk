@@ -1,3 +1,10 @@
+## 1.1.2 - 2026-09-15
+
+- Added configurable staff queue columns/order, quick filters, secondary sorting and saved-view access.
+- Added protected public/internal ticket attachments with inbound IMAP attachment import.
+- Added permission-aware global search for tickets, staff-visible people, organizations and Assets/CMDB, with a Knowledge Base provider slot.
+- Refreshed README and release documentation for the 1.1.x line.
+
 ## 1.1.0
 
 - Automatic requester account provisioning for inbound email and GitHub Issues.

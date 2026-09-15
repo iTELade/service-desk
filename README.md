@@ -1,51 +1,75 @@
-# iTELade Service Desk 1.0.3
+# iTELade Service Desk 1.1.2
 
-Self-hosted service desk / ITSM platform for customer support and internal IT operations. Service Desk provides customer portals, internal and external projects, ticket workflows, SLA, automation, assets, LDAP/SSO, email integration, API, webhooks, GitHub Issues intake and an extensible plugin foundation.
+Self-hosted Service Desk / ITSM platform for customer support and internal IT operations. It provides customer portals, internal and external projects, configurable workflows, SLA, automation, Assets/CMDB, LDAP/Active Directory, SSO/OIDC, email intake, API/webhooks, GitHub Issues intake, approvals, audit, saved queues and an extensible plugin foundation.
 
-Service Desk is not an Atlassian product and is not intended to be a clone of Jira Service Management. It is an independent self-hosted platform developed by iTELade.
+Service Desk is an independent iTELade project. It is not an Atlassian product and is not intended to be a source-compatible clone of Jira Service Management.
 
-## What is included in 1.0
+## Current release
+
+**Service Desk 1.1.2**
+
+1.1.2 focuses on everyday agent work:
+
+- configurable Jira-style queue views with personal column visibility/order, quick filters, primary/secondary sorting and existing saved views,
+- first-class ticket attachments stored in protected persistent data, including public/internal visibility and inbound IMAP attachment import,
+- permission-aware global search across accessible tickets, users, organizations and Assets/CMDB, with a provider-ready Knowledge Base result section,
+- all new endpoints continue to enforce the existing fixed roles and project/ticket permission model.
+
+Release: https://github.com/iTELade/service-desk/releases/tag/v1.1.2
+
+## Core capabilities
 
 - customer portal and internal agent workspace,
 - internal and external projects,
-- Global Administrator, Project Manager, Agent and Customer role model,
-- configurable request forms and workflows,
-- SLA calendars and automation,
+- fixed Global Administrator, Project Manager, Agent and Customer role model,
+- configurable request forms, workflows and transitions,
+- SLA calendars, pause/stop/reset behavior and automation,
 - organizations and customer access rules,
-- asset / equipment management,
-- LDAP directory synchronization,
-- OpenID Connect / SSO,
+- Assets/CMDB and ticket-to-asset linking,
+- LDAP / Active Directory synchronization,
+- OpenID Connect SSO including GitHub OAuth,
 - TOTP and FIDO2 / WebAuthn security keys,
-- inbound email via IMAP and outbound email via SMTP,
-- API tokens and outbound/inbound webhooks,
-- audit log and saved queues,
-- approvals,
-- GitHub Issues → Service Desk intake,
-- native Administration Center inside `/#/settings`,
-- plugin registry and lifecycle foundation,
-- global language selection: English, Polish and German.
+- inbound email via IMAP and outbound SMTP,
+- automatic requester provisioning from email and GitHub Issues,
+- API tokens, webhooks and integration audit,
+- approvals, notifications, watchers and saved queues,
+- one-way GitHub Issues → Service Desk intake,
+- public GitHub project mode: anonymous read, GitHub-authenticated write,
+- native Administration Center under `/#/settings`,
+- plugin registry/lifecycle foundation,
+- English, Polish and German UI support.
 
-English is the default system language. The selected language is global for the whole instance and is configured by an administrator.
+## 1.1.2 queue workspace
 
-## Administration
+Agents and Project Managers can keep per-project queue preferences. Queue configuration includes visible columns, drag-and-drop column order, primary and secondary sorting and quick operational filters such as assigned to me, unassigned, waiting for customer and oldest first. Existing saved views remain supported and can be opened from the queue workspace.
 
-`/#/settings` is the main Administration Center and stays inside the normal Service Desk shell. It uses grouped navigation and opens one focused settings area at a time instead of presenting a wall of unrelated tiles.
+Queue preferences are personal. Shared saved views remain separate objects and server-side ticket authorization is always applied regardless of UI configuration.
 
-Administration is grouped into:
+## 1.1.2 attachments
 
-- **General** — organization, registration, language and branding,
-- **Identity & Access** — users, LDAP / Active Directory, SSO / OIDC and account security,
-- **Service Management** — projects, workflows, approvals and customer organizations,
-- **Communication** — global SMTP, team mailboxes, mail queue and notification templates,
-- **Integrations** — GitHub Issues, Knowledge Base, API tokens, webhooks and plugins,
-- **Assets / CMDB** — asset catalog and asset projects,
-- **System** — diagnostics, audit, updates, module errors and maintenance.
+Attachments can be added to accessible tickets and are stored outside the public web root in the protected Service Desk data store. The attachment record contains a non-guessable identifier, original safe filename, MIME type, size, SHA-256 checksum, uploader, source and public/internal visibility.
 
-The old standalone `v8.html` administration page is retired. Direct visits to it redirect to `/#/settings`.
+Current policy:
+
+- maximum 2 MB per attachment,
+- executable/script/active HTML/SVG content is rejected,
+- internal attachments are available only to users who can work the ticket,
+- every list/download request re-checks ticket access,
+- inbound IMAP attachments are imported for new tickets and replies,
+- tiny inline image artifacts such as tracking/signature pixels are ignored where practical,
+- rejected email attachments do not discard the whole email message.
+
+Because attachment bytes are stored with the application data, the normal consistent database backup includes them.
+
+## 1.1.2 global search
+
+The application header includes a global search that is filtered server-side by the current user. Search covers accessible ticket keys/titles/descriptions and, for staff, authorized users, organizations and Assets/CMDB records. Exact ticket keys such as `ITA-123` are ranked first.
+
+Customer searches never become a global internal directory. Public GitHub portal access does not expand visibility into private projects. A Knowledge Base result collection is reserved so the separate knowledge service can be added without redesigning the search contract.
 
 ## GitHub Issues integration
 
-The GitHub integration is intentionally one-way:
+Supported flow:
 
 ```text
 GitHub Issue
@@ -56,24 +80,18 @@ comment on GitHub with the Service Desk ticket link
     ↓
 GitHub Issue closed
     ↓
-further handling only in Service Desk
+further handling in Service Desk
 ```
 
-There is no Service Desk → GitHub ticket creation and no bidirectional comment or status synchronization in the supported 1.0 flow.
+The actual GitHub issue author becomes the Service Desk reporter. The configured integration account remains the technical creator/audit actor. With an enabled SSO provider whose issuer is `https://github.com`, GitHub users are mapped by immutable numeric GitHub user ID and can sign in with GitHub even when their public email is hidden.
 
-The integration is configured from **Settings → Integrations → GitHub Issues**. The UI includes repository owner/name, Service Desk project, named request-type selection, reporter/service account, GitHub credential, label-to-priority mapping, closing comment, enable/disable, connection test and readable transfer history. Auto-close is mandatory only after the Service Desk ticket and GitHub comment have both succeeded.
+The GitHub Personal Access Token used for issue ingestion is separate from the OAuth App Client ID/Client Secret used for GitHub login.
 
-## Plugin foundation
+## Administration
 
-Service Desk 1.0 introduces the plugin registry and lifecycle foundation. Plugin manifests can declare:
+`/#/settings` is the main Administration Center. Administration is grouped into General, Identity & Access, Service Management, Communication, Integrations, Assets / CMDB and System sections.
 
-- plugin identifier and semantic version,
-- Service Desk compatibility range,
-- capabilities,
-- requested permissions,
-- supported locales.
-
-Plugins can be registered, enabled, disabled and removed from Administration. Plugin health and lifecycle history are exposed to administration and diagnostics views. Runtime extension points will continue to expand in later 1.x releases.
+The standalone legacy `v8.html` page is retired and redirects into the normal application shell.
 
 ## Architecture
 
@@ -83,16 +101,13 @@ Plugins can be registered, enabled, disabled and removed from Administration. Pl
 - one application container with a persistent data volume,
 - optional updater container.
 
-SQLite means one application instance writes to the database. Do not run multiple Service Desk replicas against the same SQLite volume.
+SQLite is used by a single application writer. Do not run multiple Service Desk replicas against the same SQLite volume.
+
+Service Desk 1.1.2 keeps database schema version **8**. The 1.1.2 feature tables are created idempotently at runtime and do not require a schema-version bump.
 
 ## New installation
 
-Requirements:
-
-- Docker Engine,
-- Docker Compose v2,
-- HTTPS reverse proxy,
-- a domain matching `APP_URL`.
+Requirements: Docker Engine, Docker Compose v2, HTTPS reverse proxy and a public `APP_URL` matching the deployed domain.
 
 ```bash
 unzip Service_Desk_Docker.zip
@@ -102,53 +117,36 @@ docker compose up -d --build desk
 docker compose logs --tail=30 desk
 ```
 
-For Nginx Proxy Manager create a Proxy Host pointing to the `service-desk` container on port `3000`, enable TLS and Force SSL. Port 3000 does not need to be published directly on the host. The reverse-proxy network can be configured with `PROXY_NETWORK`.
+For Nginx Proxy Manager point the Proxy Host at the `service-desk` container on port `3000`, enable TLS and Force SSL. Port 3000 does not need to be published directly on the host when the proxy shares the Docker network.
 
-On first launch, open the Service Desk URL and enter the one-time installation code from the container logs. The web installer creates the organization, system name, branding and first Global Administrator account.
-
-A fresh installation does not include demo tickets or customer accounts. Registration is disabled by default until an administrator configures it.
-
-## Languages
-
-Supported system languages:
-
-- **English (`en`)** — default,
-- **Polski (`pl`)**,
-- **Deutsch (`de`)**.
-
-Language is an instance-wide administrator setting. Users do not select a separate personal language.
+On a fresh installation, open the Service Desk URL and use the one-time installation code from the container logs to create the organization and first Global Administrator.
 
 ## Updates
 
-Service Desk can use the built-in updater with releases published from this repository. Stable releases include a `desk-release.json` manifest that identifies the exact GHCR image digest and database schema compatibility.
+Stable releases contain `desk-release.json` with the exact GHCR image digest and database compatibility information. Existing supported installations can use the built-in updater.
 
-Existing supported 0.8.x, 1.0.0, 1.0.1 and 1.0.2 installations can upgrade to 1.0.3 through the built-in updater. Service Desk 1.0.3 keeps database schema version **8**, so this release does not require a new database migration.
-
-See [UPDATES.md](UPDATES.md) and [UPGRADE.md](UPGRADE.md) for details.
+See [UPDATES.md](UPDATES.md) and [UPGRADE.md](UPGRADE.md).
 
 ## Backup
 
-Create a consistent SQLite backup with:
+Create a consistent backup with:
 
 ```bash
 docker compose exec desk node scripts/backup.mjs /app/data/backups/manual.sqlite
 ```
 
-The backup produces the SQLite database and its matching `manual.sqlite.master.key`. Store both outside the server together with the deployment configuration. The master key is required to decrypt secrets stored by Service Desk.
+Keep the generated database and matching `manual.sqlite.master.key` outside the server. The master key is required for encrypted Service Desk secrets. Never replace the live SQLite file while the application is running.
 
-Never replace the live database file while Service Desk is running.
-
-## Development
+## Development and validation
 
 ```bash
 npm ci
 npm run check
-npm test
+npm run test:ci
+bash -n scripts/upgrade.sh
 ```
 
-CI validates dependency installation, syntax/static checks, the test suite and upgrade-script syntax before release changes are merged.
-
-Tests do not connect to your production LDAP directory, mailbox or Docker environment. Validate external integrations on a separate test deployment before production use.
+CI validates dependencies, syntax/static checks, the test suite and upgrade-script syntax. External production LDAP, mailbox, OAuth and reverse-proxy environments are not contacted by unit/integration CI and should still be validated on a test deployment before production rollout.
 
 ## Documentation
 
@@ -156,7 +154,8 @@ Tests do not connect to your production LDAP directory, mailbox or Docker enviro
 - [MODULES.md](MODULES.md) — projects, mail, SLA, LDAP/SSO, integrations and permissions,
 - [AUTOMATION.md](AUTOMATION.md) — triggers, conditions, actions and scheduling,
 - [API.md](API.md) — API and token usage,
-- [UPDATES.md](UPDATES.md) — GitHub release publishing and Docker updater,
+- [KNOWLEDGE_INTEGRATION.md](KNOWLEDGE_INTEGRATION.md) — Knowledge Base integration direction,
+- [UPDATES.md](UPDATES.md) — release publishing and updater,
 - [UPGRADE.md](UPGRADE.md) — upgrade procedure,
 - [VALIDATION.md](VALIDATION.md) — validated scenarios and known validation boundaries.
 
@@ -164,23 +163,6 @@ Tests do not connect to your production LDAP directory, mailbox or Docker enviro
 
 Copyright (C) 2026 Adam Dehmel (iTELade).
 
-Service Desk is licensed under the **GNU Affero General Public License v3.0** (`AGPL-3.0-only`). See [LICENSE](LICENSE) for the complete license text.
+Service Desk is licensed under **GNU Affero General Public License v3.0** (`AGPL-3.0-only`). See [LICENSE](LICENSE).
 
-You may use, modify and redistribute the software, including commercially, under the terms of AGPL-3.0. If you provide a modified version to users over a network, you must offer the corresponding source code as required by section 13 of the AGPL.
-
-The self-hosted Service Desk core is intended to remain free and open source. Core ITSM and security functionality is not feature-paywalled. Commercial offerings can instead focus on managed hosting, support, migrations, monitoring, backups, HA and consulting.
-
-Source code: https://github.com/iTELade/service-desk
-
-## Current release
-
-**Service Desk 1.0.3**
-
-1.0.3 completes the native Settings / Administration redesign: all administration categories are available from `/#/settings`, the standalone `v8.html` interface is retired, and the layout is organized around focused settings areas instead of a wall of tiles.
-
-Release: https://github.com/iTELade/service-desk/releases/tag/v1.0.3
-
-
-### Automatic requester provisioning (1.1)
-
-Inbound email and GitHub Issues can create missing customer accounts automatically. Email-created accounts receive a one-time invitation. GitHub-created accounts are preferably mapped to a GitHub OAuth SSO provider configured with issuer `https://github.com`; the OAuth App callback is `<APP_URL>/api/sso/callback`. GitHub identities are linked by immutable numeric user ID, not by email address.
+Source: https://github.com/iTELade/service-desk
