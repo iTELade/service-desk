@@ -122,3 +122,8 @@ Konfiguracja wiąże endpoint z projektem i wybranym kontem użytkownika. Reguł
 - **Użytkownicy → Edytuj**: opcja aktywności konta pozwala zablokować logowanie i sesje. Synchronizacja LDAP nie zastępuje lokalnej blokady konta.
 - **Poczta zespołów**: własne SMTP jest obowiązkowe dla przypisanego kanału; IMAP można wyłączyć. Wyłączenie kanału zatrzymuje jego wysyłkę, bez powrotu do głównego SMTP. Projekt bez przypisanego kanału korzysta z głównego SMTP. Stare kanały używające głównego SMTP trzeba uzupełnić przed wznowieniem ich wysyłki.
 - **Statusy i automatyzacja**: akcja „Wyślij e-mail z szablonu” wskazuje zapisany aktywny szablon. Autor komentarza może być dowolnym aktywnym użytkownikiem z dostępem do sprawy; autor notatki wewnętrznej musi należeć do zespołu.
+
+
+## GitHub OAuth for imported requesters (1.1)
+
+To let people whose account was created from a GitHub Issue sign in directly, create an SSO provider with issuer `https://github.com`, the OAuth App Client ID/Secret, and callback `<APP_URL>/api/sso/callback`. Service Desk maps the GitHub numeric user ID into `sso_subjects`; email is only refreshed after GitHub returns a verified address during OAuth login.

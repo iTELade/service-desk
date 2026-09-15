@@ -1,3 +1,9 @@
+## 1.1.0
+
+- Automatic requester account provisioning for inbound email and GitHub Issues.
+- GitHub OAuth login through the existing SSO provider model (`https://github.com`).
+- GitHub-imported tickets keep the integration account as `created_by` while the actual GitHub author becomes `reporter_id`.
+
 ## 1.0.3 - 2026-09-14
 
 - Rebuilt `/#/settings` as a complete Administration Center inside the normal Service Desk shell.
