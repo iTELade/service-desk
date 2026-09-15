@@ -38,9 +38,15 @@ replaceOnce('public/release-1.1.2.js',
   "    box.querySelector('[data-r112-save-prefs]').addEventListener('click',async()=>{const columns=[...box.querySelectorAll('.r112-column-toggles input:checked')].map(x=>x.value);if(!columns.includes('issue'))columns.unshift('issue');const data={project_id:project,columns,sort_primary:box.querySelector('[data-r112-sort1]').value,sort_secondary:box.querySelector('[data-r112-sort2]').value,quick_filter:box.querySelector('[data-r112-quick]').value};",
   "    box.querySelector('[data-r112-save-prefs]').addEventListener('click',async()=>{const checked=new Set([...box.querySelectorAll('.r112-column-toggles input:checked')].map(x=>x.value)),dragOrder=[...box.querySelectorAll('.r112-columns [data-column]')].map(x=>x.dataset.column),columns=[...dragOrder.filter(x=>checked.has(x)),...Object.keys(headers).filter(x=>checked.has(x)&&!dragOrder.includes(x))];if(!columns.includes('issue'))columns.unshift('issue');const data={project_id:project,columns,sort_primary:box.querySelector('[data-r112-sort1]').value,sort_secondary:box.querySelector('[data-r112-sort2]').value,quick_filter:box.querySelector('[data-r112-quick]').value};");
 
+replaceOnce('server.mjs',
+  "  ['/app.css', ['app.css', 'text/css; charset=utf-8']],\n  ['/settings.css', ['settings.css', 'text/css; charset=utf-8']],",
+  "  ['/app.css', ['app.css', 'text/css; charset=utf-8']],\n  ['/release-1.1.2.css', ['release-1.1.2.css', 'text/css; charset=utf-8']],\n  ['/release-1.1.2.js', ['release-1.1.2.js', 'text/javascript; charset=utf-8']],\n  ['/settings.css', ['settings.css', 'text/css; charset=utf-8']],");
 replaceOnce('public/settings-center.js',"const SETTINGS_VERSION='1.1.1';","const SETTINGS_VERSION='1.1.2';");
 replaceOnce('public/settings-nav-complete.js',"const SETTINGS_NAV_VERSION = '1.1.1';","const SETTINGS_NAV_VERSION = '1.1.2';");
 replaceOnce('tests/settings-route-regression.test.mjs',"test('Settings Center asset versions are aligned with 1.1.1', () => {\n  assert.match(center, /const SETTINGS_VERSION='1\\.1\\.1';/);\n  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\\.1\\.1';/);\n});","test('Settings Center asset versions are aligned with 1.1.2', () => {\n  assert.match(center, /const SETTINGS_VERSION='1\\.1\\.2';/);\n  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\\.1\\.2';/);\n});");
+replaceOnce('tests/settings-static-assets.test.mjs',
+  "[['/settings.css','settings.css'],['/settings-center.js','settings-center.js'],['/settings-nav-complete.js','settings-nav-complete.js']]",
+  "[['/settings.css','settings.css'],['/settings-center.js','settings-center.js'],['/settings-nav-complete.js','settings-nav-complete.js'],['/release-1.1.2.css','release-1.1.2.css'],['/release-1.1.2.js','release-1.1.2.js']]");
 
 if(existsSync('MODULES.md')){
   const text=readFileSync('MODULES.md','utf8');
