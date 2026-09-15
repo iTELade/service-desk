@@ -6,7 +6,7 @@ permissions:
   contents: write
 concurrency:
   group: prepare-1.1.2
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   prepare:
     runs-on: ubuntu-latest
