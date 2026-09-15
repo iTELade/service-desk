@@ -1,0 +1,115 @@
+name: Prepare Service Desk 1.0.8
+
+on:
+  push:
+    branches:
+      - release/1.0.8
+    paths:
+      - .github/workflows/prepare-1.0.8.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.0.8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Implement GitHub integration project and reporter fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, expected=1):
+              p=Path(path); s=p.read_text(); n=s.count(old)
+              if n != expected:
+                  raise SystemExit(f'{path}: expected {expected} occurrences, found {n}: {old!r}')
+              p.write_text(s.replace(old,new))
+
+          # GitHub integration must expose every active project visible to a Global Administrator,
+          # including project types previously hidden by the UI. Backend request-type validation
+          # still determines whether a selected project can be used for intake.
+          ui=Path('public/settings-center.js')
+          s=ui.read_text()
+          old="const projects=state.meta.projects.filter(p=>p.can_manage&&p.project_type!=='assets');"
+          new="const projects=state.meta.projects.filter(p=>!p.archived);"
+          if s.count(old) != 1:
+              raise SystemExit(f'public/settings-center.js: expected one GitHub project filter, found {s.count(old)}')
+          ui.write_text(s.replace(old,new,1))
+
+          # Reporter/service-account selection used to be hard-limited to global admin/agent.
+          # The configured reporter is attribution for imported GitHub issues, so all active
+          # human or service accounts are valid choices, including customers and service users.
+          v8=Path('lib/v8.mjs')
+          s=v8.read_text()
+          old="""  function githubOptions(u,projectId){
+    admin(u);const p=projects.requireProject(integer(Number(projectId),'Project'),u,true);
+    return {request_types:db.prepare('SELECT id,name,version FROM request_types WHERE project_id=? AND enabled=1 ORDER BY name').all(p.id),reporters:db.prepare(\"SELECT id,name,email,role,account_kind FROM users WHERE active=1 AND role IN ('admin','agent') ORDER BY name,email\").all()};
+  }
+"""
+          new="""  function githubReporters(){
+    return db.prepare(\"SELECT id,name,email,role,account_kind FROM users WHERE active=1 AND COALESCE(directory_active,1)=1 AND COALESCE(registration_state,'active')='active' AND COALESCE(account_kind,'human') IN ('human','service') ORDER BY CASE WHEN account_kind='service' THEN 0 ELSE 1 END,name,email\").all();
+  }
+  function githubOptions(u,projectId){
+    admin(u);const p=projects.requireProject(integer(Number(projectId),'Project'),u,true);
+    return {request_types:db.prepare('SELECT id,name,version FROM request_types WHERE project_id=? AND enabled=1 ORDER BY name').all(p.id),reporters:githubReporters()};
+  }
+"""
+          if s.count(old) != 1:
+              raise SystemExit(f'lib/v8.mjs: githubOptions block changed; found {s.count(old)} matches')
+          s=s.replace(old,new,1)
+          old2="reporter=db.prepare(\"SELECT * FROM users WHERE id=? AND active=1 AND role IN ('admin','agent')\").get(integer(Number(b.reporter_id),'Reporter'))"
+          new2="reporter=githubReporters().find(x=>x.id===integer(Number(b.reporter_id),'Reporter'))"
+          if s.count(old2) != 1:
+              raise SystemExit(f'lib/v8.mjs: reporter validation changed; found {s.count(old2)} matches')
+          s=s.replace(old2,new2,1)
+          v8.write_text(s)
+
+          replace('lib/version.mjs',"export const VERSION='1.0.7';","export const VERSION='1.0.8';")
+          replace('package.json','"version": "1.0.7"','"version": "1.0.8"')
+
+          for path in ['public/index.html','public/settings-center.js','public/settings-nav-complete.js','tests/settings-center-race.test.mjs','tests/settings-route-regression.test.mjs','tests/settings-static-assets.test.mjs']:
+              p=Path(path); t=p.read_text(); p.write_text(t.replace('1.0.7','1.0.8').replace('1\\.0\\.7','1\\.0\\.8'))
+
+          # Functional regression: options and save accept customer + service accounts, while
+          # disabled accounts remain unavailable.
+          test=Path('tests/release-1.0.1.test.mjs')
+          t=test.read_text()
+          oldtest="""const opts=await f.call('GET','/api/desk/v8/github-options',f.admin,{},'project_id='+f.project.id);assert.ok(opts.request_types.some(x=>x.id===f.requestType.id&&x.name===f.requestType.name));assert.ok(opts.reporters.some(x=>x.id===f.admin.id));const created=await f.call('POST','/api/desk/v8/github',f.admin,f.integrationBody());"""
+          newtest="""const customer=user(f,'github-customer@example.test','customer'),service=user(f,'github-service@example.test','agent'),disabled=user(f,'github-disabled@example.test','customer');f.db.prepare(\"UPDATE users SET account_kind='service' WHERE id=?\").run(service.id);f.db.prepare('UPDATE users SET active=0 WHERE id=?').run(disabled.id);const opts=await f.call('GET','/api/desk/v8/github-options',f.admin,{},'project_id='+f.project.id);assert.ok(opts.request_types.some(x=>x.id===f.requestType.id&&x.name===f.requestType.name));assert.ok(opts.reporters.some(x=>x.id===f.admin.id));assert.ok(opts.reporters.some(x=>x.id===customer.id));assert.ok(opts.reporters.some(x=>x.id===service.id&&x.account_kind==='service'));assert.ok(!opts.reporters.some(x=>x.id===disabled.id));const created=await f.call('POST','/api/desk/v8/github',f.admin,f.integrationBody({reporter_id:customer.id}));assert.equal(created.reporter_id,customer.id);"""
+          if t.count(oldtest) != 1:
+              raise SystemExit(f'tests/release-1.0.1.test.mjs: GitHub test anchor changed; found {t.count(oldtest)}')
+          t=t.replace(oldtest,newtest,1)
+          marker="test('GitHub Administration provides named dropdowns, CRUD controls and readable history',()=>{"
+          extra="""test('GitHub integration UI exposes every active project instead of hiding project types',()=>{const ui=source('public/settings-center.js');assert.match(ui,/state\\.meta\\.projects\\.filter\\(p=>!p\\.archived\\)/);assert.doesNotMatch(ui,/project_type!=='assets'/);assert.doesNotMatch(ui,/p\\.can_manage&&p\\.project_type/);});\n\n"""
+          if marker not in t:
+              raise SystemExit('tests/release-1.0.1.test.mjs: UI test marker missing')
+          t=t.replace(marker,extra+marker,1)
+          test.write_text(t)
+
+          Path('RELEASE_NOTES_1.0.8.md').write_text('''# Service Desk 1.0.8\n\n## GitHub Issues integration choices\n\n### Fixed\n\n- GitHub Issues configuration now lists every active Service Desk project visible to the Global Administrator instead of hiding project types in the browser;\n- Reporter / service account now lists all active human and service accounts, not only global admin/agent accounts;\n- inactive, directory-disabled and pending accounts remain excluded;\n- changing the project continues to reload request types and reporter choices;\n- saving an integration validates the reporter against the same eligibility rules used by the dropdown.\n\n### Regression protection\n\n- functional test verifies customer and service accounts are offered and can be saved as the integration reporter;\n- disabled accounts are excluded;\n- UI regression test prevents project-type filtering from returning.\n\nDatabase schema remains **8**. No migration is required.\n''')
+          PY
+          npm install --package-lock-only --ignore-scripts
+      - name: Validate 1.0.8
+        run: |
+          npm ci
+          npm run check
+          npm run test:ci
+          bash -n scripts/upgrade.sh
+      - name: Commit prepared release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/v8.mjs lib/version.mjs package.json package-lock.json public/index.html public/settings-center.js public/settings-nav-complete.js tests/release-1.0.1.test.mjs tests/settings-center-race.test.mjs tests/settings-route-regression.test.mjs tests/settings-static-assets.test.mjs RELEASE_NOTES_1.0.8.md
+          git commit -m 'Service Desk 1.0.8: fix GitHub project and reporter choices'
+          git push origin HEAD:release/1.0.8
