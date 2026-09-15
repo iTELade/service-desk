@@ -15,7 +15,7 @@ function setup(){
   const customerId=Number(f.db.prepare("INSERT INTO users(email,name,password,role,must_change,created_at,username,first_name,last_name) VALUES('customer112@example.test','Customer 112','TEST','customer',0,?,'customer112','Customer','112')").run(stamp).lastInsertRowid);
   f.db.prepare("INSERT INTO project_members(project_id,user_id,role) VALUES(?,?,'requester')").run(p.id,customerId);
   const customer=f.db.prepare('SELECT * FROM users WHERE id=?').get(customerId);
-  const ticketId=Number(f.db.prepare("INSERT INTO tickets(project_id,key,title,description,type,priority,status,workflow_status,reporter_id,created_by,created_at,updated_at) VALUES(?,?,?,?,?,'P3','open','open',?,?,?,?)")
+  const ticketId=Number(f.db.prepare("INSERT INTO tickets(project_id,key,number,title,description,type,priority,status,workflow_status,reporter_id,created_by,created_at,updated_at) VALUES(?,?,1,?,?,?,'P3','open','open',?,?,?,?)")
     .run(p.id,'R12-1','VPN access request','Need VPN access for test','request',customerId,customerId,stamp,stamp).lastInsertRowid);
   const ticket=desk.ticket(ticketId),r=createRelease112(f.db,f.projects,desk);
   return {...f,p,customer,ticket,r,workflows,closeAll(){workflows.automation.stop();f.close();}};
@@ -62,7 +62,7 @@ test('1.1.2 inbound mail attachment storage keeps valid files and rejects unsafe
 test('1.1.2 global search is permission aware and prioritizes exact ticket keys',()=>{
   const f=setup();try{
     const hidden=f.projects.create({key:'HID',name:'Hidden internal',project_type:'internal',portal_access:'internal'},f.admin),stamp=new Date().toISOString();
-    f.db.prepare("INSERT INTO tickets(project_id,key,title,description,type,priority,status,workflow_status,reporter_id,created_by,created_at,updated_at) VALUES(?,?,?,?,?,'P3','open','open',?,?,?,?)")
+    f.db.prepare("INSERT INTO tickets(project_id,key,number,title,description,type,priority,status,workflow_status,reporter_id,created_by,created_at,updated_at) VALUES(?,?,1,?,?,?,'P3','open','open',?,?,?,?)")
       .run(hidden.id,'HID-1','Secret VPN','Hidden secret VPN','request',f.admin.id,f.admin.id,stamp,stamp);
     const customerResult=f.r.search(f.customer,new URLSearchParams({q:'VPN'}));
     assert.deepEqual(customerResult.tickets.map(x=>x.key),['R12-1']);
