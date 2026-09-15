@@ -1,6 +1,15 @@
-# iTELade Service Desk 1.1.2
+# iTELade Service Desk 1.1.3
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations. It provides customer portals, internal and external projects, configurable workflows, SLA, automation, Assets/CMDB, LDAP/Active Directory, SSO/OIDC, email intake, API/webhooks, GitHub Issues intake, approvals, audit, saved queues and an extensible plugin foundation.
+
+
+## What is new in 1.1.3
+
+- Jira-inspired agent workspace with a denser, clearer queue layout, sticky ticket headers and compact SLA / priority / assignee badges.
+- Stable background refresh: unchanged queue routes keep the current content visible while data refreshes instead of flashing a full-page loading state.
+- Safer global translation that no longer repeatedly expands labels such as `Normalny` or `Sortowanie`.
+- Reworked Administration Center navigation with settings search and clearer visual grouping.
+- Friendlier customer portal and public project portal with stronger service cards and faster access to personal tickets.
 
 Service Desk is an independent iTELade project. It is not an Atlassian product and is not intended to be a source-compatible clone of Jira Service Management.
 

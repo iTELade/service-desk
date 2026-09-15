@@ -39,13 +39,15 @@
   function normalize(value) { return ['en','pl','de'].includes(value) ? value : 'en'; }
   const index={pl:0,en:1,de:2};
   function translateText(value) {
-    let out = String(value ?? '');
-    const target=index[locale];
+    const raw = String(value ?? '');
+    const target = index[locale];
+    const lead = raw.match(/^\s*/)?.[0] || '';
+    const tail = raw.match(/\s*$/)?.[0] || '';
+    const body = raw.slice(lead.length, raw.length - tail.length);
     for (const row of terms) {
-      const replacement=row[target];
-      for(let source=0;source<row.length;source++)if(source!==target&&row[source])out=out.replaceAll(row[source],replacement);
+      if (row.includes(body)) return lead + row[target] + tail;
     }
-    return out;
+    return raw;
   }
   function translateNode(node) {
     if (node.nodeType === Node.TEXT_NODE) {
