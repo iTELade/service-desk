@@ -11,7 +11,7 @@ import {createV8} from '../lib/v8.mjs';
 function setup(){
   const f=fixture();migrateV8(f.db);
   const catalog=createCatalog(f.db,f.projects),workflows=createWorkflows(f.db,f.projects),desk=createDesk(f.db,f.projects,catalog,workflows);
-  const p=f.projects.create({key:'GH8',name:'GitHub 1.0.8',project_type:'external',portal_access:'authenticated'},f.admin);
+  const p=f.projects.create({key:'GH8',name:'GitHub 1.1.0',project_type:'external',portal_access:'authenticated'},f.admin);
   const rt=f.db.prepare('SELECT * FROM request_types WHERE project_id=? AND enabled=1 ORDER BY id LIMIT 1').get(p.id);
   const v8=createV8(f.db,{projects:f.projects,desk,workflows,catalog,dataDir:f.dataDir,origin:'https://desk.example.test',fetcher:async()=>({ok:true,status:200,async text(){return '{}';}})});
   const call=async(method,path,body={},query='')=>(await v8.handle(method,path,f.admin,new URLSearchParams(query),async()=>body)).value;

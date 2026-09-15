@@ -179,3 +179,8 @@ Source code: https://github.com/iTELade/service-desk
 1.0.3 completes the native Settings / Administration redesign: all administration categories are available from `/#/settings`, the standalone `v8.html` interface is retired, and the layout is organized around focused settings areas instead of a wall of tiles.
 
 Release: https://github.com/iTELade/service-desk/releases/tag/v1.0.3
+
+
+### Automatic requester provisioning (1.1)
+
+Inbound email and GitHub Issues can create missing customer accounts automatically. Email-created accounts receive a one-time invitation. GitHub-created accounts are preferably mapped to a GitHub OAuth SSO provider configured with issuer `https://github.com`; the OAuth App callback is `<APP_URL>/api/sso/callback`. GitHub identities are linked by immutable numeric user ID, not by email address.
