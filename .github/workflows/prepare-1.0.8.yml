@@ -36,3 +36,5 @@ jobs:
           git add lib/v8.mjs lib/version.mjs package.json package-lock.json public/index.html public/settings-center.js public/settings-nav-complete.js tests/release-1.0.1.test.mjs tests/settings-center-race.test.mjs tests/settings-route-regression.test.mjs tests/settings-static-assets.test.mjs RELEASE_NOTES_1.0.8.md
           git commit -m "Service Desk 1.0.8: fix GitHub project and reporter choices"
           git push origin HEAD:release/1.0.8
+
+# preparation revision 2
