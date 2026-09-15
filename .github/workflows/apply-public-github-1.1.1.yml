@@ -1,0 +1,35 @@
+name: Apply public GitHub project 1.1.1
+
+on:
+  push:
+    branches:
+      - release/1.1.1
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.1.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: node scripts/apply-public-github-1.1.1.mjs
+      - run: npm ci
+      - run: npm run check
+      - run: npm run test:ci
+      - run: bash -n scripts/upgrade.sh
+      - name: Commit generated 1.1.1 changes
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/projects.mjs lib/sso.mjs server.mjs public/app.js public/index.html public/settings-center.js public/settings-nav-complete.js lib/version.mjs package.json package-lock.json tests/public-github-project.test.mjs RELEASE_NOTES_1.1.1.md
+          git commit -m 'Service Desk 1.1.1: public GitHub project access'
+          git push origin HEAD:release/1.1.1
