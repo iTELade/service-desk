@@ -35,7 +35,7 @@ test('native Settings Center and navigation expose all legacy administration are
   ]) assert.ok(nav.includes(label), `missing legacy Settings label ${label}`);
 });
 
-test('Settings Center asset versions are aligned with 1.1.2', () => {
-  assert.match(center, /const SETTINGS_VERSION='1\.1\.2';/);
-  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\.1\.2';/);
+test('Settings Center asset versions are aligned with 1.1.3', () => {
+  assert.match(center, /const SETTINGS_VERSION='1\.1\.3';/);
+  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\.1\.3';/);
 });

@@ -1,3 +1,10 @@
+## 1.1.3 - 2026-09-16
+
+- Reworked queue, settings and customer portal presentation toward a Jira Service Management-style information hierarchy.
+- Prevented same-route background refresh from replacing the queue with a full-page loading state.
+- Fixed unstable substring translation that could expand `Normalny` / `Sortowanie` repeatedly.
+- Added settings search, compact ticket badges, sticky queue headers and responsive filter disclosure.
+
 ## 1.1.2 - 2026-09-15
 
 - Added configurable staff queue columns/order, quick filters, secondary sorting and saved-view access.

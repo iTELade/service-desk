@@ -1,4 +1,4 @@
-# Konfiguracja modułów Service Desk 1.1.2
+# Konfiguracja modułów Service Desk 1.1.3
 
 Ustawienia znajdują się w **Ustawieniach**. LDAP jest pod linkiem „Katalog LDAP”, poza głównym menu. Integracje pocztowe i SSO nie uruchamiają się z przykładowymi hasłami; trzeba je skonfigurować.
 
