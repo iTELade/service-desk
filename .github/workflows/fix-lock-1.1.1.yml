@@ -1,0 +1,44 @@
+name: Repair 1.1.1 lockfile
+
+on:
+  push:
+    branches:
+      - release/1.1.1
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.1.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Restore accidental bidi-js version rewrite
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const p='package-lock.json';
+          let s=readFileSync(p,'utf8');
+          const bad='"node_modules/bidi-js": {\n      "version": "1.1.1",\n      "resolved": "https://registry.npmjs.org/bidi-js/-/bidi-js-1.1.1.tgz"';
+          const good='"node_modules/bidi-js": {\n      "version": "1.1.0",\n      "resolved": "https://registry.npmjs.org/bidi-js/-/bidi-js-1.1.0.tgz"';
+          if(!s.includes(bad))throw new Error('Expected accidental bidi-js rewrite not found');
+          s=s.replace(bad,good);
+          writeFileSync(p,s);
+          NODE
+      - run: npm ci
+      - run: npm run check
+      - run: npm run test:ci
+      - run: bash -n scripts/upgrade.sh
+      - name: Commit repaired lockfile
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          git commit -m 'fix: restore bidi-js lockfile entry for 1.1.1'
+          git push origin HEAD:release/1.1.1
