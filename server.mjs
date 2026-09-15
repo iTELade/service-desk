@@ -326,6 +326,21 @@ const server = http.createServer(async (req,res)=>{
       const result=pathname==='/api/register'?await accounts.register(b):pathname==='/api/verify-email'?accounts.verify(b.token):pathname==='/api/reset-password'?await accounts.reset(b.token,b.password):accounts.resend(b.email,pathname==='/api/forgot-password'?'reset':'verify');
       return json(res,200,result);
     }
+    const publicPortal=pathname.match(/^\/api\/public\/portals\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/tickets\/([A-Z][A-Z0-9]{1,9}-[0-9]{1,10}))?$/);
+    if(method==='GET'&&publicPortal){
+      const p=db.prepare('SELECT * FROM projects WHERE portal_slug=?').get(publicPortal[1]);
+      if(!projects.publicReadable(p))fail(404,'Publiczny portal nie istnieje.');
+      const project={id:p.id,key:p.key,name:p.name,description:p.description,portal_slug:p.portal_slug,portal_title:p.portal_title,portal_description:p.portal_description,portal_access:p.portal_access};
+      const github_sso=sso.list().find(x=>x.provider_type==='github')||null;
+      if(publicPortal[2]){
+        const t=db.prepare(`SELECT t.key,t.title,t.description,t.status,t.workflow_status,t.priority,t.created_at,t.updated_at,u.name reporter_name FROM tickets t JOIN users u ON u.id=t.reporter_id WHERE t.project_id=? AND t.key=? AND t.deleted_at IS NULL AND t.archived_at IS NULL`).get(p.id,publicPortal[2]);
+        if(!t)fail(404,'Zgłoszenie nie istnieje.');
+        const comments=db.prepare(`SELECT c.body,c.created_at,c.origin IN ('automation','sync') is_bot,u.name author_name FROM comments c JOIN users u ON u.id=c.author_id WHERE c.ticket_id=(SELECT id FROM tickets WHERE project_id=? AND key=?) AND c.internal=0 ORDER BY c.id`).all(p.id,t.key);
+        return json(res,200,{project,ticket:t,comments,github_sso});
+      }
+      const tickets=db.prepare(`SELECT t.key,t.title,t.description,t.status,t.workflow_status,t.priority,t.created_at,t.updated_at,u.name reporter_name FROM tickets t JOIN users u ON u.id=t.reporter_id WHERE t.project_id=? AND t.deleted_at IS NULL AND t.archived_at IS NULL ORDER BY t.updated_at DESC,t.id DESC LIMIT 100`).all(p.id);
+      return json(res,200,{project,tickets,github_sso});
+    }
     let user=session(req);
     function authenticate(){user=session(req);if(!user)fail(401,'Zaloguj się, aby kontynuować.');if(method!=='GET'&&req.headers['x-csrf-token']!==user.csrf)fail(403,'Sesja formularza wygasła. Odśwież stronę.');}
     function admin(){if(user.role!=='admin')fail(403,'Dostęp tylko dla administratora.');}

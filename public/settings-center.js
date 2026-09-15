@@ -1,4 +1,4 @@
-const SETTINGS_VERSION='1.1.0';
+const SETTINGS_VERSION='1.1.1';
 const routePrefix='#/settings';
 const state={csrf:'',me:null,meta:null,users:[],section:'overview',githubEditingId:0,scheduled:false,rendering:false,ready:false};
 const $=(selector,root=document)=>root.querySelector(selector);
