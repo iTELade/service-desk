@@ -21,6 +21,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: node scripts/apply-public-github-1.1.1.mjs
+      - run: node scripts/fix-public-github-1.1.1.mjs
       - run: npm ci
       - run: npm run check
       - run: npm run test:ci
@@ -30,6 +31,6 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add lib/projects.mjs lib/sso.mjs server.mjs public/app.js public/index.html public/settings-center.js public/settings-nav-complete.js lib/version.mjs package.json package-lock.json tests/public-github-project.test.mjs RELEASE_NOTES_1.1.1.md
+          git add lib/projects.mjs lib/sso.mjs server.mjs public/app.js public/index.html public/settings-center.js public/settings-nav-complete.js lib/version.mjs package.json package-lock.json tests/public-github-project.test.mjs tests/settings-center-race.test.mjs tests/settings-route-regression.test.mjs tests/settings-static-assets.test.mjs RELEASE_NOTES_1.1.1.md
           git commit -m 'Service Desk 1.1.1: public GitHub project access'
           git push origin HEAD:release/1.1.1
