@@ -37,4 +37,4 @@ jobs:
           git commit -m "Service Desk 1.0.8: fix GitHub project and reporter choices"
           git push origin HEAD:release/1.0.8
 
-# preparation revision 2
+# preparation revision 3
