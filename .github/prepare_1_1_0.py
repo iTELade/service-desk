@@ -66,7 +66,7 @@ new="""  function githubSsoProvider(){
       const t=desk.ticket(id);workflows.run(t,'ticket_created',serviceActor);projects.audit(p.id,serviceActor,'github.issue_imported',{ticket_id:id,reporter_id:reporter.id,github_user_id:issue.user?.id,issue_id:issue.id,issue_number:issue.number,issue_url:issue.html_url,repository:`${c.owner}/${c.repo}`});return t;});
   }
   async function finalizeGithub"""
-s2,nsub=re.subn(pattern,new,s,count=1)
+s2,nsub=re.subn(pattern,lambda _m:new,s,count=1)
 if nsub!=1: raise SystemExit('createGithubTicket block not found')
 s2=s2.replace('let t;try{t=createGithubTicket(c,issue);}','let t;try{t=await createGithubTicket(c,issue);}')
 p.write_text(s2)
