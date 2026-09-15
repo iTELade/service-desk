@@ -54,7 +54,7 @@ test('1.1.2 inbound mail attachment storage keeps valid files and rejects unsafe
       {filename:'pixel.png',contentType:'image/png',contentDisposition:'inline',content:Buffer.from('x')}
     ],f.customer.id);
     assert.deepEqual(out,{stored:1,rejected:1});
-    const rows=f.db.prepare('SELECT filename,source FROM r112_attachments WHERE ticket_id=? ORDER BY filename').all(f.ticket.id);
+    const rows=f.db.prepare('SELECT filename,source FROM r112_attachments WHERE ticket_id=? ORDER BY filename').all(f.ticket.id).map(x=>({filename:x.filename,source:x.source}));
     assert.deepEqual(rows,[{filename:'invoice.pdf',source:'email'}]);
   }finally{f.closeAll();}
 });
