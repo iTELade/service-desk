@@ -35,7 +35,7 @@ test('native Settings Center and navigation expose all legacy administration are
   ]) assert.ok(nav.includes(label), `missing legacy Settings label ${label}`);
 });
 
-test('Settings Center overlay is aligned for the 1.2.2 hotfix', () => {
+test('Settings Center overlay is aligned for the 1.2.3 rebuild', () => {
   assert.match(center, /const SETTINGS_VERSION='1\.2\.1';/);
-  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\.2\.2';/);
+  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\.2\.3';/);
 });
