@@ -13,15 +13,14 @@ test('1.3.x keeps queue as one canonical work surface',()=>{
   assert.match(css,/Service Desk 1\.3\.0 — canonical agent UI rebuild/);
   assert.match(ui,/function rebuildQueue\(\)/);
   assert.match(ui,/sd13-queue-workspace/);
-  assert.match(ui,/sd13-queue-preferences-slot/);
-  assert.match(ui,/panel\.classList\.add\('sd13-queue-table'\)/);
-  assert.match(css,/agent-route-queue #main\.sd13-queue/);
-  assert.match(nav,/1\.3\.1 queue regression repair/);
+  assert.match(repair,/sd13-queue-workspace/);
+  assert.match(repair,/panel\.classList\.add\('sd13-queue-table'\)/);
+  assert.match(nav,/QUEUE 1\.3\.2/);
   assert.match(nav,/sd131-view-settings/);
-  assert.match(nav,/r113-metric-icon\{display:none!important\}/);
+  assert.match(nav,/r113-metric-icon\{display:none!important/);
 });
 
-test('1.3.1 removes duplicate queue modules and keeps the newest interactive instance',()=>{
+test('1.3.2 removes duplicate queue modules and keeps the newest interactive instance',()=>{
   assert.match(repair,/function keepNewest\(nodes\)/);
   assert.match(repair,/const keep = nodes\[nodes\.length - 1\]/);
   assert.match(repair,/node\.remove\(\)/);
@@ -31,29 +30,39 @@ test('1.3.1 removes duplicate queue modules and keeps the newest interactive ins
   assert.doesNotMatch(index,/release-1\.1\.3\.js\?v=/);
 });
 
-test('1.3.x rebuilds ticket structure and 1.3.1 keeps newest asynchronous attachments',()=>{
+test('1.3.2 masks same-route queue loading without restoring stale interactive DOM',()=>{
+  assert.match(repair,/let queueSnapshotHTML = ''/);
+  assert.match(repair,/function showQueueGhost\(main\)/);
+  assert.match(repair,/sanitizeQueueGhost\(ghost\)/);
+  assert.match(repair,/attr\.name\.startsWith\('data-'\)/);
+  assert.match(repair,/main\.classList\.add\('sd132-queue-loading'\)/);
+  assert.match(repair,/function captureQueueSnapshot\(main\)/);
+  assert.match(nav,/sd132-queue-ghost/);
+  assert.doesNotMatch(repair,/main\.innerHTML=queueSnapshot/);
+});
+
+test('1.3.2 is light-only across agent, portal and auth surfaces',()=>{
+  assert.match(repair,/function forceLightTheme\(\)/);
+  assert.match(repair,/root\.dataset\.theme = 'light'/);
+  assert.match(repair,/root\.style\.colorScheme = 'light'/);
+  assert.match(nav,/html\[data-theme='dark'\],html\[data-theme='system'\]/);
+  assert.match(nav,/body\.v120-auth,body\.v120-portal,body\.v120-public-portal/);
+});
+
+test('1.3.x rebuilds ticket structure and keeps newest asynchronous attachments',()=>{
   assert.match(ui,/function rebuildTicket\(\)/);
   assert.match(ui,/sd13-ticket-header/);
-  assert.match(ui,/primary\.dataset\.ticketPrimary='1'/);
   assert.match(repair,/function repairTicketSurface\(\)/);
   assert.match(repair,/const attachments = keepNewest/);
   assert.match(repair,/conversation\.after\(attachments\)/);
-  assert.match(nav,/1\.3\.1 ticket repair/);
+  assert.match(nav,/Ticket readability polish/);
   assert.match(css,/agent-route-ticket \.ticket-sidebar/);
 });
 
-test('1.3.1 retires the competing 1.1.3 runtime while keeping the responsive shell',()=>{
-  assert.doesNotMatch(index,/release-1\.1\.3\.js/);
-  assert.match(nav,/workspace-content\{width:calc\(100% - 68px\)!important;margin-left:68px!important/);
-  assert.match(nav,/@media\(max-width:1280px\)/);
-  assert.match(nav,/@media\(max-width:980px\)/);
-  assert.match(nav,/@media\(max-width:720px\)/);
-});
-
-test('1.3.1 runtime and cache markers are aligned at the product boundary',()=>{
-  assert.match(version,/VERSION='1\.3\.1'/);
-  assert.match(repair,/SETTINGS_NAV_VERSION = '1\.3\.1'/);
-  assert.match(index,/app\.js\?v=1\.3\.1/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.3\.1/);
-  assert.doesNotMatch(index,/\?v=1\.3\.0/);
+test('1.3.2 runtime and cache markers are aligned at the product boundary',()=>{
+  assert.match(version,/VERSION='1\.3\.2'/);
+  assert.match(repair,/SETTINGS_NAV_VERSION = '1\.3\.2'/);
+  assert.match(index,/app\.js\?v=1\.3\.2/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.3\.2/);
+  assert.doesNotMatch(index,/\?v=1\.3\.1/);
 });

@@ -33,7 +33,7 @@ test('translations stay exact and idempotent after retiring the 1.1.3 visual run
   assert.equal(translateLikeRuntime('Normal'),'Normalny');
 });
 
-test('1.1.3 assets remain available for rollback but are not loaded by 1.3.1',()=>{
+test('1.1.3 assets remain available for rollback but are not loaded by 1.3.2',()=>{
   assert.doesNotMatch(index,/release-1\.1\.3\.css\?v=/);
   assert.doesNotMatch(index,/release-1\.1\.3\.js\?v=/);
   assert.match(server,/\/release-1\.1\.3\.css/);

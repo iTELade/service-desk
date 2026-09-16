@@ -35,7 +35,8 @@ test('native Settings Center and navigation expose all legacy administration are
   ]) assert.ok(nav.includes(label), `missing legacy Settings label ${label}`);
 });
 
-test('Settings Center overlay is aligned for the 1.3.1 repair', () => {
+test('Settings Center overlay is aligned for the 1.3.2 light-only repair', () => {
   assert.match(center, /const SETTINGS_VERSION='1\.2\.1';/);
-  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\.3\.1';/);
+  assert.match(nav, /const SETTINGS_NAV_VERSION = '1\.3\.2';/);
+  assert.match(nav, /function forceLightTheme\(\)/);
 });
