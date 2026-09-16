@@ -54,6 +54,48 @@ body.v114-agent .private-label{background:#fff7d6!important;color:#7f5f01!import
 body.v114-agent .bot-label{background:#eae6ff!important;color:#5e4db2!important}
 body.v114-agent .count{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:20px!important;height:20px!important;padding:0 6px!important;border-radius:999px!important;background:#f1f2f4!important;color:var(--v114-muted)!important;font-size:10px!important;font-weight:700!important}
 
+/* 1.2.2 — production layout repair and stronger Jira Service Management hierarchy. */
+body.v114-agent #main{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:28px 32px 56px!important;overflow:visible!important}
+body.v114-agent #main>*{min-width:0!important;max-width:100%!important}
+body.v114-agent #main>.page-heading{display:flex!important;width:100%!important;min-height:58px!important;align-items:flex-start!important;justify-content:space-between!important;gap:20px!important;margin:0 0 20px!important;padding:0!important}
+body.v114-agent #main>.page-heading>div:first-child{flex:1 1 auto!important;min-width:0!important;max-width:none!important}
+body.v114-agent #main>.page-heading h1{width:auto!important;max-width:none!important;min-width:0!important;margin:3px 0 0!important;font-size:26px!important;line-height:1.2!important;letter-spacing:-.025em!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important}
+body.v114-agent #main>.page-heading .eyebrow{margin-bottom:5px!important;color:#626f86!important}
+body.v114-agent #main>.page-heading>.primary,body.v114-agent #main>.page-heading>.button,body.v114-agent #main>.page-heading>button{flex:0 0 auto!important}
+body.v114-agent.agent-route-queue .metrics{width:100%!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important;margin:0 0 18px!important;background:transparent!important;border:0!important}
+body.v114-agent.agent-route-queue .metrics>div{min-width:0!important;min-height:82px!important;padding:14px 16px!important;border:1px solid var(--v114-border)!important;border-radius:8px!important;background:#fff!important;box-shadow:0 1px 2px rgba(9,30,66,.06)!important}
+body.v114-agent.agent-route-queue form.filters{width:100%!important;grid-template-columns:minmax(220px,1.45fr) repeat(5,minmax(135px,.8fr)) auto auto!important;padding:14px!important;margin:0 0 14px!important;border-radius:8px!important;box-shadow:0 1px 2px rgba(9,30,66,.05)!important}
+body.v114-agent.agent-route-queue .panel,body.v114-agent.agent-route-users .panel,body.v114-agent.agent-route-projects .panel{width:100%!important;border-radius:8px!important;box-shadow:0 1px 2px rgba(9,30,66,.05)!important}
+body.v114-agent.agent-route-board .kanban{width:100%!important;grid-template-columns:repeat(5,minmax(260px,1fr))!important;gap:12px!important;padding-bottom:18px!important}
+body.v114-agent.agent-route-board .kanban-column{min-width:260px!important;padding:12px!important;border:1px solid var(--v114-border)!important;background:#f1f2f4!important}
+body.v114-agent.agent-route-board .kanban-card{border-radius:6px!important;box-shadow:0 1px 2px rgba(9,30,66,.08)!important}
+body.v114-agent.agent-route-projects .project-grid{width:100%!important;grid-template-columns:repeat(auto-fill,minmax(330px,1fr))!important;gap:14px!important}
+body.v114-agent.agent-route-projects .project-card{min-width:0!important;min-height:132px!important;border:1px solid var(--v114-border)!important;border-radius:8px!important;background:#fff!important;box-shadow:0 1px 2px rgba(9,30,66,.05)!important}
+body.v114-agent.agent-route-users table{width:100%!important;table-layout:auto!important}
+body.v114-agent.agent-route-settings #main{display:block!important;width:100%!important;max-width:none!important}
+body.v114-agent.agent-route-settings #main>.settings-center{width:100%!important;grid-template-columns:260px minmax(0,1fr)!important;gap:28px!important}
+body.v114-agent.agent-route-settings #main>.settings-center .settings-content{width:100%!important;min-width:0!important}
+body.v114-agent.agent-route-settings #main>.settings-center .settings-section-head{width:100%!important}
+body.v114-agent .topbar{min-width:0!important}
+body.v114-agent .workspace-content{width:auto!important;min-width:0!important;overflow:visible!important}
+body.v114-agent .v120-panel,body.v114-agent .v120-issue-list{min-width:0!important;width:100%!important}
+
+@media(max-width:1180px){
+  body.v114-agent #main{padding:22px 20px 44px!important}
+  body.v114-agent.agent-route-queue form.filters{grid-template-columns:repeat(3,minmax(160px,1fr))!important}
+  body.v114-agent.agent-route-settings #main>.settings-center{grid-template-columns:220px minmax(0,1fr)!important;gap:18px!important}
+}
+@media(max-width:860px){
+  body.v114-agent #main{padding:18px 14px 36px!important}
+  body.v114-agent #main>.page-heading{min-height:0!important;flex-direction:column!important;gap:12px!important}
+  body.v114-agent.agent-route-queue .metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.v114-agent.agent-route-settings #main>.settings-center{grid-template-columns:1fr!important}
+}
+@media(max-width:620px){
+  body.v114-agent.agent-route-queue .metrics{grid-template-columns:1fr!important}
+  body.v114-agent.agent-route-queue form.filters{grid-template-columns:1fr!important}
+}
+
 @media(max-width:1100px){
   body.v114-agent .ticket-layout{grid-template-columns:minmax(0,1fr) 310px!important;gap:20px!important}
   body.v114-agent .settings-grid{grid-template-columns:1fr!important}
