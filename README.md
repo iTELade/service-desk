@@ -1,4 +1,4 @@
-# iTELade Service Desk 1.2.0
+# iTELade Service Desk 1.2.1
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations. It provides customer portals, internal and external projects, configurable workflows, SLA, automation, Assets/CMDB, LDAP/Active Directory, SSO/OIDC, email intake, API/webhooks, GitHub Issues intake, approvals, audit, saved queues and an extensible plugin foundation.
 
@@ -6,13 +6,21 @@ Service Desk is an independent iTELade project. It is not an Atlassian product a
 
 ## Current release
 
-**Service Desk 1.2.0**
+**Service Desk 1.2.1**
 
-1.2.0 is a major interface and usability release. It rebuilds the agent workspace, administration, authentication screens and customer/public portals around a denser Jira Service Management-inspired interaction model while retaining the existing iTELade backend, permissions and data model.
+1.2.1 is a focused updater UX hotfix for the 1.2 interface release. The update page now shows live milestone progress, survives the temporary application restart, reconnects to an in-progress updater job and automatically reloads the browser once when the update or rollback finishes.
 
-Release: https://github.com/iTELade/service-desk/releases/tag/v1.2.0
+Release: https://github.com/iTELade/service-desk/releases/tag/v1.2.1
 
-Detailed notes: [RELEASE_NOTES_1.2.0.md](RELEASE_NOTES_1.2.0.md)
+Detailed notes: [RELEASE_NOTES_1.2.1.md](RELEASE_NOTES_1.2.1.md)
+
+## What is new in 1.2.1
+
+- live update progress bar with clear updater phases,
+- status polling that reconnects after the application container restarts,
+- visible restart/offline state instead of a seemingly frozen update page,
+- one automatic browser reload after a successful update or completed rollback, protected against reload loops,
+- no schema change; existing 1.2.0 installations update directly.
 
 ## What is new in 1.2.0
 
@@ -122,7 +130,7 @@ The standalone legacy `v8.html` page is retired and redirects into the normal ap
 
 SQLite is used by a single application writer. Do not run multiple Service Desk replicas against the same SQLite volume.
 
-Service Desk 1.2.0 keeps database schema version **8**. Existing 1.1.x data and integrations remain compatible with the 1.2.0 interface release.
+Service Desk 1.2.1 keeps database schema version **8**. Existing 1.1.x and 1.2.0 data and integrations remain compatible; this hotfix does not require a database migration.
 
 ## New installation
 
