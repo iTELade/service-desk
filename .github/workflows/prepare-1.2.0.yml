@@ -1,0 +1,123 @@
+name: Prepare 1.2.0
+on:
+  push:
+    branches: [release/1.2.0]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.2.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Rename release from 1.3.0 to 1.2.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          old='1.3.0'; new='1.2.0'
+
+          # Rename release-specific assets first.
+          for src,dst in [
+            ('public/release-1.3.0.css','public/release-1.2.0.css'),
+            ('public/release-1.3.0-nav.css','public/release-1.2.0-nav.css'),
+            ('public/release-1.3.0.js','public/release-1.2.0.js'),
+            ('RELEASE_NOTES_1.3.0.md','RELEASE_NOTES_1.2.0.md'),
+            ('tests/release-1.3.0-ui.test.mjs','tests/release-1.2.0-ui.test.mjs')
+          ]:
+              s=Path(src)
+              if s.exists():
+                  d=Path(dst); d.write_text(s.read_text().replace(old,new).replace('v130-','v120-').replace('v130','v120'))
+                  s.unlink()
+
+          # Convert release/version references. Keep inherited 1.1.x compatibility asset names intact.
+          files=[
+            'package.json','package-lock.json','lib/version.mjs','public/index.html','server.mjs',
+            'public/settings-center.js','public/settings-nav-complete.js','README.md','CHANGELOG.md','MODULES.md',
+            'tests/release-1.1.3-ui.test.mjs','tests/settings-center-race.test.mjs','tests/settings-route-regression.test.mjs','tests/settings-static-assets.test.mjs'
+          ]
+          for name in files:
+              p=Path(name)
+              if p.exists(): p.write_text(p.read_text().replace(old,new).replace('release-1.3.0','release-1.2.0'))
+
+          # Ensure package metadata is correct even if the previous preparation workflow never committed.
+          p=Path('package.json'); d=json.loads(p.read_text()); d['version']=new; p.write_text(json.dumps(d,indent=2,ensure_ascii=False)+'\n')
+          p=Path('package-lock.json'); s=p.read_text(); s=re.sub(r'("version": ")1\.1\.3("\s*,)',r'\g<1>1.2.0\2',s,count=2); p.write_text(s)
+          p=Path('lib/version.mjs'); s=p.read_text(); s=re.sub(r"VERSION='[^']+'","VERSION='1.2.0'",s); p.write_text(s)
+
+          # Wire 1.2.0 assets if the earlier 1.3 preparation did not get committed.
+          p=Path('public/index.html'); s=p.read_text().replace('?v=1.1.3','?v=1.2.0')
+          css_anchor='  <link rel="stylesheet" href="/release-1.1.3.css?v=1.2.0">'
+          additions='\n  <link rel="stylesheet" href="/release-1.1.4.css?v=1.2.0">\n  <link rel="stylesheet" href="/release-1.1.4-layout.css?v=1.2.0">\n  <link rel="stylesheet" href="/release-1.2.0.css?v=1.2.0">\n  <link rel="stylesheet" href="/release-1.2.0-nav.css?v=1.2.0">'
+          if '/release-1.2.0.css' not in s: s=s.replace(css_anchor,css_anchor+additions)
+          js_anchor='  <script defer src="/release-1.1.3.js?v=1.2.0"></script>'
+          if '/release-1.2.0.js' not in s: s=s.replace(js_anchor,js_anchor+'\n  <script defer src="/release-1.2.0.js?v=1.2.0"></script>')
+          s=s.replace('  <script defer src="/release-1.1.4.js?v=1.2.0"></script>\n','')
+          p.write_text(s)
+
+          p=Path('server.mjs'); s=p.read_text()
+          anchor="  ['/release-1.1.3.css', ['release-1.1.3.css', 'text/css; charset=utf-8']],"
+          if "'/release-1.2.0.css'" not in s:
+              s=s.replace(anchor,anchor+'\n'+"  ['/release-1.1.4.css', ['release-1.1.4.css', 'text/css; charset=utf-8']],\n  ['/release-1.1.4-layout.css', ['release-1.1.4-layout.css', 'text/css; charset=utf-8']],\n  ['/release-1.2.0.css', ['release-1.2.0.css', 'text/css; charset=utf-8']],\n  ['/release-1.2.0-nav.css', ['release-1.2.0-nav.css', 'text/css; charset=utf-8']],")
+          anchor_js="  ['/release-1.1.3.js', ['release-1.1.3.js', 'text/javascript; charset=utf-8']],"
+          if "'/release-1.2.0.js'" not in s:
+              s=s.replace(anchor_js,anchor_js+"\n  ['/release-1.2.0.js', ['release-1.2.0.js', 'text/javascript; charset=utf-8']],")
+          p.write_text(s)
+
+          # Settings version labels.
+          for f in ['public/settings-center.js','public/settings-nav-complete.js']:
+              p=Path(f)
+              if p.exists(): p.write_text(p.read_text().replace('1.1.3','1.2.0').replace('1.1.4','1.2.0'))
+
+          # Documentation if previous preparation did not commit.
+          p=Path('README.md'); s=p.read_text(); s=re.sub(r'^# iTELade Service Desk [^\n]+','# iTELade Service Desk 1.2.0',s,count=1,flags=re.M)
+          if '## Service Desk 1.2.0 — complete interface rebuild' not in s:
+              section='''\n## Service Desk 1.2.0 — complete interface rebuild\n\nVersion 1.2.0 is a major visual and workflow update inspired by Jira Service Management information architecture while retaining iTELade permissions, integrations and data model.\n\n- Complete agent workspace redesign with compact blue navigation, light operational canvas, dense tables and consistent controls.\n- Queue workspace rebuilt for triage with global search, saved views, quick filters, configurable columns and compact SLA/priority presentation.\n- Ticket view reorganized around the issue with actions at the top, activity in the main column and a sticky details/SLA sidebar.\n- Board, projects, users, forms, workflows, Assets/CMDB, mail, SSO and administration share one visual system.\n- Login, registration, MFA and customer/public portals are rebuilt into the same product family.\n- Fixed roles, project-scoped authorization, public GitHub read/authenticated write behavior and schema version 8 remain unchanged.\n'''
+              lines=s.splitlines(True); s=''.join(lines[:1])+section+'\n'+''.join(lines[1:])
+          p.write_text(s)
+
+          p=Path('CHANGELOG.md'); s=p.read_text()
+          if not s.startswith('## 1.2.0'):
+              s='''## 1.2.0 - 2026-09-16\n\n- Major Jira Service Management-inspired rebuild of the complete product UI.\n- New coherent agent shell, queues, board, ticket detail, project/admin pages, users and Administration Center.\n- New cohesive login/MFA and customer/public portal presentation.\n- Collapsible agent navigation with direct Knowledge Base, Assets/CMDB and mail-channel access.\n- Settings navigation de-duplication and denser operational presentation.\n- Schema remains 8 and the fixed-role authorization model is unchanged.\n\n'''+s
+          p.write_text(s)
+
+          notes=Path('RELEASE_NOTES_1.2.0.md')
+          if not notes.exists():
+              notes.write_text('''# Service Desk 1.2.0\n\nMajor interface and usability release rebuilding the whole system around a Jira Service Management-inspired interaction model. Schema remains 8 and existing access rules stay unchanged.\n''')
+
+          # Historical release tests must assert the current cache key where they intentionally follow current version.
+          for f in ['tests/release-1.1.3-ui.test.mjs','tests/settings-center-race.test.mjs','tests/settings-route-regression.test.mjs','tests/settings-static-assets.test.mjs']:
+              p=Path(f)
+              if p.exists(): p.write_text(p.read_text().replace('1.1.3','1.2.0').replace('1\\.1\\.3','1\\.2\\.0'))
+          Path('tests/release-1.1.4-agent-ui.test.mjs').unlink(missing_ok=True)
+
+          # Remove the accidentally numbered preparation workflow from this corrected branch.
+          Path('.github/workflows/prepare-1.3.0.yml').unlink(missing_ok=True)
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Static checks
+        run: npm run check
+      - name: Test suite
+        run: npm run test:ci
+      - name: Docker build smoke
+        run: docker build -t service-desk:1.2.0-test .
+      - name: Commit corrected release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          rm -f .github/workflows/prepare-1.2.0.yml
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Prepare Service Desk 1.2.0 release"
+          git push origin HEAD:release/1.2.0
