@@ -1,3 +1,11 @@
+## 1.2.1 - 2026-09-16
+
+- Updates: live milestone progress bar on the update page.
+- Updates: polling survives the temporary application restart and reports the reconnecting state.
+- Updates: the browser reloads automatically once after a successful update or completed rollback.
+- Updates: opening the page during an existing updater job reconnects to that job.
+- Schema remains 8; no database migration.
+
 ## 1.1.3 - 2026-09-16
 
 - Reworked queue, settings and customer portal presentation toward a Jira Service Management-style information hierarchy.

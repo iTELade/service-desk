@@ -30,6 +30,8 @@ To przykład formatu, nie gotowy digest do wklejenia. Workflow wpisuje rzeczywis
 
 W panelu: **Ustawienia → Wersja i aktualizacje**. Podaj `OWNER/REPO`, opcjonalnie token, zapisz i kliknij **Sprawdź teraz**. Włączone sprawdzanie automatyczne działa co 6 godzin. Przycisk instalacji pojawia się dla nowszego stabilnego wydania i wymaga działającego agenta.
 
+Od wersji **1.2.1** ekran aktualizacji pokazuje pasek postępu i na bieżąco odczytuje fazę zadania. Podczas restartu kontenera pozostawia ostatni postęp na ekranie i czeka na powrót API. Po pomyślnym zakończeniu aktualizacji albo rollbacku przeglądarka odświeża stronę automatycznie jeden raz.
+
 ## Przebieg instalacji i powrót
 
 Aktualizator niezależnie pobiera manifest z GitHub, kontroluje repozytorium, digest, wersję i zakres migracji. Nie przyjmuje dowolnego polecenia ani ścieżki kontenera z panelu. Pobiera obraz przed zatrzymaniem aplikacji. Następnie włącza tryb konserwacji, zatrzymuje aplikację, kopiuje wolumen i sprawdza bazę. Startuje nowy kontener z istniejącymi ustawieniami i siecią. Dopiero poprawny healthcheck i zgodna wersja pozwalają udostępnić aplikację oraz zatwierdzić alias obrazu.
