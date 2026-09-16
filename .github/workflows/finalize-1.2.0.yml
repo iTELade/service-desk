@@ -1,0 +1,76 @@
+name: Finalize 1.2.0
+on:
+  push:
+    branches: [release/1.2.0]
+permissions:
+  contents: write
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.2.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Finalize 1.2.0 files
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          # rename accidental 1.3 assets
+          for a,b in [('public/release-1.3.0.css','public/release-1.2.0.css'),('public/release-1.3.0-nav.css','public/release-1.2.0-nav.css'),('public/release-1.3.0.js','public/release-1.2.0.js')]:
+              p=Path(a)
+              if p.exists(): Path(b).write_text(p.read_text().replace('1.3.0','1.2.0').replace('v130','v120')); p.unlink()
+          for f in ['public/index.html','server.mjs','README.md','CHANGELOG.md','MODULES.md']:
+              p=Path(f)
+              if p.exists(): p.write_text(p.read_text().replace('1.3.0','1.2.0').replace('release-1.3.0','release-1.2.0'))
+          p=Path('package.json'); d=json.loads(p.read_text()); d['version']='1.2.0'; p.write_text(json.dumps(d,indent=2)+'\n')
+          p=Path('package-lock.json'); s=p.read_text(); s=re.sub(r'("version": ")1\.1\.3("\s*,)',r'\g<1>1.2.0\2',s,count=2); p.write_text(s)
+          p=Path('lib/version.mjs'); p.write_text(re.sub(r"VERSION='[^']+'","VERSION='1.2.0'",p.read_text()))
+          # index cache keys + assets
+          p=Path('public/index.html'); s=p.read_text().replace('?v=1.1.3','?v=1.2.0')
+          if '/release-1.2.0.css' not in s:
+              s=s.replace('<link rel="stylesheet" href="/release-1.1.3.css?v=1.2.0">','<link rel="stylesheet" href="/release-1.1.3.css?v=1.2.0">\n  <link rel="stylesheet" href="/release-1.1.4.css?v=1.2.0">\n  <link rel="stylesheet" href="/release-1.1.4-layout.css?v=1.2.0">\n  <link rel="stylesheet" href="/release-1.2.0.css?v=1.2.0">\n  <link rel="stylesheet" href="/release-1.2.0-nav.css?v=1.2.0">')
+          if '/release-1.2.0.js' not in s:
+              s=s.replace('<script defer src="/release-1.1.3.js?v=1.2.0"></script>','<script defer src="/release-1.1.3.js?v=1.2.0"></script>\n  <script defer src="/release-1.2.0.js?v=1.2.0"></script>')
+          s=s.replace('  <script defer src="/release-1.1.4.js?v=1.2.0"></script>\n',''); p.write_text(s)
+          # server static map
+          p=Path('server.mjs'); s=p.read_text(); anchor="  ['/release-1.1.3.css', ['release-1.1.3.css', 'text/css; charset=utf-8']],"
+          if "'/release-1.2.0.css'" not in s: s=s.replace(anchor,anchor+"\n  ['/release-1.1.4.css', ['release-1.1.4.css', 'text/css; charset=utf-8']],\n  ['/release-1.1.4-layout.css', ['release-1.1.4-layout.css', 'text/css; charset=utf-8']],\n  ['/release-1.2.0.css', ['release-1.2.0.css', 'text/css; charset=utf-8']],\n  ['/release-1.2.0-nav.css', ['release-1.2.0-nav.css', 'text/css; charset=utf-8']],")
+          anchor="  ['/release-1.1.3.js', ['release-1.1.3.js', 'text/javascript; charset=utf-8']],"
+          if "'/release-1.2.0.js'" not in s: s=s.replace(anchor,anchor+"\n  ['/release-1.2.0.js', ['release-1.2.0.js', 'text/javascript; charset=utf-8']],")
+          p.write_text(s)
+          for f in ['public/settings-center.js','public/settings-nav-complete.js']:
+              p=Path(f); p.write_text(re.sub(r"1\.(?:1\.3|1\.4|3\.0)",'1.2.0',p.read_text()).replace('1.1.3','1.2.0').replace('1.1.4','1.2.0'))
+          # preserve 1.1.3 behavior tests; only current cache key changes
+          p=Path('tests/release-1.1.3-ui.test.mjs'); s=p.read_text().replace(r'\?v=1\.1\.3',r'\?v=1\.2\.0'); p.write_text(s)
+          for f in ['tests/settings-center-race.test.mjs','tests/settings-route-regression.test.mjs','tests/settings-static-assets.test.mjs']:
+              p=Path(f); p.write_text(p.read_text().replace('1.1.3','1.2.0').replace('1\\.1\\.3','1\\.2\\.0'))
+          Path('tests/release-1.1.4-agent-ui.test.mjs').unlink(missing_ok=True)
+          # 1.2 UI regression
+          Path('tests/release-1.2.0-ui.test.mjs').write_text('''import test from "node:test";\nimport assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\nconst r=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");\nconst i=r("public/index.html"),s=r("server.mjs"),u=r("public/release-1.2.0.js"),c=r("public/release-1.2.0.css");\ntest("1.2.0 full UI assets are wired",()=>{for(const f of ["release-1.2.0.css","release-1.2.0-nav.css","release-1.2.0.js"]){assert.ok(i.includes("/"+f+"?v=1.2.0"));assert.ok(s.includes("['/"+f));}});\ntest("1.2.0 covers auth portal and agent",()=>{assert.match(u,/v120-auth/);assert.match(u,/v120-portal/);assert.match(u,/v114-agent/);assert.match(c,/Customer portal shell/);});\n''')
+          # docs
+          p=Path('README.md'); s=p.read_text(); s=re.sub(r'^# iTELade Service Desk .*','# iTELade Service Desk 1.2.0',s,count=1,flags=re.M); p.write_text(s)
+          if not Path('RELEASE_NOTES_1.2.0.md').exists(): Path('RELEASE_NOTES_1.2.0.md').write_text('# Service Desk 1.2.0\n\nMajor Jira Service Management-inspired UI rebuild across agent, administration, login and customer/public portal surfaces. Schema remains 8.\n')
+          Path('RELEASE_NOTES_1.3.0.md').unlink(missing_ok=True)
+          Path('tests/release-1.3.0-ui.test.mjs').unlink(missing_ok=True)
+          Path('.github/workflows/prepare-1.3.0.yml').unlink(missing_ok=True)
+          Path('.github/workflows/prepare-1.2.0.yml').unlink(missing_ok=True)
+          PY
+      - run: npm ci
+      - run: npm run check
+      - run: npm run test:ci
+      - run: docker build -t service-desk:1.2.0-test .
+      - name: Commit final branch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          rm -f .github/workflows/finalize-1.2.0.yml
+          git add -A
+          git commit -m "Prepare Service Desk 1.2.0 release"
+          git push origin HEAD:release/1.2.0
