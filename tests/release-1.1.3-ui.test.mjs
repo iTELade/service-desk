@@ -23,7 +23,7 @@ function translateLikeRuntime(value, locale='pl') {
   return raw;
 }
 
-test('1.1.3 translations are exact and idempotent for priority and sorting labels',()=>{
+test('translations stay exact and idempotent after retiring the 1.1.3 visual runtime',()=>{
   assert.match(i18n,/if \(row\.includes\(body\)\) return lead \+ row\[target\] \+ tail;/);
   assert.doesNotMatch(i18n,/out=out\.replaceAll\(row\[source\],replacement\)/);
   assert.equal(translateLikeRuntime('Normalny'),'Normalny');
@@ -33,27 +33,15 @@ test('1.1.3 translations are exact and idempotent for priority and sorting label
   assert.equal(translateLikeRuntime('Normal'),'Normalny');
 });
 
-test('1.1.3 Jira-inspired UI assets are loaded and served',()=>{
-  assert.match(index,/release-1\.1\.3\.css\?v=1\.3\.0/);
-  assert.match(index,/release-1\.1\.3\.js\?v=1\.3\.0/);
+test('1.1.3 assets remain available for rollback but are not loaded by 1.3.1',()=>{
+  assert.doesNotMatch(index,/release-1\.1\.3\.css\?v=/);
+  assert.doesNotMatch(index,/release-1\.1\.3\.js\?v=/);
   assert.match(server,/\/release-1\.1\.3\.css/);
   assert.match(server,/\/release-1\.1\.3\.js/);
   assert.match(css,/r113-filter-bar/);
-  assert.match(css,/r113-settings-search/);
-  assert.match(css,/r113-portal-home/);
 });
 
-test('1.1.3 keeps queue content visible during same-route background refresh',()=>{
+test('retired 1.1.3 code documents the snapshot mechanism that caused the duplicate queue regression',()=>{
   assert.match(ui,/function suppressQueueFlicker\(\)/);
-  assert.match(ui,/if\(isLoading&&queueSnapshot\)/);
   assert.match(ui,/main\.innerHTML=queueSnapshot/);
-  assert.match(ui,/r113-background-refresh/);
-});
-
-test('1.1.3 settings and customer portal enhancements remain wired',()=>{
-  assert.match(ui,/Znajdź ustawienie/);
-  assert.match(ui,/Więcej filtrów/);
-  assert.match(ui,/Wybierz usługę/);
-  assert.match(ui,/Moje zgłoszenia/);
-  assert.match(ui,/Normal\(\?:ny\)\+/);
 });
