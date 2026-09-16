@@ -1,5 +1,5 @@
 (() => {
-  const VERSION='1.2.2';
+  const VERSION='1.2.3';
   const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
   let scheduled=false;
   const route=()=>location.hash.split('?')[0]||'#/' ;
@@ -93,7 +93,6 @@
     $$('.panel',main).forEach(p=>p.classList.add('v120-portal-panel'));
   }
 
-
 // 1.2.1 updater UX hotfix: live progress, restart resilience and one automatic reload.
 let updatePollTimer=null,updatePollBusy=false,lastUpdateStatus=null,updateReloadScheduled=false;
 const updatePhaseMeta={
@@ -109,7 +108,7 @@ const updatePhaseMeta={
   rolled_back:{label:'Przywrócono poprzednią wersję',progress:100,warn:true},
   rollback_failed:{label:'Wymagana interwencja administratora',progress:100,bad:true}
 };
-const updateEsc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const updateEsc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 function ensureUpdateProgressStyles(){
   if($('#update-progress-121-style'))return;
   const style=document.createElement('style');style.id='update-progress-121-style';style.textContent=`
