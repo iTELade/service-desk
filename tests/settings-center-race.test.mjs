@@ -28,8 +28,9 @@ test('Settings recovery clears stale center marker after legacy settings overwri
   await settle();
   const main = dom.window.document.querySelector('#main');
   assert.equal(main.dataset.settingsCenterVersion, undefined);
-  assert.equal(main.dataset.settingsRecovery, '1.3.1');
-  assert.match(main.innerHTML, /settings-center-recover-1\.3\.1/);
+  assert.equal(main.dataset.settingsRecovery, '1.3.2');
+  assert.match(main.innerHTML, /settings-center-recover-1\.3\.2/);
+  assert.equal(dom.window.document.documentElement.dataset.theme, 'light');
 });
 
 test('Settings recovery does not disturb an already mounted native center', async () => {
@@ -50,7 +51,7 @@ test('complete Settings navigation exposes every administration group and critic
   </main></body></html>`);
   await settle();
   const doc = dom.window.document;
-  assert.equal(doc.querySelector('.version-chip').textContent, 'Wersja 1.3.1');
+  assert.equal(doc.querySelector('.version-chip').textContent, 'Wersja 1.3.2');
   const hrefs = [...doc.querySelectorAll('.settings-nav-link')].map(a => a.getAttribute('href'));
   for (const expected of [
     '/#/users','/#/directory','/#/admin/sso','/#/projects','/#/admin/templates',
@@ -59,4 +60,13 @@ test('complete Settings navigation exposes every administration group and critic
     '/#/settings?section=plugins','/#/admin/assets','/#/settings?section=audit',
     '/#/admin/updates','/#/admin/events','/#/admin-settings'
   ]) assert.ok(hrefs.includes(expected), `missing Settings link ${expected}`);
+});
+
+test('theme controls are normalized to the only supported light option', async () => {
+  const dom = boot(`<!doctype html><html data-theme="dark"><body><main id="main"><label>Motyw<select><option value="light">Light</option><option value="dark" selected>Dark</option><option value="system">System</option></select></label></main></body></html>`, '#/profile');
+  await settle();
+  const doc=dom.window.document,select=doc.querySelector('select');
+  assert.equal(doc.documentElement.dataset.theme,'light');
+  assert.deepEqual([...select.options].map(x=>x.value),['light']);
+  assert.equal(select.value,'light');
 });
