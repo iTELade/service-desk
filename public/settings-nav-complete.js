@@ -1,4 +1,4 @@
-const SETTINGS_NAV_VERSION = '1.3.1';
+const SETTINGS_NAV_VERSION = '1.3.2';
 
 const DIRECT_SETTINGS_LINKS = {
   'Ogólne': [
@@ -106,6 +106,29 @@ function currentRoute() {
   return location.hash.split('?')[0] || '#/';
 }
 
+function forceLightTheme() {
+  const root = document.documentElement;
+  if (root.dataset.theme !== 'light') root.dataset.theme = 'light';
+  root.style.colorScheme = 'light';
+
+  for (const select of document.querySelectorAll('select')) {
+    if (select.dataset.sd132LightNormalized === '1') continue;
+    const values = [...select.options].map(option => String(option.value || '').toLowerCase());
+    if (!values.includes('light') || (!values.includes('dark') && !values.includes('system'))) continue;
+    select.dataset.sd132LightNormalized = '1';
+    select.value = 'light';
+    for (const option of [...select.options]) {
+      if (String(option.value).toLowerCase() !== 'light') option.remove();
+    }
+    if (select.options[0]) select.options[0].textContent = 'Jasny';
+  }
+  for (const input of document.querySelectorAll('input[type="radio"]')) {
+    if (!['dark','system'].includes(String(input.value || '').toLowerCase())) continue;
+    const label = input.closest('label');
+    if (label) label.hidden = true; else input.hidden = true;
+  }
+}
+
 function keepNewest(nodes) {
   if (!nodes.length) return null;
   const keep = nodes[nodes.length - 1];
@@ -113,14 +136,69 @@ function keepNewest(nodes) {
   return keep;
 }
 
-function repairQueueSurface() {
-  if (currentRoute() !== '#/queue') return;
+let queueSnapshotHTML = '';
+let queueSnapshotHeight = 0;
+
+function clearQueueGhost() {
+  document.querySelector('.sd132-queue-ghost')?.remove();
   const main = document.querySelector('#main');
-  if (!main || main.querySelector('.loading')) return;
+  if (main) {
+    main.classList.remove('sd132-queue-loading');
+    main.style.removeProperty('min-height');
+  }
+}
 
-  main.classList.add('sd13-queue', 'sd131-queue');
+function sanitizeQueueGhost(ghost) {
+  ghost.setAttribute('aria-hidden', 'true');
+  for (const node of ghost.querySelectorAll('*')) {
+    node.removeAttribute('id');
+    for (const attr of [...node.attributes]) {
+      if (attr.name.startsWith('data-')) node.removeAttribute(attr.name);
+    }
+    if (/^(A|BUTTON|INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(node.tagName)) node.tabIndex = -1;
+  }
+}
+
+function showQueueGhost(main) {
+  if (!queueSnapshotHTML || document.querySelector('.sd132-queue-ghost')) return;
+  const host = main.closest('.workspace-content');
+  if (!host) return;
+  const ghost = document.createElement('div');
+  ghost.className = 'sd132-queue-ghost';
+  ghost.innerHTML = queueSnapshotHTML;
+  sanitizeQueueGhost(ghost);
+  host.append(ghost);
+  ghost.style.left = `${main.offsetLeft}px`;
+  ghost.style.top = `${main.offsetTop}px`;
+  ghost.style.width = `${main.offsetWidth}px`;
+  ghost.style.minHeight = `${Math.max(1, queueSnapshotHeight)}px`;
+  main.style.minHeight = `${Math.max(1, queueSnapshotHeight)}px`;
+  main.classList.add('sd132-queue-loading');
+}
+
+function captureQueueSnapshot(main) {
+  if (!main || main.querySelector('.loading') || !main.querySelector('table')) return;
+  queueSnapshotHTML = main.innerHTML;
+  queueSnapshotHeight = main.getBoundingClientRect().height;
+}
+
+function repairQueueSurface() {
+  if (currentRoute() !== '#/queue') {
+    clearQueueGhost();
+    queueSnapshotHTML = '';
+    queueSnapshotHeight = 0;
+    return;
+  }
+  const main = document.querySelector('#main');
+  if (!main) return;
+  if (main.querySelector('.loading')) {
+    showQueueGhost(main);
+    return;
+  }
+
+  clearQueueGhost();
+  main.classList.add('sd13-queue', 'sd131-queue', 'sd132-queue');
   document.documentElement.dataset.deskUi = SETTINGS_NAV_VERSION;
-
   main.querySelectorAll('.r113-page-help,.r113-metric-icon').forEach(node => node.remove());
 
   const heading = main.querySelector('.page-heading');
@@ -142,7 +220,7 @@ function repairQueueSurface() {
   if (title && !heading.querySelector('.sd13-queue-subtitle')) {
     const subtitle = document.createElement('p');
     subtitle.className = 'sd13-queue-subtitle';
-    subtitle.textContent = 'Przeglądaj i obsługuj zgłoszenia bez zbędnych paneli.';
+    subtitle.textContent = 'Przeglądaj, filtruj i obsługuj zgłoszenia w jednym czytelnym widoku.';
     title.after(subtitle);
   }
 
@@ -153,7 +231,6 @@ function repairQueueSurface() {
     workspace.setAttribute('aria-label', 'Kolejka zgłoszeń');
     metrics.after(workspace);
   }
-
   if (tabs.parentElement !== workspace) workspace.append(tabs);
 
   let viewSettings = workspace.querySelector('.sd131-view-settings');
@@ -183,6 +260,8 @@ function repairQueueSurface() {
     while (duplicate.firstChild) directWorkspaces[0].append(duplicate.firstChild);
     duplicate.remove();
   }
+
+  captureQueueSnapshot(main);
 }
 
 function repairTicketSurface() {
@@ -193,7 +272,7 @@ function repairTicketSurface() {
   const heading = main.querySelector('.page-heading');
   if (!layout || !heading) return;
 
-  main.classList.add('sd13-ticket', 'sd131-ticket');
+  main.classList.add('sd13-ticket', 'sd131-ticket', 'sd132-ticket');
   document.documentElement.dataset.deskUi = SETTINGS_NAV_VERSION;
 
   let header = main.querySelector('.sd13-ticket-header');
@@ -234,6 +313,7 @@ function repairTicketSurface() {
 }
 
 function repairCanonicalSurfaces() {
+  forceLightTheme();
   repairQueueSurface();
   repairTicketSurface();
 }
@@ -244,13 +324,22 @@ function scheduleSettingsNavigation() {
   completionScheduled = true;
   requestAnimationFrame(() => {
     completionScheduled = false;
+    forceLightTheme();
     completeSettingsNavigation();
     repairCanonicalSurfaces();
   });
 }
 
 const observer = new MutationObserver(scheduleSettingsNavigation);
-observer.observe(document.documentElement, {childList: true, subtree: true});
-window.addEventListener('hashchange', scheduleSettingsNavigation);
+observer.observe(document.documentElement, {childList: true, subtree: true, attributes: true, attributeFilter: ['data-theme']});
+window.addEventListener('hashchange', () => {
+  if (currentRoute() !== '#/queue') {
+    queueSnapshotHTML = '';
+    queueSnapshotHeight = 0;
+    clearQueueGhost();
+  }
+  scheduleSettingsNavigation();
+});
 window.addEventListener('DOMContentLoaded', scheduleSettingsNavigation);
+forceLightTheme();
 if (document.readyState !== 'loading') scheduleSettingsNavigation();
