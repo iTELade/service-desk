@@ -34,8 +34,8 @@ test('1.1.3 translations are exact and idempotent for priority and sorting label
 });
 
 test('1.1.3 Jira-inspired UI assets are loaded and served',()=>{
-  assert.match(index,/release-1\.1\.3\.css\?v=1\.2\.3/);
-  assert.match(index,/release-1\.1\.3\.js\?v=1\.2\.3/);
+  assert.match(index,/release-1\.1\.3\.css\?v=1\.2\.4/);
+  assert.match(index,/release-1\.1\.3\.js\?v=1\.2\.4/);
   assert.match(server,/\/release-1\.1\.3\.css/);
   assert.match(server,/\/release-1\.1\.3\.js/);
   assert.match(css,/r113-filter-bar/);
