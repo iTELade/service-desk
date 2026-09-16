@@ -1,0 +1,99 @@
+name: Prepare 1.3.0
+on:
+  push:
+    branches: [release/1.3.0]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.3.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Prepare release metadata and asset wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          V='1.3.0'
+
+          p=Path('package.json'); d=json.loads(p.read_text()); d['version']=V; p.write_text(json.dumps(d,indent=2,ensure_ascii=False)+'\n')
+          p=Path('package-lock.json'); s=p.read_text(); s=s.replace('"version": "1.1.3"','"version": "1.3.0"',2); p.write_text(s)
+          p=Path('lib/version.mjs'); s=p.read_text(); s=re.sub(r"VERSION='[^']+'",f"VERSION='{V}'",s); p.write_text(s)
+
+          p=Path('public/index.html'); s=p.read_text().replace('?v=1.1.3','?v=1.3.0')
+          s=s.replace('  <script defer src="/release-1.1.4.js?v=1.3.0"></script>\n','')
+          p.write_text(s)
+
+          p=Path('server.mjs'); s=p.read_text()
+          anchor="  ['/release-1.1.3.css', ['release-1.1.3.css', 'text/css; charset=utf-8']],"
+          assets=[
+            "  ['/release-1.1.4.css', ['release-1.1.4.css', 'text/css; charset=utf-8']],",
+            "  ['/release-1.1.4-layout.css', ['release-1.1.4-layout.css', 'text/css; charset=utf-8']],",
+            "  ['/release-1.3.0.css', ['release-1.3.0.css', 'text/css; charset=utf-8']],",
+            "  ['/release-1.3.0-nav.css', ['release-1.3.0-nav.css', 'text/css; charset=utf-8']],"
+          ]
+          if "'/release-1.3.0.css'" not in s:
+              s=s.replace(anchor,anchor+'\n'+'\n'.join(assets))
+          anchor_js="  ['/release-1.1.3.js', ['release-1.1.3.js', 'text/javascript; charset=utf-8']],"
+          if "'/release-1.3.0.js'" not in s:
+              s=s.replace(anchor_js,anchor_js+"\n  ['/release-1.3.0.js', ['release-1.3.0.js', 'text/javascript; charset=utf-8']],")
+          p.write_text(s)
+
+          for f in ['public/settings-center.js','public/settings-nav-complete.js']:
+              p=Path(f); s=p.read_text(); s=s.replace('1.1.3','1.3.0').replace('1.1.4','1.3.0'); p.write_text(s)
+
+          p=Path('README.md'); s=p.read_text(); s=re.sub(r'^# iTELade Service Desk [^\n]+','# iTELade Service Desk 1.3.0',s,count=1,flags=re.M)
+          section='''\n## Service Desk 1.3.0 — complete interface rebuild\n\nVersion 1.3.0 is a major visual and workflow update inspired by the information architecture of Jira Service Management while retaining iTELade's own implementation, permissions and data model.\n\n- Complete agent workspace redesign: compact blue navigation, light work surface, Jira-style top bar, dense tables and consistent controls.\n- Queue workspace rebuilt for triage: global search, saved views, quick filters, configurable columns, compact SLA and priority presentation.\n- Ticket view reorganized around the issue: actions at the top, description and activity in the main column, sticky details/SLA sidebar, compact conversation composer and metadata.\n- Board, project list, project settings, users, workflow/form builders, Assets/CMDB, mail, SSO and administration screens share the same visual system.\n- Administration Center navigation is de-duplicated and grouped by identity, services, communication, integrations, assets and system.\n- Agent sidebar exposes Knowledge Base, Assets/CMDB and mail channels and can be collapsed with the button or `[` / `]`.\n- Login, registration, MFA and the customer/public portal are restyled into the same product family without changing access rules.\n- Existing fixed roles, project membership checks, public GitHub read/authenticated write behavior and schema version 8 remain unchanged.\n'''
+          if '## Service Desk 1.3.0 — complete interface rebuild' not in s:
+              lines=s.splitlines(True); insert=1
+              s=''.join(lines[:insert])+section+'\n'+''.join(lines[insert:])
+          p.write_text(s)
+
+          p=Path('CHANGELOG.md'); s=p.read_text()
+          entry='''## 1.3.0 - 2026-09-16\n\n- Major Jira Service Management-inspired rebuild of the entire product UI.\n- New coherent agent shell, queues, board, ticket detail, project/admin pages, user management and Administration Center.\n- New cohesive login/MFA and customer/public portal presentation.\n- Collapsible agent navigation with direct Knowledge Base, Assets/CMDB and mail-channel access.\n- Settings navigation de-duplication and denser operational presentation.\n- No RBAC or schema change; schema remains 8.\n\n'''
+          if not s.startswith('## 1.3.0'): p.write_text(entry+s)
+
+          p=Path('MODULES.md')
+          if p.exists():
+              s=p.read_text(); s=re.sub(r'^(# .*Service Desk )\S+',r'\g<1>1.3.0',s,count=1,flags=re.M); p.write_text(s)
+
+          Path('RELEASE_NOTES_1.3.0.md').write_text('''# Service Desk 1.3.0\n\nA major interface and usability release rebuilding the whole system around a Jira Service Management-inspired interaction model.\n\n## Agent workspace\n- Compact blue sidebar and light operational canvas.\n- Collapsible navigation (`[` / `]`) with direct access to queues, board, customer portal, projects, users, Knowledge Base, Assets/CMDB, mail channels and settings where permitted.\n- Global search remains available in the top bar.\n\n## Queues and board\n- Dense Jira-style queue table, filters, saved views, configurable columns and compact status/SLA presentation.\n- Kanban board uses lighter columns and focused cards for quick triage.\n\n## Ticket detail\n- Main content/activity column plus sticky metadata/SLA sidebar.\n- Actions, transitions, watchers, links and attachments remain available with a denser hierarchy.\n- Internal notes and customer-visible replies remain distinct.\n\n## Administration and project configuration\n- Unified design for users, projects, forms, workflows, LDAP, SSO, mail, integrations and system administration.\n- Administration Center no longer repeats links already represented by a native section.\n\n## Customer experience\n- Login, registration and MFA use the same visual language.\n- Customer and public project portals are rebuilt with a clean support catalogue and consistent request tables.\n- Public GitHub projects retain anonymous read-only access and GitHub-authenticated write access.\n\n## Compatibility\n- Schema remains 8; no database migration is required.\n- Fixed global roles and project-scoped authorization are unchanged.\n- Existing 1.1.x integrations and data remain compatible.\n''')
+
+          Path('tests/release-1.3.0-ui.test.mjs').write_text(r'''import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+          const index=read('public/index.html'),server=read('server.mjs'),css=read('public/release-1.3.0.css'),navcss=read('public/release-1.3.0-nav.css'),ui=read('public/release-1.3.0.js');
+          test('1.3.0 assets are wired and served',()=>{for(const f of ['release-1.1.4.css','release-1.1.4-layout.css','release-1.3.0.css','release-1.3.0-nav.css','release-1.3.0.js']){assert.ok(index.includes('/'+f+'?v=1.3.0'));assert.ok(server.includes("['/"+f+"', ['"+f+"',"));}});
+          test('1.3.0 covers agent, auth and portal surfaces',()=>{assert.match(ui,/v130-auth/);assert.match(ui,/v130-portal/);assert.match(ui,/v130-public-portal/);assert.match(ui,/v114-agent/);assert.match(css,/Customer portal shell/);assert.match(css,/Login, registration, MFA/);});
+          test('1.3.0 keeps Jira-style issue and collapsible navigation',()=>{assert.match(navcss,/v130-sidebar-collapsed/);assert.match(ui,/desk\.sidebar\.collapsed/);assert.match(ui,/ticketPolish/);assert.match(ui,/addAdminNav/);});
+          test('1.3.0 cache busting is consistent',()=>{assert.ok(!index.includes('?v=1.1.3'));assert.ok(!index.includes('release-1.1.4.js'));});
+          ''')
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Static checks
+        run: npm run check
+      - name: Test suite
+        run: npm run test:ci
+      - name: Docker build smoke
+        run: docker build -t service-desk:1.3.0-test .
+      - name: Commit prepared release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package.json package-lock.json lib/version.mjs public/index.html public/settings-center.js public/settings-nav-complete.js server.mjs README.md CHANGELOG.md MODULES.md RELEASE_NOTES_1.3.0.md tests/release-1.3.0-ui.test.mjs
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Prepare Service Desk 1.3.0 release"
+          git push origin HEAD:release/1.3.0
