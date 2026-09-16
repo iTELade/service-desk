@@ -18,9 +18,9 @@ test('1.2.1 updater reloads the page exactly once after terminal success or roll
   assert.match(ui,/sessionStorage\.getItem\(marker\)===job\.id/);
   assert.match(ui,/setTimeout\(\(\)=>location\.reload\(\),1200\)/);
 });
-test('1.2.2 keeps updater behavior while aligning release and cache keys',()=>{
-  assert.match(version,/VERSION='1\.2\.2'/);
-  assert.match(index,/app\.js\?v=1\.2\.2/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.2\.2/);
-  assert.doesNotMatch(index,/\?v=1\.2\.1/);
+test('1.2.3 keeps updater behavior while aligning release and cache keys',()=>{
+  assert.match(version,/VERSION='1\.2\.3'/);
+  assert.match(index,/app\.js\?v=1\.2\.3/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.2\.3/);
+  assert.doesNotMatch(index,/\?v=1\.2\.2/);
 });
