@@ -30,8 +30,8 @@ test('1.2.3 rebuild protects queue board projects users settings and ticket layo
   assert.match(css,/@media\(max-width:620px\)/);
 });
 
-test('1.2.4 release metadata and browser cache marker stay aligned',()=>{
-  assert.match(ui,/const VERSION='1\.2\.4'/);
-  assert.match(index,/release-1\.1\.4-layout\.css\?v=1\.2\.4/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.2\.4/);
+test('1.3.0 release metadata and browser cache marker stay aligned',()=>{
+  assert.match(ui,/const VERSION='1\.3\.0'/);
+  assert.match(index,/release-1\.1\.4-layout\.css\?v=1\.3\.0/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.3\.0/);
 });
