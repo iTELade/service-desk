@@ -2,29 +2,29 @@
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations. It provides customer portals, internal and external projects, configurable workflows, SLA, automation, Assets/CMDB, LDAP/Active Directory, SSO/OIDC, email intake, API/webhooks, GitHub Issues intake, approvals, audit, saved queues and an extensible plugin foundation.
 
-
-## What is new in 1.1.3
-
-- Jira-inspired agent workspace with a denser, clearer queue layout, sticky ticket headers and compact SLA / priority / assignee badges.
-- Stable background refresh: unchanged queue routes keep the current content visible while data refreshes instead of flashing a full-page loading state.
-- Safer global translation that no longer repeatedly expands labels such as `Normalny` or `Sortowanie`.
-- Reworked Administration Center navigation with settings search and clearer visual grouping.
-- Friendlier customer portal and public project portal with stronger service cards and faster access to personal tickets.
-
 Service Desk is an independent iTELade project. It is not an Atlassian product and is not intended to be a source-compatible clone of Jira Service Management.
 
 ## Current release
 
-**Service Desk 1.1.2**
+**Service Desk 1.2.0**
 
-1.1.2 focuses on everyday agent work:
+1.2.0 is a major interface and usability release. It rebuilds the agent workspace, administration, authentication screens and customer/public portals around a denser Jira Service Management-inspired interaction model while retaining the existing iTELade backend, permissions and data model.
 
-- configurable Jira-style queue views with personal column visibility/order, quick filters, primary/secondary sorting and existing saved views,
-- first-class ticket attachments stored in protected persistent data, including public/internal visibility and inbound IMAP attachment import,
-- permission-aware global search across accessible tickets, users, organizations and Assets/CMDB, with a provider-ready Knowledge Base result section,
-- all new endpoints continue to enforce the existing fixed roles and project/ticket permission model.
+Release: https://github.com/iTELade/service-desk/releases/tag/v1.2.0
 
-Release: https://github.com/iTELade/service-desk/releases/tag/v1.1.2
+Detailed notes: [RELEASE_NOTES_1.2.0.md](RELEASE_NOTES_1.2.0.md)
+
+## What is new in 1.2.0
+
+- complete agent workspace redesign with compact navigation and a light operational canvas,
+- Jira-style queue presentation focused on scanning and triage,
+- ticket view reorganized around the issue with main activity/content and a sticky details/SLA sidebar,
+- consistent styling for board, projects, users, forms, workflows, Assets/CMDB, mail, SSO and administration,
+- reorganized Administration Center with clearer grouping and reduced duplicate navigation,
+- collapsible agent navigation with direct links to Knowledge Base, Assets/CMDB and mail channels where permitted,
+- customer portal, public project portal, login, registration and MFA restyled into the same product family,
+- existing fixed roles, project memberships, public GitHub access model and backend authorization rules preserved,
+- database schema remains **8**; no 1.2.0-specific database migration is required.
 
 ## Core capabilities
 
@@ -44,17 +44,27 @@ Release: https://github.com/iTELade/service-desk/releases/tag/v1.1.2
 - approvals, notifications, watchers and saved queues,
 - one-way GitHub Issues → Service Desk intake,
 - public GitHub project mode: anonymous read, GitHub-authenticated write,
+- protected ticket attachments and inbound IMAP attachment import,
+- permission-aware global search,
 - native Administration Center under `/#/settings`,
 - plugin registry/lifecycle foundation,
 - English, Polish and German UI support.
 
-## 1.1.2 queue workspace
+## Agent workspace
+
+The 1.2.0 agent interface is designed around operational density rather than large dashboard cards. Navigation stays compact, queues use a Jira-style issue table, ticket details keep the conversation and activity in the main content column, and metadata/SLA information is kept in a side panel on wider screens.
+
+The left navigation can be collapsed and exposes direct routes to operational modules such as Knowledge Base, Assets/CMDB and mail channels when the signed-in role is allowed to use them.
+
+## Queue workspace
 
 Agents and Project Managers can keep per-project queue preferences. Queue configuration includes visible columns, drag-and-drop column order, primary and secondary sorting and quick operational filters such as assigned to me, unassigned, waiting for customer and oldest first. Existing saved views remain supported and can be opened from the queue workspace.
 
 Queue preferences are personal. Shared saved views remain separate objects and server-side ticket authorization is always applied regardless of UI configuration.
 
-## 1.1.2 attachments
+Background refreshes are intended to keep the active workspace visible rather than replacing the whole screen with a blocking loading state.
+
+## Attachments
 
 Attachments can be added to accessible tickets and are stored outside the public web root in the protected Service Desk data store. The attachment record contains a non-guessable identifier, original safe filename, MIME type, size, SHA-256 checksum, uploader, source and public/internal visibility.
 
@@ -70,7 +80,7 @@ Current policy:
 
 Because attachment bytes are stored with the application data, the normal consistent database backup includes them.
 
-## 1.1.2 global search
+## Global search
 
 The application header includes a global search that is filtered server-side by the current user. Search covers accessible ticket keys/titles/descriptions and, for staff, authorized users, organizations and Assets/CMDB records. Exact ticket keys such as `ITA-123` are ranked first.
 
@@ -112,7 +122,7 @@ The standalone legacy `v8.html` page is retired and redirects into the normal ap
 
 SQLite is used by a single application writer. Do not run multiple Service Desk replicas against the same SQLite volume.
 
-Service Desk 1.1.2 keeps database schema version **8**. The 1.1.2 feature tables are created idempotently at runtime and do not require a schema-version bump.
+Service Desk 1.2.0 keeps database schema version **8**. Existing 1.1.x data and integrations remain compatible with the 1.2.0 interface release.
 
 ## New installation
 
@@ -133,6 +143,14 @@ On a fresh installation, open the Service Desk URL and use the one-time installa
 ## Updates
 
 Stable releases contain `desk-release.json` with the exact GHCR image digest and database compatibility information. Existing supported installations can use the built-in updater.
+
+Published image:
+
+```text
+ghcr.io/itelade/service-desk:v1.2.0
+```
+
+After upgrading to 1.2.0, perform a hard browser refresh because the release replaces a large part of the frontend styling and cache-busted assets.
 
 See [UPDATES.md](UPDATES.md) and [UPGRADE.md](UPGRADE.md).
 
@@ -159,6 +177,7 @@ CI validates dependencies, syntax/static checks, the test suite and upgrade-scri
 
 ## Documentation
 
+- [RELEASE_NOTES_1.2.0.md](RELEASE_NOTES_1.2.0.md) — detailed 1.2.0 release notes,
 - [CHANGELOG.md](CHANGELOG.md) — release history,
 - [MODULES.md](MODULES.md) — projects, mail, SLA, LDAP/SSO, integrations and permissions,
 - [AUTOMATION.md](AUTOMATION.md) — triggers, conditions, actions and scheduling,
