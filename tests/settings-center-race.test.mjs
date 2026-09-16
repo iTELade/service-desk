@@ -9,6 +9,7 @@ function boot(html, hash = '#/settings') {
   const dom = new JSDOM(html, {url:`https://desk.example/${hash}`, runScripts:'outside-only'});
   const {window} = dom;
   window.queueMicrotask = queueMicrotask;
+  window.requestAnimationFrame = callback => window.setTimeout(callback, 0);
   window.eval(source);
   return dom;
 }
@@ -27,8 +28,8 @@ test('Settings recovery clears stale center marker after legacy settings overwri
   await settle();
   const main = dom.window.document.querySelector('#main');
   assert.equal(main.dataset.settingsCenterVersion, undefined);
-  assert.equal(main.dataset.settingsRecovery, '1.3.0');
-  assert.match(main.innerHTML, /settings-center-recover-1\.3\.0/);
+  assert.equal(main.dataset.settingsRecovery, '1.3.1');
+  assert.match(main.innerHTML, /settings-center-recover-1\.3\.1/);
 });
 
 test('Settings recovery does not disturb an already mounted native center', async () => {
@@ -49,7 +50,7 @@ test('complete Settings navigation exposes every administration group and critic
   </main></body></html>`);
   await settle();
   const doc = dom.window.document;
-  assert.equal(doc.querySelector('.version-chip').textContent, 'Wersja 1.3.0');
+  assert.equal(doc.querySelector('.version-chip').textContent, 'Wersja 1.3.1');
   const hrefs = [...doc.querySelectorAll('.settings-nav-link')].map(a => a.getAttribute('href'));
   for (const expected of [
     '/#/users','/#/directory','/#/admin/sso','/#/projects','/#/admin/templates',
