@@ -1,4 +1,4 @@
-# iTELade Service Desk 1.1.3
+# iTELade Service Desk 1.2.0
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations. It provides customer portals, internal and external projects, configurable workflows, SLA, automation, Assets/CMDB, LDAP/Active Directory, SSO/OIDC, email intake, API/webhooks, GitHub Issues intake, approvals, audit, saved queues and an extensible plugin foundation.
 
