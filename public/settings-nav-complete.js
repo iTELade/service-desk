@@ -1,4 +1,4 @@
-const SETTINGS_NAV_VERSION = '1.1.3';
+const SETTINGS_NAV_VERSION = '1.2.0';
 
 const DIRECT_SETTINGS_LINKS = {
   'Ogólne': [
@@ -87,11 +87,12 @@ function completeSettingsNavigation() {
   if (main?.dataset.settingsRecovery) delete main.dataset.settingsRecovery;
 
   for (const group of nav.querySelectorAll('.settings-nav-group')) {
-    const title = group.querySelector('h3')?.textContent?.trim();
+    const title = group.querySelector('h3')?.textContent?.replace(/^[^A-Za-zĄĆĘŁŃÓŚŹŻ]+/,'')?.trim();
     const links = DIRECT_SETTINGS_LINKS[title];
     if (!links) continue;
+    const labels = new Set([...group.querySelectorAll('button')].map(button => button.textContent.trim()));
     for (const [label, href] of links) {
-      if (group.querySelector(`a[href="${href}"]`)) continue;
+      if (labels.has(label) || group.querySelector(`a[href="${href}"]`)) continue;
       const link = document.createElement('a');
       link.className = 'settings-nav-link';
       link.href = href;
