@@ -30,8 +30,8 @@ test('1.2.3 rebuild protects queue board projects users settings and ticket layo
   assert.match(css,/@media\(max-width:620px\)/);
 });
 
-test('1.3.1 browser cache marker advances while the 1.3.0 canonical base remains intact',()=>{
+test('1.3.2 browser cache marker advances while the 1.3.0 canonical base remains intact',()=>{
   assert.match(ui,/const VERSION='1\.3\.0'/);
-  assert.match(index,/release-1\.1\.4-layout\.css\?v=1\.3\.1/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.3\.1/);
+  assert.match(index,/release-1\.1\.4-layout\.css\?v=1\.3\.2/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.3\.2/);
 });
