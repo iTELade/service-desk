@@ -24,5 +24,6 @@ test('1.4 controller owns Settings recovery and product version label', () => {
   assert.match(center, /const SETTINGS_VERSION='1\.2\.1';/);
   assert.match(ui, /const VERSION='1\.4\.0';/);
   assert.match(ui, /function recoverSettingsCenter\(\)/);
-  assert.match(ui, /chip\.textContent='Wersja '\+VERSION/);
+  assert.match(ui, /const versionLabel='Wersja '\+VERSION/);
+  assert.match(ui, /chip&&chip\.textContent!==versionLabel/);
 });
