@@ -29,9 +29,9 @@
 
   function forceLightTheme(){
     const root=document.documentElement;
-    root.dataset.theme='light';
-    root.dataset.deskUi=VERSION;
-    root.style.colorScheme='light';
+    if(root.dataset.theme!=='light')root.dataset.theme='light';
+    if(root.dataset.deskUi!==VERSION)root.dataset.deskUi=VERSION;
+    if(root.style.colorScheme!=='light')root.style.colorScheme='light';
     for(const select of $$('select')){
       const values=[...select.options].map(option=>String(option.value||'').toLowerCase());
       if(!values.includes('light')||(!values.includes('dark')&&!values.includes('system')))continue;
