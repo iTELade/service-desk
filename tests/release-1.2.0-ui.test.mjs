@@ -2,6 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 const r=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
-const i=r("public/index.html"),s=r("server.mjs"),u=r("public/release-1.2.0.js"),c=r("public/release-1.2.0.css");
-test("1.3.2 canonical UI assets are wired",()=>{for(const f of ["release-1.2.0.css","release-1.2.0-nav.css","release-1.2.0.js"]){assert.ok(i.includes("/"+f+"?v=1.3.2"));assert.ok(s.includes("['/"+f));}});
-test("1.3.x covers auth portal and agent",()=>{assert.match(u,/v120-auth/);assert.match(u,/v120-portal/);assert.match(u,/v114-agent/);assert.match(c,/Customer portal shell/);});
+const i=r("public/index.html"),s=r("server.mjs"),u=r("public/release-1.2.0.js"),c=r("public/app.css");
+
+test("1.4.0 canonical UI assets are wired",()=>{
+  for(const f of ["app.css","release-1.2.0.js"]){
+    assert.ok(i.includes("/"+f+"?v=1.4.0"));
+    assert.ok(s.includes("['/"+f));
+  }
+  assert.ok(i.includes('/release-1.1.2.js?v=1.4.0'),'feature module remains active');
+});
+
+test("1.4.0 controller covers auth portal agent queue ticket and settings",()=>{
+  for(const token of ['sd14-surface-auth','sd14-surface-portal','sd14-surface-agent','rebuildQueueWorkspace','rebuildTicketWorkspace','completeSettingsNavigation'])assert.match(u,new RegExp(token));
+  for(const token of ['.auth-layout{','.portal-workspace{','.sd14-queue-workspace{','.sd14-ticket-header{','.settings-center{'])assert.ok(c.includes(token),`missing CSS surface ${token}`);
+});

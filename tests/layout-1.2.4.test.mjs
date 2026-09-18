@@ -3,66 +3,54 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const ui=readFileSync(new URL('../public/release-1.2.0.js',import.meta.url),'utf8');
-const css=readFileSync(new URL('../public/release-1.2.0.css',import.meta.url),'utf8');
-const nav=readFileSync(new URL('../public/release-1.2.0-nav.css',import.meta.url),'utf8');
-const repair=readFileSync(new URL('../public/settings-nav-complete.js',import.meta.url),'utf8');
+const css=readFileSync(new URL('../public/app.css',import.meta.url),'utf8');
 const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 
-test('1.3.x keeps queue as one canonical work surface',()=>{
-  assert.match(css,/Service Desk 1\.3\.0 — canonical agent UI rebuild/);
-  assert.match(ui,/function rebuildQueue\(\)/);
-  assert.match(ui,/sd13-queue-workspace/);
-  assert.match(repair,/sd13-queue-workspace/);
-  assert.match(repair,/panel\.classList\.add\('sd13-queue-table'\)/);
-  assert.match(nav,/QUEUE 1\.3\.2/);
-  assert.match(nav,/sd131-view-settings/);
-  assert.match(nav,/r113-metric-icon\{display:none!important/);
+test('1.4.0 uses one canonical CSS presentation layer instead of stacked release styles',()=>{
+  assert.match(css,/Service Desk 1\.4\.0 — Enterprise UI/);
+  assert.match(index,/\/app\.css\?v=1\.4\.0/);
+  for(const retired of ['settings.css','release-1.1.2.css','release-1.1.4.css','release-1.1.4-layout.css','release-1.2.0.css','release-1.2.0-nav.css','settings-nav-complete.js']){
+    assert.ok(!index.includes('/'+retired+'?v='),`legacy presentation asset must be retired: ${retired}`);
+  }
 });
 
-test('1.3.2 removes duplicate queue modules and keeps the newest interactive instance',()=>{
-  assert.match(repair,/function keepNewest\(nodes\)/);
-  assert.match(repair,/const keep = nodes\[nodes\.length - 1\]/);
-  assert.match(repair,/node\.remove\(\)/);
-  assert.match(repair,/\[data-r112-queue-tools\]/);
-  assert.match(repair,/sd131-view-settings/);
-  assert.match(repair,/main\.querySelectorAll\('\.r113-page-help,\.r113-metric-icon'\)/);
-  assert.doesNotMatch(index,/release-1\.1\.3\.js\?v=/);
+test('1.4.0 queue is rebuilt as one work surface with safe refresh continuity',()=>{
+  assert.match(ui,/function rebuildQueueWorkspace\(\)/);
+  assert.match(ui,/sd14-queue-workspace/);
+  assert.match(ui,/sd14-view-settings/);
+  assert.match(ui,/\[data-r112-queue-tools\]/);
+  assert.match(ui,/function keepNewest\(nodes\)/);
+  assert.match(ui,/let queueSnapshotHTML=''/);
+  assert.match(ui,/function showQueueGhost\(main\)/);
+  assert.match(ui,/sanitizeGhost\(ghost\)/);
+  assert.doesNotMatch(ui,/main\.innerHTML=queueSnapshot/);
+  assert.match(css,/sd14-queue-ghost/);
 });
 
-test('1.3.2 masks same-route queue loading without restoring stale interactive DOM',()=>{
-  assert.match(repair,/let queueSnapshotHTML = ''/);
-  assert.match(repair,/function showQueueGhost\(main\)/);
-  assert.match(repair,/sanitizeQueueGhost\(ghost\)/);
-  assert.match(repair,/attr\.name\.startsWith\('data-'\)/);
-  assert.match(repair,/main\.classList\.add\('sd132-queue-loading'\)/);
-  assert.match(repair,/function captureQueueSnapshot\(main\)/);
-  assert.match(nav,/sd132-queue-ghost/);
-  assert.doesNotMatch(repair,/main\.innerHTML=queueSnapshot/);
+test('1.4.0 ticket uses a dedicated enterprise header, work column and sticky context rail',()=>{
+  assert.match(ui,/function rebuildTicketWorkspace\(\)/);
+  assert.match(ui,/sd14-ticket-header/);
+  assert.match(ui,/sd14-ticket-title-row/);
+  assert.match(ui,/sd14-ticket-main/);
+  assert.match(ui,/const attachments=keepNewest/);
+  assert.match(css,/\.ticket-layout\{display:grid;grid-template-columns:minmax\(0,1fr\) 360px/);
+  assert.match(css,/\.ticket-sidebar\{[^}]*position:sticky/);
+  assert.match(css,/\.sd14-history/);
 });
 
-test('1.3.2 is light-only across agent, portal and auth surfaces',()=>{
-  assert.match(repair,/function forceLightTheme\(\)/);
-  assert.match(repair,/root\.dataset\.theme = 'light'/);
-  assert.match(repair,/root\.style\.colorScheme = 'light'/);
-  assert.match(nav,/html\[data-theme='dark'\],html\[data-theme='system'\]/);
-  assert.match(nav,/body\.v120-auth,body\.v120-portal,body\.v120-public-portal/);
+test('1.4.0 forces one light product theme across all surfaces',()=>{
+  assert.match(ui,/function forceLightTheme\(\)/);
+  assert.match(ui,/root\.dataset\.theme='light'/);
+  assert.match(ui,/root\.style\.colorScheme='light'/);
+  assert.match(css,/html\[data-theme="dark"\],html\[data-theme="system"\]/);
+  assert.doesNotMatch(css,/@media\s*\(prefers-color-scheme:\s*dark\)/);
 });
 
-test('1.3.x rebuilds ticket structure and keeps newest asynchronous attachments',()=>{
-  assert.match(ui,/function rebuildTicket\(\)/);
-  assert.match(ui,/sd13-ticket-header/);
-  assert.match(repair,/function repairTicketSurface\(\)/);
-  assert.match(repair,/const attachments = keepNewest/);
-  assert.match(repair,/conversation\.after\(attachments\)/);
-  assert.match(nav,/Ticket readability polish/);
-  assert.match(css,/agent-route-ticket \.ticket-sidebar/);
-});
-
-test('1.3.2 runtime and cache markers are aligned at the product boundary',()=>{
-  assert.match(version,/VERSION='1\.3\.2'/);
-  assert.match(repair,/SETTINGS_NAV_VERSION = '1\.3\.2'/);
-  assert.match(index,/app\.js\?v=1\.3\.2/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.3\.2/);
-  assert.doesNotMatch(index,/\?v=1\.3\.1/);
+test('1.4.0 version and cache markers are aligned',()=>{
+  assert.match(version,/VERSION='1\.4\.0'/);
+  assert.match(ui,/const VERSION='1\.4\.0'/);
+  assert.match(index,/app\.js\?v=1\.4\.0/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.0/);
+  assert.doesNotMatch(index,/\?v=1\.3\.2/);
 });
