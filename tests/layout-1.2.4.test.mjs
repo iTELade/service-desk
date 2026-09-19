@@ -7,15 +7,16 @@ const css=readFileSync(new URL('../public/app.css',import.meta.url),'utf8');
 const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 
-test('1.4.0 uses one canonical CSS presentation layer instead of stacked release styles',()=>{
+test('1.4.1 uses one canonical CSS presentation layer instead of stacked release styles',()=>{
   assert.match(css,/Service Desk 1\.4\.0 — Enterprise UI/);
-  assert.match(index,/\/app\.css\?v=1\.4\.0/);
+  assert.match(css,/Service Desk 1\.4\.1 — WOW enterprise hotfix/);
+  assert.match(index,/\/app\.css\?v=1\.4\.1/);
   for(const retired of ['settings.css','release-1.1.2.css','release-1.1.4.css','release-1.1.4-layout.css','release-1.2.0.css','release-1.2.0-nav.css','settings-nav-complete.js']){
     assert.ok(!index.includes('/'+retired+'?v='),`legacy presentation asset must be retired: ${retired}`);
   }
 });
 
-test('1.4.0 queue is rebuilt as one work surface with safe refresh continuity',()=>{
+test('1.4 queue is rebuilt as one work surface with safe refresh continuity',()=>{
   assert.match(ui,/function rebuildQueueWorkspace\(\)/);
   assert.match(ui,/sd14-queue-workspace/);
   assert.match(ui,/sd14-view-settings/);
@@ -28,7 +29,7 @@ test('1.4.0 queue is rebuilt as one work surface with safe refresh continuity',(
   assert.match(css,/sd14-queue-ghost/);
 });
 
-test('1.4.0 ticket uses a dedicated enterprise header, work column and sticky context rail',()=>{
+test('1.4 ticket uses a dedicated enterprise header, work column and sticky context rail',()=>{
   assert.match(ui,/function rebuildTicketWorkspace\(\)/);
   assert.match(ui,/sd14-ticket-header/);
   assert.match(ui,/sd14-ticket-title-row/);
@@ -39,7 +40,7 @@ test('1.4.0 ticket uses a dedicated enterprise header, work column and sticky co
   assert.match(css,/\.sd14-history/);
 });
 
-test('1.4.0 forces one light product theme across all surfaces',()=>{
+test('1.4 forces one light product theme across all surfaces',()=>{
   assert.match(ui,/function forceLightTheme\(\)/);
   assert.match(ui,/root\.dataset\.theme='light'/);
   assert.match(ui,/root\.style\.colorScheme='light'/);
@@ -47,10 +48,10 @@ test('1.4.0 forces one light product theme across all surfaces',()=>{
   assert.doesNotMatch(css,/@media\s*\(prefers-color-scheme:\s*dark\)/);
 });
 
-test('1.4.0 version and cache markers are aligned',()=>{
-  assert.match(version,/VERSION='1\.4\.0'/);
+test('1.4.1 version and browser cache markers are aligned',()=>{
+  assert.match(version,/VERSION='1\.4\.1'/);
   assert.match(ui,/const VERSION='1\.4\.0'/);
-  assert.match(index,/app\.js\?v=1\.4\.0/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.0/);
+  assert.match(index,/app\.js\?v=1\.4\.1/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.1/);
   assert.doesNotMatch(index,/\?v=1\.3\.2/);
 });
