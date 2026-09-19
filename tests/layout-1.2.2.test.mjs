@@ -23,9 +23,9 @@ test('1.4 enterprise design covers every primary operating surface',()=>{
   assert.match(css,/@media\(max-width:620px\)/);
 });
 
-test('1.4.1 cache boundary loads only the canonical presentation and 1.4 controller',()=>{
+test('1.4.2 cache boundary loads only the canonical presentation and 1.4 controller',()=>{
   assert.match(ui,/const VERSION='1\.4\.0'/);
-  assert.match(index,/app\.css\?v=1\.4\.1/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.1/);
+  assert.match(index,/app\.css\?v=1\.4\.2/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.2/);
   assert.doesNotMatch(index,/release-1\.1\.4-layout\.css\?v=/);
 });
