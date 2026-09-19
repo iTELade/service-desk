@@ -9,10 +9,10 @@ const ui=read('public/release-1.2.0.js');
 const features=read('public/release-1.1.2.js');
 const version=read('lib/version.mjs');
 
-test('1.4.1 product boundary is versioned without a schema migration',()=>{
-  assert.match(version,/VERSION='1\.4\.1'/);
+test('1.4.2 product boundary is versioned without a schema migration',()=>{
+  assert.match(version,/VERSION='1\.4\.2'/);
   assert.match(version,/SCHEMA_VERSION=8/);
-  assert.match(index,/\?v=1\.4\.1/);
+  assert.match(index,/\?v=1\.4\.2/);
 });
 
 test('1.4 keeps all agreed operational feature modules active',()=>{
@@ -21,7 +21,7 @@ test('1.4 keeps all agreed operational feature modules active',()=>{
   assert.match(features,/installAttachments/);
   assert.match(features,/queue-preferences/);
   assert.match(features,/saved-view|v8\/views/);
-  assert.ok(index.includes('/release-1.1.2.js?v=1.4.1'));
+  assert.ok(index.includes('/release-1.1.2.js?v=1.4.2'));
 });
 
 test('1.4 enterprise navigation preserves Knowledge Base Assets and mail entry points',()=>{
@@ -44,7 +44,7 @@ test('1.4 covers board projects users settings portal auth dialogs and responsiv
   for(const token of ['.kanban{','.project-grid,','agent-route-users','.settings-center{','.portal-workspace{','.auth-layout{','dialog{','@media(max-width:820px)'])assert.ok(css.includes(token),`missing enterprise surface ${token}`);
 });
 
-test('1.4.1 premium visual hotfix adds stronger corporate hierarchy without new legacy assets',()=>{
+test('1.4.1 premium visual system remains active in 1.4.2',()=>{
   for(const token of ['Service Desk 1.4.1 — WOW enterprise hotfix','--wow-navy','#0b1731','sd141Rise','linear-gradient(118deg,#0c2145','version-chip::after'])assert.ok(css.includes(token),`missing 1.4.1 premium style token ${token}`);
   assert.doesNotMatch(index,/release-1\.1\.2\.css/);
   assert.doesNotMatch(index,/release-1\.1\.4\.css/);
