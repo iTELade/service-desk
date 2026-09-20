@@ -5,7 +5,7 @@
   const $=(selector,root=document)=>root.querySelector(selector);
   const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
   const route=()=>location.hash.split('?')[0]||'#/';
-  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const isStaff=()=>Boolean($('.workspace .sidebar nav a[href="#/board"]')||$('.workspace .sidebar nav a[href="#/settings"]')||$('.workspace .sidebar nav a[href="#/users"]'));
   const isPortal=()=>Boolean($('.portal-workspace'));
 
@@ -29,7 +29,9 @@
 
   function forceLightTheme(){
     const root=document.documentElement;
-    root.dataset.theme='light';root.dataset.deskUi=VERSION;root.style.colorScheme='light';
+    if(root.dataset.theme!=='light')root.dataset.theme='light';
+    if(root.dataset.deskUi!==VERSION)root.dataset.deskUi=VERSION;
+    if(root.style.colorScheme!=='light')root.style.colorScheme='light';
     for(const select of $$('select')){
       const values=[...select.options].map(o=>String(o.value||'').toLowerCase());
       if(!values.includes('light')||(!values.includes('dark')&&!values.includes('system')))continue;
