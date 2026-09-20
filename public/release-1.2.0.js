@@ -150,8 +150,8 @@
   function decorateUpdates(){if(route()!=='#/admin/updates')return;const main=$('#main');if(!main)return;main.classList.add('jsm-updates');const pre=$('pre.release-notes',main);if(pre){const rendered=renderMarkdown(pre.textContent);rendered.dataset.jsmRendered='1';pre.replaceWith(rendered);}}
 
   function decorate(){
-    forceLightTheme();surfaceClasses();addManagementNavigation();decorateTopbar();sidebarCollapse();ensureBreadcrumbAndIntro();
-    if(isStaff()){rebuildQueue();rebuildTicket();decorateBoard();decorateProjects();decorateUsers();completeSettingsNavigation();decorateUpdates();startUpdatePolling();}else stopUpdatePolling();
+    forceLightTheme();surfaceClasses();addManagementNavigation();decorateTopbar();sidebarCollapse();ensureBreadcrumbAndIntro();completeSettingsNavigation();
+    if(isStaff()){rebuildQueue();rebuildTicket();decorateBoard();decorateProjects();decorateUsers();decorateUpdates();startUpdatePolling();}else stopUpdatePolling();
     decoratePortal();decorateDialog();
   }
   let scheduled=false;function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;decorate();});}
