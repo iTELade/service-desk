@@ -24,10 +24,12 @@ test('1.5 design system covers every primary product surface',()=>{
   assert.match(css,/@media\(max-width:620px\)/);
 });
 
-test('1.5.1 cache boundary loads the canonical presentation plus contained hotfix bootstrap',()=>{
+test('1.6 cache boundary loads canonical presentation plus contained compatibility bootstrap',()=>{
   assert.match(ui,/const VERSION='1\.5\.0'/);
-  assert.match(index,/app\.css\?v=1\.5\.1/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.5\.1/);
+  assert.match(index,/app\.css\?v=1\.6\.0/);
+  assert.match(index,/agent-experience-1\.6\.css\?v=1\.6\.0/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.6\.0/);
+  assert.match(index,/agent-experience-1\.6\.js\?v=1\.6\.0/);
   assert.match(index,/data-sd151-live-guard/);
   assert.match(index,/data-sd151-hotfix/);
   assert.doesNotMatch(index,/data-sd143-customer-style|data-sd143-customer-ui/);
