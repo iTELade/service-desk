@@ -6,30 +6,54 @@
   <meta name="description" content="Service Desk — IT service management, support portal and team workspace.">
   <title>Service Desk</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/app.css?v=1.5.0">
-  <script src="/i18n.js?v=1.5.0"></script>
-  <script data-sd142-live-guard>
+  <link rel="stylesheet" href="/app.css?v=1.5.1">
+  <style data-sd151-hotfix>
+    .comment-avatar{display:inline-block!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;max-width:32px!important;max-height:32px!important;margin:0 9px 0 0!important;border-radius:50%!important;object-fit:cover!important;vertical-align:middle!important;background:#dfe7f5!important;border:1px solid var(--j-border)!important}
+    body.jsm-route-users tbody td:first-child{min-width:280px;vertical-align:middle}
+    body.jsm-route-users tbody td:first-child>.comment-avatar+strong{display:inline-block;max-width:calc(100% - 48px);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    body.jsm-route-users tbody td:first-child>.row-meta{display:block;margin:2px 0 0 42px;max-width:calc(100% - 42px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    body.jsm-route-users tbody tr{height:58px}
+    .queue-live-empty{padding:28px;text-align:center;color:var(--j-muted)}
+  </style>
+  <script src="/i18n.js?v=1.5.1"></script>
+  <script data-sd151-live-guard>
   (()=>{
     'use strict';
-    const nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);
-    let liveCallback=null,lastRoute='',lastStable='',queuePrimed=false,probeBusy=false;
+    const VERSION='1.5.1',nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);let refreshCallback=null,probeBusy=false;
     const source=fn=>{try{return Function.prototype.toString.call(fn);}catch{return '';}};
     const isLiveRefresh=fn=>typeof fn==='function'&&source(fn).includes('refreshLiveView');
-    const dirtyControl=el=>{if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;if(el instanceof HTMLSelectElement)return [...el.options].some(o=>o.selected!==o.defaultSelected);return false;};
-    const userBusy=()=>{if(document.hidden||document.querySelector('dialog[open]'))return true;const active=document.activeElement;if(active&&active!==document.body&&(active.matches?.('input,textarea,select,[contenteditable="true"]')||active.closest?.('.r112-global-search')))return true;if(document.querySelector('.r112-search-results:not([hidden])'))return true;return [...document.querySelectorAll('.workspace-content input,.workspace-content textarea,.workspace-content select')].some(dirtyControl);};
-    const stableTicket=t=>({id:t.id,key:t.key,version:t.version,workflow_version:t.workflow_version,status:t.status,workflow_status:t.workflow_status,priority:t.priority,assignee_id:t.assignee_id,updated_at:t.updated_at,archived_at:t.archived_at,transitions:(t.transitions||[]).map(x=>[x.to,x.name,x.actor]),sla:(t.sla||[]).map(s=>[s.id??s.name,s.state,Boolean(s.breached),s.due_at,s.completed_at??s.actual_at??null])});
-    const stableTicketSignature=data=>JSON.stringify({total:data?.total,page:data?.page,limit:data?.limit,tickets:(data?.tickets||[]).map(stableTicket)});
-    async function guardedLivePoll(fn){if(!fn||userBusy()||probeBusy)return;const hash=location.hash;if(!/^#\/(queue|board)(\?|$)/.test(hash)){fn();return;}probeBusy=true;try{const query=hash.split('?')[1]||'',response=await nativeFetch('/api/tickets?'+query,{credentials:'same-origin',cache:'no-store'});if(!response.ok)return;const stable=stableTicketSignature(await response.json());if(lastRoute!==hash){lastRoute=hash;lastStable=stable;if(!queuePrimed){queuePrimed=true;fn();}return;}if(stable===lastStable)return;lastStable=stable;fn();}catch{}finally{probeBusy=false;}}
-    window.setInterval=function(fn,delay,...args){if(Number(delay)===5000&&isLiveRefresh(fn)){liveCallback=()=>fn(...args);return nativeSetInterval(()=>void guardedLivePoll(liveCallback),5000);}return nativeSetInterval(fn,delay,...args);};
-    window.addEventListener=function(type,listener,options){if(type==='focus'&&isLiveRefresh(listener))return nativeAddEventListener(type,()=>{if(liveCallback)void guardedLivePoll(liveCallback);},options);return nativeAddEventListener(type,listener,options);};
-    document.documentElement.dataset.queueRefreshGuard='1.5.0';
+    const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const cls=value=>String(value??'').replace(/[^a-zA-Z0-9_-]/g,'');
+    const setText=(node,value)=>{if(node&&node.textContent!==String(value))node.textContent=String(value);};
+    const setHtml=(node,value)=>{if(node&&node.innerHTML!==value)node.innerHTML=value;};
+    function dirtyControl(el){if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;if(el instanceof HTMLSelectElement)return [...el.options].some(o=>o.selected!==o.defaultSelected);return false;}
+    function queueEditorBusy(){if(document.hidden||document.querySelector('dialog[open]'))return true;const active=document.activeElement;if(active?.closest?.('#main form.filters'))return true;return [...document.querySelectorAll('#main form.filters input,#main form.filters textarea,#main form.filters select')].some(dirtyControl);}
+    function generalEditorBusy(){if(document.hidden||document.querySelector('dialog[open]'))return true;const active=document.activeElement;return Boolean(active&&active!==document.body&&active.matches?.('input,textarea,select,[contenteditable="true"]'));}
+    function fmtDate(value){if(!value)return '—';try{return new Intl.DateTimeFormat(document.documentElement.lang==='en'?'en-GB':'pl-PL',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));}catch{return String(value);}}
+    function duration(ms){let total=Math.max(0,Math.round((Number(ms)||0)/60000));const days=Math.floor(total/1440);total-=days*1440;const hours=Math.floor(total/60),minutes=total-hours*60;if(days)return `${days} d ${hours} godz. ${minutes} min`;if(hours)return `${hours} godz. ${minutes} min`;return `${minutes} min`;}
+    function statusMarkup(t){return `<span class="pill ${cls(t.status_category||t.status)}">${esc(t.status_name||t.workflow_status||t.status||'—')}</span>`;}
+    function priorityMarkup(t){return `<span class="priority ${cls(t.priority)}">${esc(t.priority||'—')}</span>`;}
+    function slaMarkup(t){if(!t.sla?.length)return '<span class="hint">Brak mierników</span>';return t.sla.map(s=>{let label;if(s.state==='not_started')label='Nie rozpoczęto';else if(s.state==='paused')label='Wstrzymane';else if(s.state==='completed')label=s.breached?'Po terminie':'W terminie';else if(s.state==='stopped')label='Zatrzymane';else label=(s.breached?'Przekroczono o ':'Pozostało ')+duration(Math.abs(Number(s.remaining_ms)||0));return `<span class="${s.breached?'overdue':'sla-ok'}">${esc(s.name)}: ${esc(label)}</span>`;}).join('<br>');}
+    function issueMarkup(t){const form=t.request_form?.name||t.type||'Zgłoszenie';return `<a class="issue-title" href="#/ticket/${esc(t.key)}"><span class="key">${esc(t.key)}</span><span>${esc(t.title)}</span></a><small class="row-meta">${esc(t.project_name||'')} · ${esc(form)}</small>`;}
+    function tableShape(table){const headers=[...table.querySelectorAll('thead th')].map(th=>th.textContent.trim().toLocaleLowerCase('pl')),index=name=>headers.findIndex(h=>h===name||h.startsWith(name));return{headers,issue:index('zgłoszenie'),status:index('status'),priority:index('priorytet'),assignee:index('opiekun'),sla:index('sla'),updated:index('aktualizacja')};}
+    function rowMarkup(t,shape){const values=new Array(shape.headers.length).fill('');if(shape.issue>=0)values[shape.issue]=issueMarkup(t);if(shape.status>=0)values[shape.status]=statusMarkup(t);if(shape.priority>=0)values[shape.priority]=priorityMarkup(t);if(shape.assignee>=0)values[shape.assignee]=esc(t.assignee_name||'Nieprzypisane');if(shape.sla>=0)values[shape.sla]=slaMarkup(t);if(shape.updated>=0)values[shape.updated]=esc(fmtDate(t.updated_at));return `<tr data-live-ticket="${esc(t.key)}">${values.map((html,i)=>`<td${i===shape.updated?' class="date"':''}>${html}</td>`).join('')}</tr>`;}
+    function patchRow(row,t,shape){row.dataset.liveTicket=t.key;const cells=row.cells;if(shape.issue>=0)setHtml(cells[shape.issue],issueMarkup(t));if(shape.status>=0)setHtml(cells[shape.status],statusMarkup(t));if(shape.priority>=0)setHtml(cells[shape.priority],priorityMarkup(t));if(shape.assignee>=0)setText(cells[shape.assignee],t.assignee_name||'Nieprzypisane');if(shape.sla>=0)setHtml(cells[shape.sla],slaMarkup(t));if(shape.updated>=0)setText(cells[shape.updated],fmtDate(t.updated_at));}
+    function patchQueue(data,stats){const main=document.querySelector('#main');if(!main)return;const metricValues=[stats?.open??0,stats?.in_progress??0,stats?.waiting??0,(stats?.resolved??0)+(stats?.closed??0)];[...main.querySelectorAll('.metrics>div strong')].slice(0,4).forEach((node,i)=>setText(node,metricValues[i]));const table=main.querySelector('.panel .table-scroll table'),tbody=table?.tBodies?.[0];if(!table||!tbody)return;const shape=tableShape(table),tickets=data?.tickets||[],rows=[...tbody.rows],currentKeys=rows.map(row=>row.querySelector('.key')?.textContent?.trim()||row.dataset.liveTicket||''),nextKeys=tickets.map(t=>String(t.key)),sameShape=currentKeys.length===nextKeys.length&&currentKeys.every((key,i)=>key===nextKeys[i]);if(!tickets.length)setHtml(tbody,`<tr><td colspan="${Math.max(1,shape.headers.length)}"><div class="queue-live-empty">Brak zgłoszeń w tym widoku</div></td></tr>`);else if(sameShape)rows.forEach((row,i)=>patchRow(row,tickets[i],shape));else setHtml(tbody,tickets.map(t=>rowMarkup(t,shape)).join(''));const pagination=main.querySelector('.pagination');if(pagination){const pages=Math.max(1,Math.ceil((Number(data.total)||0)/(Number(data.limit)||1)));setText(pagination.querySelector('span'),`${data.total} zgłoszeń · strona ${data.page} z ${pages}`);}}
+    async function refreshQueueInPlace(){if(probeBusy||queueEditorBusy())return;const hash=location.hash;if(!/^#\/queue(?:\?|$)/.test(hash))return;probeBusy=true;try{const query=hash.split('?')[1]||'',responses=await Promise.all([nativeFetch('/api/tickets?'+query,{credentials:'same-origin',cache:'no-store'}),nativeFetch('/api/stats?'+query,{credentials:'same-origin',cache:'no-store'})]);if(!responses[0].ok||!responses[1].ok)return;const [data,stats]=await Promise.all([responses[0].json(),responses[1].json()]);if(location.hash!==hash)return;patchQueue(data,stats);document.documentElement.dataset.queueLastRefresh=String(Date.now());}catch{}finally{probeBusy=false;}}
+    async function guardedRefresh(fn){if(/^#\/queue(?:\?|$)/.test(location.hash))return refreshQueueInPlace();if(generalEditorBusy())return;try{return fn?.();}catch{}}
+    window.setInterval=function(fn,delay,...args){if(Number(delay)===5000&&isLiveRefresh(fn)){refreshCallback=()=>fn(...args);return nativeSetInterval(()=>void guardedRefresh(refreshCallback),5000);}return nativeSetInterval(fn,delay,...args);};
+    window.addEventListener=function(type,listener,options){if(type==='focus'&&isLiveRefresh(listener))return nativeAddEventListener(type,()=>void guardedRefresh(refreshCallback||listener),options);return nativeAddEventListener(type,listener,options);};
+    document.documentElement.dataset.queueRefreshGuard=VERSION;
   })();
   </script>
-  <script type="module" src="/app.js?v=1.5.0"></script>
-  <script type="module" src="/settings-center.js?v=1.5.0"></script>
-  <script defer src="/security.js?v=1.5.0"></script>
-  <script defer src="/release-1.1.2.js?v=1.5.0"></script>
-  <script defer src="/release-1.2.0.js?v=1.5.0"></script>
+  <script type="module" src="/app.js?v=1.5.1"></script>
+  <script type="module" src="/settings-center.js?v=1.5.1"></script>
+  <script defer src="/security.js?v=1.5.1"></script>
+  <script defer src="/release-1.1.2.js?v=1.5.1"></script>
+  <script defer src="/release-1.2.0.js?v=1.5.1"></script>
+  <script data-sd151-ui>
+  (()=>{'use strict';const VERSION='1.5.1';let scheduled=false;function apply(){scheduled=false;document.documentElement.dataset.deskHotfix=VERSION;for(const chip of document.querySelectorAll('.version-chip')){const text='Wersja '+VERSION;if(chip.textContent!==text)chip.textContent=text;}}function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(apply);}new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();})();
+  </script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>

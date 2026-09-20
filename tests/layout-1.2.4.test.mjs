@@ -6,10 +6,12 @@ const ui=readFileSync(new URL('../public/release-1.2.0.js',import.meta.url),'utf
 const css=readFileSync(new URL('../public/app.css',import.meta.url),'utf8');
 const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
+const hotfix=index.match(/<script data-sd151-ui>([\s\S]*?)<\/script>/)?.[1]||'';
 
-test('1.5.0 is a clean presentation boundary, not the old 1.4 layered CSS stack',()=>{
+test('1.5.1 keeps the clean 1.5 presentation boundary without restoring the old layered CSS stack',()=>{
   assert.match(css,/Service Desk 1\.5\.0 — Jira Service Management inspired workspace rebuild/);
-  assert.match(index,/\/app\.css\?v=1\.5\.0/);
+  assert.match(index,/\/app\.css\?v=1\.5\.1/);
+  assert.match(index,/data-sd151-hotfix/);
   for(const retired of ['settings.css','release-1.1.2.css','release-1.1.4.css','release-1.1.4-layout.css','release-1.2.0.css','release-1.2.0-nav.css','settings-nav-complete.js'])assert.ok(!index.includes('/'+retired+'?v='),`legacy presentation asset must be retired: ${retired}`);
 });
 
@@ -45,9 +47,11 @@ test('1.5 remains one forced light product theme',()=>{
   assert.doesNotMatch(css,/@media\s*\(prefers-color-scheme:\s*dark\)/);
 });
 
-test('1.5.0 version and browser cache markers are aligned',()=>{
-  assert.match(version,/VERSION='1\.5\.0'/);
+test('1.5.1 application version and browser cache markers are aligned',()=>{
+  assert.match(version,/VERSION='1\.5\.1'/);
   assert.match(ui,/const VERSION='1\.5\.0'/);
-  assert.match(index,/app\.js\?v=1\.5\.0/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.5\.0/);
+  assert.match(hotfix,/VERSION='1\.5\.1'/);
+  assert.match(index,/app\.js\?v=1\.5\.1/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.5\.1/);
+  assert.match(index,/data-sd151-ui/);
 });

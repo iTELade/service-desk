@@ -9,10 +9,10 @@ const ui=read('public/release-1.2.0.js');
 const features=read('public/release-1.1.2.js');
 const version=read('lib/version.mjs');
 
-test('1.5.0 product boundary is versioned without a schema migration',()=>{
-  assert.match(version,/VERSION='1\.5\.0'/);
+test('1.5.1 product boundary is versioned without a schema migration',()=>{
+  assert.match(version,/VERSION='1\.5\.1'/);
   assert.match(version,/SCHEMA_VERSION=8/);
-  assert.match(index,/\?v=1\.5\.0/);
+  assert.match(index,/\?v=1\.5\.1/);
 });
 
 test('1.5 keeps all agreed operational feature modules active',()=>{
@@ -21,7 +21,7 @@ test('1.5 keeps all agreed operational feature modules active',()=>{
   assert.match(features,/installAttachments/);
   assert.match(features,/queue-preferences/);
   assert.match(features,/saved-view|v8\/views/);
-  assert.ok(index.includes('/release-1.1.2.js?v=1.5.0'));
+  assert.ok(index.includes('/release-1.1.2.js?v=1.5.1'));
 });
 
 test('1.5 service navigation preserves Knowledge Base Assets and mail entry points',()=>{
