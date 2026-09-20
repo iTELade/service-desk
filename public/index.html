@@ -6,8 +6,25 @@
   <meta name="description" content="Service Desk — support portal and team workspace.">
   <title>Service Desk</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/app.css?v=1.4.2">
-  <script src="/i18n.js?v=1.4.2"></script>
+  <link rel="stylesheet" href="/app.css?v=1.4.3">
+  <style data-sd143-customer-style>
+  body.sd143-customer-portal{--cp-blue:#0c66e4;--cp-text:#172b4d;--cp-subtle:#44546f;--cp-muted:#6b778c;--cp-border:#dfe1e6;--cp-bg:#f4f5f7;--cp-hero:#a7a8aa;background:var(--cp-bg)}
+  body.sd143-customer-portal .portal-workspace{min-height:100dvh;background:linear-gradient(var(--cp-hero) 0 305px,var(--cp-bg) 305px)}
+  body.sd143-customer-portal .portal-top{position:sticky;top:0;z-index:60;min-height:62px;padding:9px 18px;background:rgba(255,255,255,.97);border-bottom:1px solid #e2e4e8;box-shadow:0 1px 3px rgba(9,30,66,.08);backdrop-filter:blur(14px)}
+  body.sd143-customer-portal .portal-brand{gap:9px;font-size:14px;font-weight:700;color:#253858}body.sd143-customer-portal .portal-brand img{width:30px;height:30px;border-radius:6px;box-shadow:none}
+  body.sd143-customer-portal .portal-top nav{gap:4px}body.sd143-customer-portal .portal-top nav>a,body.sd143-customer-portal .portal-top nav>button{min-height:34px;padding:7px 11px;border-radius:18px;color:#42526e;font-size:12px}body.sd143-customer-portal .portal-top nav>a:hover,body.sd143-customer-portal .portal-top nav>button:hover{background:#ebecf0;color:#172b4d}
+  body.sd143-customer-portal .portal-workspace>main{width:min(1040px,calc(100% - 34px));margin:0 auto;padding:0 0 64px}body.sd143-customer-portal .portal-footer{border-top:0;background:transparent;color:#7a869a}
+  .sd143-portal-home .portal-hero{width:100vw;margin-left:calc(50% - 50vw);padding:88px max(24px,calc((100vw - 760px)/2)) 54px;background:#a7a8aa;color:#fff;box-shadow:none}.sd143-portal-home .portal-hero .eyebrow{display:none}.sd143-portal-home .portal-hero h1{margin:0 0 14px;color:#fff;font-size:30px;letter-spacing:-.02em}.sd143-portal-home .portal-hero p{max-width:720px;margin:0;color:#fff;font-size:14px;line-height:1.55}
+  .sd143-help-search{max-width:720px;margin:22px 0 0}.sd143-help-search label{gap:7px;color:#fff;font-size:12px;font-weight:700}.sd143-help-search label>div{display:grid;grid-template-columns:minmax(0,1fr) 46px;overflow:hidden;border:1px solid #97a0ad;border-radius:3px;background:#fff;box-shadow:0 1px 2px rgba(9,30,66,.08)}.sd143-help-search input{height:43px;min-height:43px;border:0;border-radius:0;background:#fff;color:#172b4d;box-shadow:none!important}.sd143-help-search button{height:43px;min-height:43px;border:0;border-left:1px solid #dfe1e6;border-radius:0;background:#fff;color:#344563;font-size:22px}.sd143-help-search button:hover{background:#f4f5f7}.sd143-search-count{display:block;min-height:16px;margin-top:5px;color:rgba(255,255,255,.9);font-size:11px}
+  .sd143-portal-home>.service-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:46px 0 56px}.sd143-portal-home>.service-grid .service-card{min-height:150px;padding:20px;border:1px solid #dfe1e6;border-radius:4px;box-shadow:0 1px 3px rgba(9,30,66,.08);transform:none}.sd143-portal-home>.service-grid .service-card::after{display:none}.sd143-portal-home>.service-grid .service-card:hover{border-color:#b3bac5;box-shadow:0 4px 12px rgba(9,30,66,.12);transform:none}.sd143-portal-home>.panel{border-radius:4px;box-shadow:0 1px 3px rgba(9,30,66,.08)}
+  .sd143-project-portal{padding-top:70px!important}.sd143-project-shell{width:min(860px,100%);margin:0 auto;padding:34px 48px 42px;background:#fff;border:1px solid #dfe1e6;border-radius:3px;box-shadow:0 2px 7px rgba(9,30,66,.18)}.sd143-project-shell>.portal-hero{margin:0 0 28px;padding:0;background:transparent;box-shadow:none}.sd143-project-shell>.portal-hero .eyebrow{display:inline-block;margin-bottom:4px;color:#0c66e4;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none}.sd143-project-shell>.portal-hero h1{margin:0;color:#172b4d;font-size:28px}.sd143-project-shell>.portal-hero p{max-width:760px;margin:14px 0 0;color:#344563;font-size:13px;line-height:1.55}.sd143-project-shell .sd143-help-search label{color:#253858}.sd143-project-shell .sd143-search-count{color:#6b778c}.sd143-project-shell .catalog-group{margin:27px 0 10px;font-size:14px}.sd143-project-shell .sd143-request-list{display:grid!important;grid-template-columns:1fr!important;gap:0!important;margin:0!important;border-top:1px solid #ebecf0}.sd143-project-shell .sd143-request-list .service-card{display:grid;grid-template-columns:44px minmax(0,1fr);grid-template-rows:auto auto;column-gap:14px;row-gap:2px;width:100%;min-height:0;padding:15px 6px;border:0;border-bottom:1px solid #ebecf0;border-radius:0;background:#fff;box-shadow:none;transform:none}.sd143-project-shell .sd143-request-list .service-card::after{display:none}.sd143-project-shell .sd143-request-list .service-card:hover{background:#f7f8fa;box-shadow:none;transform:none}.sd143-project-shell .sd143-request-list .service-icon{grid-row:1/3;align-self:center;min-width:38px;width:38px;height:38px;border-radius:50%;background:#f1f2f4;color:#6554c0;box-shadow:none}.sd143-project-shell .sd143-request-list .service-card strong{grid-column:2;font-size:14px;color:#0052cc}.sd143-project-shell .sd143-request-list .service-card>span:not(.service-icon){grid-column:2;color:#44546f;font-size:12px;line-height:1.45}.sd143-project-shell .sd143-request-list .service-card b{display:none}.sd143-project-shell .sd143-ticket-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:25px 0 12px;padding:0}.sd143-project-shell .panel{border-radius:3px;box-shadow:none}
+  .sd143-customer-ticket{width:min(980px,100%)!important;padding-top:70px!important}.sd143-ticket-card{background:#fff;border:1px solid #cfd4dc;border-radius:3px;box-shadow:0 2px 8px rgba(9,30,66,.2)}.sd143-ticket-card .sd14-ticket-header{margin:0;padding:34px 42px 18px;border:0;border-radius:0;background:#fff;box-shadow:none}.sd143-ticket-card .sd14-ticket-header::after{display:none}.sd143-ticket-card .breadcrumb,.sd143-ticket-card .breadcrumb a{color:#0052cc}.sd143-ticket-card .sd14-ticket-title-row h1{color:#172b4d;font-size:26px}.sd143-ticket-card .ticket-current-status{margin-top:12px;padding-top:0;border-top:0;color:#6b778c}.sd143-ticket-card .transition-bar button,.sd143-ticket-card .ticket-tools button,.sd143-ticket-card .ticket-tools .button{border:0;background:transparent;color:#0052cc;box-shadow:none}.sd143-ticket-card .transition-bar button:hover,.sd143-ticket-card .ticket-tools button:hover{background:#f1f2f4}.sd143-ticket-card .ticket-tools{margin-top:8px;padding-top:8px;border-top:1px solid #ebecf0}.sd143-ticket-card .ticket-layout{grid-template-columns:minmax(0,1fr) 230px;gap:28px;padding:0 42px 42px}.sd143-ticket-card .sd14-ticket-main>.detail-panel,.sd143-ticket-card .ticket-sidebar>.panel,.sd143-ticket-card .ticket-sidebar>.detail-panel,.sd143-ticket-card .sd14-history{border:0;border-radius:0;box-shadow:none;background:#fff}.sd143-ticket-card .sd14-ticket-main>.detail-panel{padding:18px 0;margin:0;border-top:1px solid #ebecf0}.sd143-ticket-card .detail-panel>h2::before{display:none}.sd143-ticket-card .ticket-sidebar{position:static;gap:8px;padding-top:10px}.sd143-ticket-card .ticket-sidebar>.panel,.sd143-ticket-card .ticket-sidebar>.detail-panel{padding:10px 0;border-bottom:1px solid #ebecf0}.sd143-ticket-compose{margin:0 0 22px;padding:0 0 22px;border-bottom:1px solid #dfe1e6}.sd143-compose-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:9px}.sd143-compose-head span{color:#6b778c;font-size:10px}.sd143-ticket-compose textarea{min-height:72px;border-radius:2px}.sd143-activity-heading{margin:24px 0 10px;font-size:17px}.sd143-ticket-card .conversation{display:block}.sd143-ticket-card .comment{position:relative;margin:0;padding:17px 0 17px 46px;border:0!important;border-top:1px solid #ebecf0!important;border-radius:0;background:#fff}.sd143-ticket-card .comment::before{content:"";position:absolute;left:0;top:17px;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#e5e9f0,#cfd6e3);box-shadow:inset 0 0 0 1px #c1c7d0}.sd143-ticket-card .comment:hover{background:#fff}.sd143-ticket-card .comment.internal{background:#fffdf3;border-color:#f5cd47!important}.sd143-ticket-card .r112-attachments{padding:18px 0!important;border-top:1px solid #ebecf0!important}
+  .sd143-customer-queue{padding-top:46px!important}.sd143-customer-queue .sd14-queue-hero{margin:0 0 18px;padding:0;background:transparent;box-shadow:none}.sd143-customer-queue .sd14-queue-hero::before,.sd143-customer-queue .sd14-queue-hero::after{display:none}.sd143-customer-queue .sd14-queue-hero h1{color:#172b4d}.sd143-customer-queue .metrics,.sd143-customer-queue .sd14-view-settings{display:none}.sd143-customer-queue .sd14-queue-workspace{border-radius:3px;box-shadow:0 1px 3px rgba(9,30,66,.08)}
+  #modal.sd143-portal-request-dialog{width:min(760px,calc(100% - 32px));padding:0;border-radius:4px;box-shadow:0 20px 70px rgba(9,30,66,.34)}#modal.sd143-portal-request-dialog>.eyebrow,#modal.sd143-portal-request-dialog>h2{display:none}.sd143-request-intro{padding:28px 34px 22px;border-bottom:1px solid #ebecf0;background:#f7f8fa}.sd143-request-intro span{display:block;color:#6b778c;font-size:10px;font-weight:800;letter-spacing:.08em}.sd143-request-intro strong{display:block;margin-top:4px;color:#172b4d;font-size:24px}.sd143-request-intro p{max-width:610px;margin:7px 0 0;color:#44546f;font-size:12px}.sd143-portal-request-dialog form[data-form="create-ticket"]{padding:26px 34px 32px;gap:16px}.sd143-portal-request-dialog form[data-form="create-ticket"] input,.sd143-portal-request-dialog form[data-form="create-ticket"] select,.sd143-portal-request-dialog form[data-form="create-ticket"] textarea{border-radius:3px}
+  .sd143-updates{max-width:1420px!important}.release-notes-rendered{margin:22px 0 18px;padding:24px 26px;border:1px solid #dfe1e6;border-radius:8px;background:#f8fafc;color:#253858;font-size:13px;line-height:1.65;overflow-wrap:anywhere}.release-notes-rendered h2,.release-notes-rendered h3,.release-notes-rendered h4{margin:22px 0 8px;color:#172b4d;line-height:1.3}.release-notes-rendered h2:first-child{margin-top:0}.release-notes-rendered h2{font-size:21px}.release-notes-rendered h3{font-size:16px}.release-notes-rendered h4{font-size:14px}.release-notes-rendered p{margin:8px 0;color:#344563}.release-notes-rendered ul{margin:8px 0 14px;padding-left:22px}.release-notes-rendered li{margin:5px 0}.release-notes-rendered code{padding:2px 5px;border:1px solid #dfe1e6;border-radius:4px;background:#fff;color:#403294;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em}.release-notes-rendered pre{overflow:auto;margin:12px 0;padding:14px;border-radius:6px;background:#172b4d;color:#fff}.release-notes-rendered pre code{padding:0;border:0;background:transparent;color:inherit}.sd143-updates-view .workspace-content{overflow-x:hidden}
+  @media(max-width:820px){body.sd143-customer-portal .portal-workspace>main{width:min(100% - 20px,1040px)}.sd143-portal-home .portal-hero{padding:56px 20px 38px}.sd143-project-portal{padding-top:28px!important}.sd143-project-shell{padding:26px 22px}.sd143-ticket-card .sd14-ticket-header{padding:24px 22px 14px}.sd143-ticket-card .ticket-layout{grid-template-columns:1fr;padding:0 22px 28px}.sd143-ticket-card .ticket-sidebar{display:block}.sd143-compose-head{display:block}}
+  </style>
+  <script src="/i18n.js?v=1.4.3"></script>
   <script data-sd142-live-guard>
   (()=>{
     'use strict';
@@ -18,10 +35,7 @@
     const source=fn=>{try{return Function.prototype.toString.call(fn);}catch{return '';}};
     const isLiveRefresh=fn=>typeof fn==='function'&&source(fn).includes('refreshLiveView');
     const dirtyControl=el=>{
-      if(el instanceof HTMLInputElement){
-        if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;
-        return el.value!==el.defaultValue;
-      }
+      if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}
       if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;
       if(el instanceof HTMLSelectElement)return [...el.options].some(option=>option.selected!==option.defaultSelected);
       return false;
@@ -33,52 +47,41 @@
       if(document.querySelector('.r112-search-results:not([hidden])'))return true;
       return [...document.querySelectorAll('.workspace-content input,.workspace-content textarea,.workspace-content select')].some(dirtyControl);
     };
-    const stableTicket=t=>({
-      id:t.id,key:t.key,version:t.version,workflow_version:t.workflow_version,status:t.status,workflow_status:t.workflow_status,
-      priority:t.priority,assignee_id:t.assignee_id,updated_at:t.updated_at,archived_at:t.archived_at,
-      transitions:(t.transitions||[]).map(x=>[x.to,x.name,x.actor]),
-      sla:(t.sla||[]).map(s=>[s.id??s.name,s.state,Boolean(s.breached),s.due_at,s.completed_at??s.actual_at??null])
-    });
+    const stableTicket=t=>({id:t.id,key:t.key,version:t.version,workflow_version:t.workflow_version,status:t.status,workflow_status:t.workflow_status,priority:t.priority,assignee_id:t.assignee_id,updated_at:t.updated_at,archived_at:t.archived_at,transitions:(t.transitions||[]).map(x=>[x.to,x.name,x.actor]),sla:(t.sla||[]).map(s=>[s.id??s.name,s.state,Boolean(s.breached),s.due_at,s.completed_at??s.actual_at??null])});
     const stableTicketSignature=data=>JSON.stringify({total:data?.total,page:data?.page,limit:data?.limit,tickets:(data?.tickets||[]).map(stableTicket)});
     async function guardedLivePoll(fn){
       if(!fn||userBusy()||probeBusy)return;
-      const hash=location.hash;
-      if(!/^#\/(queue|board)(\?|$)/.test(hash)){fn();return;}
-      probeBusy=true;
-      try{
-        const query=hash.split('?')[1]||'';
-        const response=await nativeFetch('/api/tickets?'+query,{credentials:'same-origin',cache:'no-store'});
-        if(!response.ok)return;
-        const stable=stableTicketSignature(await response.json());
-        if(lastRoute!==hash){
-          lastRoute=hash;lastStable=stable;
-          if(!queuePrimed){queuePrimed=true;fn();}
-          return;
-        }
-        if(stable===lastStable)return;
-        lastStable=stable;
-        fn();
-      }catch{}finally{probeBusy=false;}
+      const hash=location.hash;if(!/^#\/(queue|board)(\?|$)/.test(hash)){fn();return;}probeBusy=true;
+      try{const query=hash.split('?')[1]||'',response=await nativeFetch('/api/tickets?'+query,{credentials:'same-origin',cache:'no-store'});if(!response.ok)return;const stable=stableTicketSignature(await response.json());if(lastRoute!==hash){lastRoute=hash;lastStable=stable;if(!queuePrimed){queuePrimed=true;fn();}return;}if(stable===lastStable)return;lastStable=stable;fn();}catch{}finally{probeBusy=false;}
     }
-    window.setInterval=function(fn,delay,...args){
-      if(Number(delay)===5000&&isLiveRefresh(fn)){
-        liveCallback=()=>fn(...args);
-        return nativeSetInterval(()=>void guardedLivePoll(liveCallback),5000);
-      }
-      return nativeSetInterval(fn,delay,...args);
-    };
-    window.addEventListener=function(type,listener,options){
-      if(type==='focus'&&isLiveRefresh(listener))return nativeAddEventListener(type,()=>{if(liveCallback)void guardedLivePoll(liveCallback);},options);
-      return nativeAddEventListener(type,listener,options);
-    };
-    document.documentElement.dataset.queueRefreshGuard='1.4.2';
+    window.setInterval=function(fn,delay,...args){if(Number(delay)===5000&&isLiveRefresh(fn)){liveCallback=()=>fn(...args);return nativeSetInterval(()=>void guardedLivePoll(liveCallback),5000);}return nativeSetInterval(fn,delay,...args);};
+    window.addEventListener=function(type,listener,options){if(type==='focus'&&isLiveRefresh(listener))return nativeAddEventListener(type,()=>{if(liveCallback)void guardedLivePoll(liveCallback);},options);return nativeAddEventListener(type,listener,options);};
+    document.documentElement.dataset.queueRefreshGuard='1.4.3';
   })();
   </script>
-  <script type="module" src="/app.js?v=1.4.2"></script>
-  <script type="module" src="/settings-center.js?v=1.4.2"></script>
-  <script defer src="/security.js?v=1.4.2"></script>
-  <script defer src="/release-1.1.2.js?v=1.4.2"></script>
-  <script defer src="/release-1.2.0.js?v=1.4.2"></script>
+  <script data-sd143-customer-ui>
+  (()=>{
+    'use strict';
+    const VERSION='1.4.3',$=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)],route=()=>location.hash.split('?')[0]||'#/';
+    function setRouteClass(main,name){for(const cls of [...main.classList])if(cls.startsWith('sd143-'))main.classList.remove(cls);if(name)main.classList.add(name);}
+    function makeSearch(host,selector,placeholder){if(!host||host.querySelector('.sd143-help-search'))return;const form=document.createElement('form');form.className='sd143-help-search';form.setAttribute('role','search');form.innerHTML='<label><span>Potrzebujesz pomocy? Wyszukaj usługę</span><div><input type="search" autocomplete="off" placeholder="'+placeholder+'"><button type="submit" aria-label="Szukaj">⌕</button></div></label><small class="sd143-search-count" aria-live="polite"></small>';host.append(form);const input=$('input',form),count=$('.sd143-search-count',form),filter=()=>{const q=input.value.trim().toLocaleLowerCase('pl');let visible=0;for(const node of $$(selector)){const hit=!q||node.textContent.toLocaleLowerCase('pl').includes(q);node.hidden=!hit;if(hit)visible++;}count.textContent=q?(visible?`Znaleziono: ${visible}`:'Brak pasujących pozycji'):'';};input.addEventListener('input',filter);form.addEventListener('submit',event=>{event.preventDefault();filter();$$(selector).find(n=>!n.hidden)?.focus?.();});}
+    function decoratePortalHome(main){setRouteClass(main,'sd143-portal-home');makeSearch($('.portal-hero',main),'.service-grid .service-card','np. dostęp, sprzęt, konto, awaria…');}
+    function decorateProjectPortal(main){setRouteClass(main,'sd143-project-portal');const shell=$('[class*="portal-accent-"]',main)||main;shell.classList.add('sd143-project-shell');makeSearch($('.portal-hero',shell),'.service-grid .service-card','np. problem techniczny, dostęp, licencja…');for(const grid of $$('.service-grid',shell))grid.classList.add('sd143-request-list');const ticketSearch=$('.portal-search',shell);if(ticketSearch){ticketSearch.classList.add('sd143-ticket-search');const input=$('input[name="q"]',ticketSearch);if(input)input.placeholder='Szukaj w swoich zgłoszeniach';}}
+    function decorateCustomerQueue(main){setRouteClass(main,'sd143-customer-queue');const h1=$('.page-heading h1',main);if(h1)h1.textContent='Moje zgłoszenia';}
+    function decorateCustomerTicket(main){setRouteClass(main,'sd143-customer-ticket');const header=$('.sd14-ticket-header',main),layout=$('.ticket-layout',main);if(header&&layout&&!header.closest('.sd143-ticket-card')){const card=document.createElement('section');card.className='sd143-ticket-card';header.before(card);card.append(header,layout);}const primary=$('.sd14-ticket-main',main)||layout?.firstElementChild,form=$('form[data-form="comment"]',main);if(primary&&form&&!form.closest('.sd143-ticket-compose')){const wrap=document.createElement('section');wrap.className='sd143-ticket-compose';wrap.innerHTML='<div class="sd143-compose-head"><strong>Dodaj komentarz</strong><span>Odpowiedź będzie widoczna dla zespołu obsługi.</span></div>';wrap.append(form);primary.prepend(wrap);}const conversation=$('.conversation',main);if(conversation&&!conversation.previousElementSibling?.classList?.contains('sd143-activity-heading')){const h=document.createElement('h2');h.className='sd143-activity-heading';h.textContent='Aktywność';conversation.before(h);}}
+    function decorateDialog(){const dialog=$('#modal');if(!dialog)return;const portalForm=$('form[data-form="create-ticket"][data-portal="true"]',dialog);dialog.classList.toggle('sd143-portal-request-dialog',Boolean(portalForm));if(portalForm&&!dialog.querySelector('.sd143-request-intro')){const intro=document.createElement('div');intro.className='sd143-request-intro';intro.innerHTML='<span>PORTAL KLIENTA</span><strong>Opisz swoją sprawę</strong><p>Podaj najważniejsze informacje. Im dokładniejszy opis, tym szybciej zespół będzie mógł pomóc.</p>';portalForm.before(intro);}}
+    function appendInline(parent,text){const re=/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^)]+\))/g;let last=0,match;while((match=re.exec(text))){if(match.index>last)parent.append(document.createTextNode(text.slice(last,match.index)));const token=match[0];if(token.startsWith('**')){const strong=document.createElement('strong');strong.textContent=token.slice(2,-2);parent.append(strong);}else if(token.startsWith('`')){const code=document.createElement('code');code.textContent=token.slice(1,-1);parent.append(code);}else{const split=token.match(/^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/),a=document.createElement('a');a.textContent=split?.[1]||token;a.href=split?.[2]||'#';a.target='_blank';a.rel='noopener noreferrer';parent.append(a);}last=re.lastIndex;}if(last<text.length)parent.append(document.createTextNode(text.slice(last)));}
+    function renderMarkdown(raw){const out=document.createElement('div');out.className='release-notes-rendered';const lines=String(raw||'').replace(/\r/g,'').split('\n');let ul=null,code=null;for(const line of lines){if(line.startsWith('```')){ul=null;if(code)code=null;else{const pre=document.createElement('pre');code=document.createElement('code');pre.append(code);out.append(pre);}continue;}if(code){code.textContent+=(code.textContent?'\n':'')+line;continue;}if(!line.trim()){ul=null;continue;}const heading=line.match(/^(#{1,4})\s+(.+)$/);if(heading){ul=null;const h=document.createElement('h'+Math.min(4,heading[1].length+1));appendInline(h,heading[2]);out.append(h);continue;}const bullet=line.match(/^\s*[-*]\s+(.+)$/);if(bullet){if(!ul){ul=document.createElement('ul');out.append(ul);}const li=document.createElement('li');appendInline(li,bullet[1]);ul.append(li);continue;}ul=null;const p=document.createElement('p');appendInline(p,line);out.append(p);}return out;}
+    function decorateUpdates(){const active=route()==='#/admin/updates';document.body.classList.toggle('sd143-updates-view',active);if(!active)return;const main=$('#main');if(!main)return;main.classList.add('sd143-updates');const pre=$('pre.release-notes',main);if(pre){const rendered=renderMarkdown(pre.textContent);rendered.dataset.sd143Rendered='1';pre.replaceWith(rendered);}}
+    function decorate(){const portal=$('.portal-workspace');document.body.classList.toggle('sd143-customer-portal',Boolean(portal));if(portal){const main=$('#main',portal);if(main&&!main.querySelector('.loading')){const r=route();if(r==='#/portal')decoratePortalHome(main);else if(r==='#/portal-home'||(location.pathname.startsWith('/portal/')&&r==='#/'))decorateProjectPortal(main);else if(r.startsWith('#/ticket/'))decorateCustomerTicket(main);else if(r==='#/queue')decorateCustomerQueue(main);}}decorateDialog();decorateUpdates();document.documentElement.dataset.customerPortalUi=VERSION;}
+    let scheduled=false;function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;decorate();});}new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});addEventListener('hashchange',schedule);addEventListener('DOMContentLoaded',schedule);if(document.readyState!=='loading')schedule();
+  })();
+  </script>
+  <script type="module" src="/app.js?v=1.4.3"></script>
+  <script type="module" src="/settings-center.js?v=1.4.3"></script>
+  <script defer src="/security.js?v=1.4.3"></script>
+  <script defer src="/release-1.1.2.js?v=1.4.3"></script>
+  <script defer src="/release-1.2.0.js?v=1.4.3"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
