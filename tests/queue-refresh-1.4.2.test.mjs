@@ -7,10 +7,11 @@ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 const guard=index.match(/<script data-sd142-live-guard>([\s\S]*?)<\/script>/)?.[1]||'';
 
-test('1.4.2 queue refresh guard remains installed before the 1.4.3 application module',()=>{
+test('1.4.2 queue refresh guard remains installed before the 1.5.0 application module',()=>{
   assert.ok(guard,'queue refresh guard must be embedded in index');
-  assert.ok(index.indexOf('data-sd142-live-guard')<index.indexOf('/app.js?v=1.4.3'),'guard must execute before app.js registers live refresh');
-  assert.match(version,/VERSION='1\.4\.3'/);
+  assert.ok(index.indexOf('data-sd142-live-guard')<index.indexOf('/app.js?v=1.5.0'),'guard must execute before app.js registers live refresh');
+  assert.match(version,/VERSION='1\.5\.0'/);
+  assert.match(index,/queueRefreshGuard='1\.5\.0'/);
 });
 
 test('1.4.2 ignores ticking SLA countdown values when deciding whether the queue changed',()=>{
@@ -32,7 +33,7 @@ test('1.4.2 never replaces queue UI while the operator is searching or editing c
 
 test('1.4.2 still performs live refresh when stable ticket data really changes',()=>{
   assert.match(guard,/if\(stable===lastStable\)return/);
-  assert.match(guard,/lastStable=stable;\s*fn\(\)/);
+  assert.match(guard,/lastStable=stable;fn\(\)/);
   assert.match(guard,/t\.version/);
   assert.match(guard,/t\.workflow_version/);
   assert.match(guard,/t\.updated_at/);
