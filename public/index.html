@@ -6,30 +6,15 @@
   <meta name="description" content="Service Desk — IT service management, support portal and team workspace.">
   <title>Service Desk</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/app.css?v=1.5.0">
-  <script src="/i18n.js?v=1.5.0"></script>
-  <script data-sd142-live-guard>
-  (()=>{
-    'use strict';
-    const nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);
-    let liveCallback=null,lastRoute='',lastStable='',queuePrimed=false,probeBusy=false;
-    const source=fn=>{try{return Function.prototype.toString.call(fn);}catch{return '';}};
-    const isLiveRefresh=fn=>typeof fn==='function'&&source(fn).includes('refreshLiveView');
-    const dirtyControl=el=>{if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;if(el instanceof HTMLSelectElement)return [...el.options].some(o=>o.selected!==o.defaultSelected);return false;};
-    const userBusy=()=>{if(document.hidden||document.querySelector('dialog[open]'))return true;const active=document.activeElement;if(active&&active!==document.body&&(active.matches?.('input,textarea,select,[contenteditable="true"]')||active.closest?.('.r112-global-search')))return true;if(document.querySelector('.r112-search-results:not([hidden])'))return true;return [...document.querySelectorAll('.workspace-content input,.workspace-content textarea,.workspace-content select')].some(dirtyControl);};
-    const stableTicket=t=>({id:t.id,key:t.key,version:t.version,workflow_version:t.workflow_version,status:t.status,workflow_status:t.workflow_status,priority:t.priority,assignee_id:t.assignee_id,updated_at:t.updated_at,archived_at:t.archived_at,transitions:(t.transitions||[]).map(x=>[x.to,x.name,x.actor]),sla:(t.sla||[]).map(s=>[s.id??s.name,s.state,Boolean(s.breached),s.due_at,s.completed_at??s.actual_at??null])});
-    const stableTicketSignature=data=>JSON.stringify({total:data?.total,page:data?.page,limit:data?.limit,tickets:(data?.tickets||[]).map(stableTicket)});
-    async function guardedLivePoll(fn){if(!fn||userBusy()||probeBusy)return;const hash=location.hash;if(!/^#\/(queue|board)(\?|$)/.test(hash)){fn();return;}probeBusy=true;try{const query=hash.split('?')[1]||'',response=await nativeFetch('/api/tickets?'+query,{credentials:'same-origin',cache:'no-store'});if(!response.ok)return;const stable=stableTicketSignature(await response.json());if(lastRoute!==hash){lastRoute=hash;lastStable=stable;if(!queuePrimed){queuePrimed=true;fn();}return;}if(stable===lastStable)return;lastStable=stable;fn();}catch{}finally{probeBusy=false;}}
-    window.setInterval=function(fn,delay,...args){if(Number(delay)===5000&&isLiveRefresh(fn)){liveCallback=()=>fn(...args);return nativeSetInterval(()=>void guardedLivePoll(liveCallback),5000);}return nativeSetInterval(fn,delay,...args);};
-    window.addEventListener=function(type,listener,options){if(type==='focus'&&isLiveRefresh(listener))return nativeAddEventListener(type,()=>{if(liveCallback)void guardedLivePoll(liveCallback);},options);return nativeAddEventListener(type,listener,options);};
-    document.documentElement.dataset.queueRefreshGuard='1.5.0';
-  })();
-  </script>
-  <script type="module" src="/app.js?v=1.5.0"></script>
-  <script type="module" src="/settings-center.js?v=1.5.0"></script>
-  <script defer src="/security.js?v=1.5.0"></script>
-  <script defer src="/release-1.1.2.js?v=1.5.0"></script>
-  <script defer src="/release-1.2.0.js?v=1.5.0"></script>
+  <link rel="stylesheet" href="/app.css?v=1.5.1">
+  <link rel="stylesheet" href="/hotfix-1.5.1.css?v=1.5.1">
+  <script src="/i18n.js?v=1.5.1"></script>
+  <script data-sd151-live-guard src="/queue-refresh-1.5.1.js?v=1.5.1"></script>
+  <script type="module" src="/app.js?v=1.5.1"></script>
+  <script type="module" src="/settings-center.js?v=1.5.1"></script>
+  <script defer src="/security.js?v=1.5.1"></script>
+  <script defer src="/release-1.1.2.js?v=1.5.1"></script>
+  <script defer src="/release-1.2.0.js?v=1.5.1"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
