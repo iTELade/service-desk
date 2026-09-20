@@ -42,7 +42,10 @@ test('1.5 ticket keeps workflow comments internal notes SLA history and attachme
 
 test('1.5 covers board projects users settings portal auth dialogs and responsive behavior',()=>{
   for(const token of ['.kanban{','.project-grid,','.settings-shell,.settings-center{','.portal-workspace{','.auth-layout{','dialog{','@media(max-width:820px)'])assert.ok(css.includes(token),`missing 1.5 surface ${token}`);
-  for(const routeClass of ['jsm-route-queue','jsm-route-board','jsm-route-ticket','jsm-route-projects','jsm-route-users','jsm-route-settings'])assert.ok(ui.includes(routeClass),`missing route class ${routeClass}`);
+  for(const route of ["'#/queue':{name:'queue'","'#/board':{name:'board'","'#/projects':{name:'projects'","'#/users':{name:'users'"])assert.ok(ui.includes(route),`missing route mapping ${route}`);
+  assert.match(ui,/startsWith\('#\/ticket\/'\)\)name='ticket'/);
+  assert.match(ui,/name='settings'/);
+  assert.match(ui,/body\.classList\.add\('jsm-surface-agent','jsm-route-'\+name,'agent-route-'\+name\)/);
 });
 
 test('1.5 removes the old inline and release CSS presentation stack',()=>{
