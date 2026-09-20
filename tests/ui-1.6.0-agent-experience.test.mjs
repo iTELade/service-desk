@@ -6,6 +6,7 @@ import {JSDOM} from 'jsdom';
 const css=readFileSync(new URL('../public/agent-experience-1.6.css',import.meta.url),'utf8');
 const ui=readFileSync(new URL('../public/agent-experience-1.6.js',import.meta.url),'utf8');
 const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const server=readFileSync(new URL('../server.mjs',import.meta.url),'utf8');
 const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 
@@ -41,13 +42,15 @@ function settingsDom(){
   </main></body>`,{url:'http://localhost/#/settings?section=overview',runScripts:'dangerously',pretendToBeVisual:true});
 }
 
-test('1.6 release metadata and assets are wired into the application',()=>{
+test('1.6 release metadata and assets are wired and served',()=>{
   assert.equal(pkg.version,'1.6.0');
   assert.match(version,/VERSION='1\.6\.0'/);
   assert.match(index,/agent-experience-1\.6\.css\?v=1\.6\.0/);
   assert.match(index,/agent-experience-1\.6\.js\?v=1\.6\.0/);
   assert.match(index,/app\.css\?v=1\.6\.0/);
   assert.match(index,/app\.js\?v=1\.6\.0/);
+  assert.ok(server.includes("['/agent-experience-1.6.css', ['agent-experience-1.6.css',"));
+  assert.ok(server.includes("['/agent-experience-1.6.js', ['agent-experience-1.6.js',"));
 });
 
 test('1.6 ticket design defines a full work item shell, activity and inspector',()=>{
@@ -70,7 +73,6 @@ test('1.6 ticket controller turns the legacy ticket DOM into an activity workspa
   tabs[1].click();await settle();
   assert.equal(doc.querySelector('[data-r112-attachments]').hidden,false);
   assert.equal(doc.querySelector('.jira16-conversation-panel').hidden,true);
-  dom.window.close();
 });
 
 test('1.6 settings controller builds a searchable administration sidebar and cards',async()=>{
@@ -85,7 +87,6 @@ test('1.6 settings controller builds a searchable administration sidebar and car
   const groups=[...doc.querySelectorAll('.settings-nav-group')];
   assert.equal(groups.find(g=>g.querySelector('h3').textContent==='Integracje').hidden,false);
   assert.equal(groups.find(g=>g.querySelector('h3').textContent==='System').hidden,true);
-  dom.window.close();
 });
 
 test('1.6 settings CSS fully styles generated settings-center primitives',()=>{
