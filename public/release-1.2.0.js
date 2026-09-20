@@ -36,9 +36,9 @@
       const values=[...select.options].map(o=>String(o.value||'').toLowerCase());
       if(!values.includes('light')||(!values.includes('dark')&&!values.includes('system')))continue;
       select.value='light';for(const option of [...select.options])if(String(option.value||'').toLowerCase()!=='light')option.remove();
-      if(select.options[0])select.options[0].textContent='Jasny';
+      if(select.options[0]&&select.options[0].textContent!=='Jasny')select.options[0].textContent='Jasny';
     }
-    for(const input of $$('input[type="radio"]'))if(['dark','system'].includes(String(input.value||'').toLowerCase())){const label=input.closest('label');if(label)label.hidden=true;else input.hidden=true;}
+    for(const input of $$('input[type="radio"]'))if(['dark','system'].includes(String(input.value||'').toLowerCase())){const label=input.closest('label');if(label){if(!label.hidden)label.hidden=true;}else if(!input.hidden)input.hidden=true;}
   }
 
   function surfaceClasses(){
@@ -76,7 +76,7 @@
     if(!button){button=document.createElement('button');button.type='button';button.className='sd14-collapse';button.dataset.sd14Collapse='1';button.title='Zwiń lub rozwiń nawigację';button.setAttribute('aria-label','Zwiń lub rozwiń nawigację');sidebar.append(button);button.addEventListener('click',()=>{const next=!document.body.classList.contains('sd14-sidebar-collapsed');localStorage.setItem('desk.sidebar.collapsed',next?'1':'0');applySidebarState();});}
     applySidebarState();
   }
-  function applySidebarState(){const button=$('[data-sd14-collapse]'),collapsed=localStorage.getItem('desk.sidebar.collapsed')==='1';document.body.classList.toggle('sd14-sidebar-collapsed',collapsed);if(button){button.textContent=collapsed?'›':'‹';button.setAttribute('aria-expanded',String(!collapsed));}}
+  function applySidebarState(){const button=$('[data-sd14-collapse]'),collapsed=localStorage.getItem('desk.sidebar.collapsed')==='1';document.body.classList.toggle('sd14-sidebar-collapsed',collapsed);if(button){const glyph=collapsed?'›':'‹',expanded=String(!collapsed);if(button.textContent!==glyph)button.textContent=glyph;if(button.getAttribute('aria-expanded')!==expanded)button.setAttribute('aria-expanded',expanded);}}
 
   function routeMeta(){const r=route();if(ROUTES[r])return ROUTES[r];if(r.startsWith('#/ticket/'))return{name:'ticket',crumb:'Zgłoszenia',intro:'Szczegóły zgłoszenia, kontekst, SLA, aktywność i działania zespołu.'};if(r.startsWith('#/project/'))return{name:'projects',crumb:'Projekty',intro:'Konfiguracja usługi i jej operacyjnego modelu obsługi.'};if(r==='#/settings'||r.startsWith('#/settings?')||r.startsWith('#/admin/')||r==='#/directory'||r==='#/admin-settings')return{name:'settings',crumb:'Administracja',intro:'Konfiguracja Service Management, bezpieczeństwa, integracji i kanałów.'};return null;}
   function ensureBreadcrumbAndIntro(){
@@ -119,7 +119,7 @@
   function looksLikeLegacySettings(main=$('#main')){return Boolean(main&&(main.querySelector('[data-form="settings"]')||main.querySelector('[data-v6="smtp"]')||main.textContent?.includes('Domyślna poczta SMTP')));}
   function recoverSettingsCenter(){if(!(route()==='#/settings'||route().startsWith('#/settings?')))return;const main=$('#main');if(!main||settingsCenterPresent(main)||!looksLikeLegacySettings(main))return;if(main.dataset.settingsRecovery===VERSION)return;delete main.dataset.settingsCenterVersion;main.dataset.settingsRecovery=VERSION;main.append(document.createComment('settings-center-recover-'+VERSION));}
   function completeSettingsNavigation(){
-    if(!(route()==='#/settings'||route().startsWith('#/settings?')))return;const main=$('#main'),nav=$('.settings-nav'),chip=$('.version-chip');if(chip)chip.textContent='Wersja '+VERSION;if(!nav){recoverSettingsCenter();return;}if(main?.dataset.settingsRecovery)delete main.dataset.settingsRecovery;
+    if(!(route()==='#/settings'||route().startsWith('#/settings?')))return;const main=$('#main'),nav=$('.settings-nav'),chip=$('.version-chip'),versionLabel='Wersja '+VERSION;if(chip&&chip.textContent!==versionLabel)chip.textContent=versionLabel;if(!nav){recoverSettingsCenter();return;}if(main?.dataset.settingsRecovery)delete main.dataset.settingsRecovery;
     for(const group of $$('.settings-nav-group',nav)){const title=group.querySelector('h3')?.textContent?.replace(/^[^A-Za-zĄĆĘŁŃÓŚŹŻ]+/,'')?.trim(),links=DIRECT_SETTINGS_LINKS[title];if(!links)continue;const labels=new Set($$('button',group).map(b=>b.textContent.trim()));for(const [label,href] of links){if(labels.has(label)||group.querySelector(`a[href="${href}"]`))continue;const link=document.createElement('a');link.className='settings-nav-link';link.href=href;link.textContent=label;group.append(link);}}
   }
 
@@ -129,7 +129,7 @@
   }
   function decoratePortalHome(main){main.classList.add('jsm-portal-home');makeSearch($('.portal-hero',main),'.service-grid .service-card','np. dostęp, sprzęt, konto, awaria…');}
   function decorateProjectPortal(main){main.classList.add('jsm-portal-project');const shell=$('[class*="portal-accent-"]',main)||main;shell.classList.add('jsm-portal-project-shell');makeSearch($('.portal-hero',shell),'.service-grid .service-card','np. problem techniczny, dostęp, licencja…');for(const grid of $$('.service-grid',shell))grid.classList.add('jsm-request-list');const search=$('.portal-search',shell);if(search){search.classList.add('jsm-ticket-search');const input=$('input[name="q"]',search);if(input)input.placeholder='Szukaj w swoich zgłoszeniach';}}
-  function decorateCustomerQueue(main){main.classList.add('jsm-customer-queue');const h1=$('.page-heading h1',main);if(h1)h1.textContent='Moje zgłoszenia';}
+  function decorateCustomerQueue(main){main.classList.add('jsm-customer-queue');const h1=$('.page-heading h1',main);if(h1&&h1.textContent!=='Moje zgłoszenia')h1.textContent='Moje zgłoszenia';}
   function decorateCustomerTicket(main){
     main.classList.add('jsm-customer-ticket');const header=$('.sd14-ticket-header',main),layout=$('.ticket-layout',main);if(header&&layout&&!header.closest('.jsm-customer-case')){const card=document.createElement('section');card.className='jsm-customer-case';header.before(card);card.append(header,layout);}const primary=$('.sd14-ticket-main',main)||layout?.firstElementChild,form=$('form[data-form="comment"]',main);if(primary&&form&&!form.closest('.jsm-customer-compose')){const wrap=document.createElement('section');wrap.className='jsm-customer-compose';wrap.innerHTML='<div class="jsm-compose-head"><strong>Dodaj odpowiedź</strong><span>Wiadomość będzie widoczna dla zespołu obsługi.</span></div>';wrap.append(form);primary.prepend(wrap);}const conversation=$('.conversation',main);if(conversation&&!conversation.previousElementSibling?.classList?.contains('jsm-activity-heading')){const h=document.createElement('h2');h.className='jsm-activity-heading';h.textContent='Aktywność';conversation.before(h);}
   }
