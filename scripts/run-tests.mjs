@@ -29,10 +29,12 @@ releaseBody=releaseBody
   .replaceAll(escapedHistorical,escapedCurrent)
   .replace('1\\.0\\.[0123]','1\\.0\\.[01234]');
 
-// 1.4 deliberately retires the historical Settings/release CSS overlay stack. Keep the
-// old test as a historical fixture, but make the generated CURRENT-release copy assert
-// the new product boundary instead of forcing retired presentation files back into index.html.
-if(VERSION.startsWith('1.4.')){
+// Modern canonical UI (1.4+) deliberately retires the historical Settings/release CSS
+// overlay stack. Keep the old test as a historical fixture, but make the generated
+// CURRENT-release copy assert the canonical product boundary instead of forcing retired
+// presentation files back into index.html.
+const [major,minor]=VERSION.split('.').map(Number);
+if(major>1||(major===1&&minor>=4)){
   releaseBody=releaseBody
     .replaceAll(`assert.match(index,/settings\\.css\\?v=${escapedCurrent}/);`,`assert.doesNotMatch(index,/settings\\.css\\?v=/);`)
     .replaceAll(`assert.match(index,/settings-nav-complete\\.js\\?v=${escapedCurrent}/);`,`assert.doesNotMatch(index,/settings-nav-complete\\.js\\?v=/);`);
