@@ -20,9 +20,9 @@ test('updater reloads exactly once after terminal success or rollback',()=>{
   assert.match(ui,/setTimeout\(\(\)=>location\.reload\(\),1200\)/);
 });
 
-test('1.4.2 aligns updater release version and browser cache keys',()=>{
-  assert.match(version,/VERSION='1\.4\.2'/);
-  assert.match(index,/app\.js\?v=1\.4\.2/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.2/);
+test('1.4.3 aligns updater release version and browser cache keys',()=>{
+  assert.match(version,/VERSION='1\.4\.3'/);
+  assert.match(index,/app\.js\?v=1\.4\.3/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.3/);
   assert.doesNotMatch(index,/\?v=1\.3\.2/);
 });
