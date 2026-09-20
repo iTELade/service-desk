@@ -11,6 +11,7 @@ const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'ut
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 
 const settle=()=>new Promise(resolve=>setTimeout(resolve,35));
+const cleanup=dom=>{dom.window.__deskAgentExperienceStop?.();dom.window.close();};
 
 function ticketDom(){
   return new JSDOM(`<!doctype html><body class="jsm-route-ticket"><main id="main">
@@ -60,33 +61,39 @@ test('1.6 ticket design defines a full work item shell, activity and inspector',
 });
 
 test('1.6 ticket controller turns the legacy ticket DOM into an activity workspace',async()=>{
-  const dom=ticketDom();dom.window.eval(ui);await settle();
-  const doc=dom.window.document,main=doc.querySelector('#main');
-  assert.ok(main.classList.contains('jira16-ticket'));
-  assert.ok(doc.querySelector('.jira16-ticket-context'));
-  assert.ok(doc.querySelector('.jira16-description-panel'));
-  assert.ok(doc.querySelector('.jira16-conversation-panel'));
-  assert.ok(doc.querySelector('.jira16-inspector'));
-  const tabs=[...doc.querySelectorAll('.jira16-activity-tabs button')];
-  assert.deepEqual(tabs.map(x=>x.textContent),['Komentarze','Załączniki','Powiązania','Historia']);
-  assert.equal(doc.querySelector('[data-r112-attachments]').hidden,true);
-  tabs[1].click();await settle();
-  assert.equal(doc.querySelector('[data-r112-attachments]').hidden,false);
-  assert.equal(doc.querySelector('.jira16-conversation-panel').hidden,true);
+  const dom=ticketDom();
+  try{
+    dom.window.eval(ui);await settle();
+    const doc=dom.window.document,main=doc.querySelector('#main');
+    assert.ok(main.classList.contains('jira16-ticket'));
+    assert.ok(doc.querySelector('.jira16-ticket-context'));
+    assert.ok(doc.querySelector('.jira16-description-panel'));
+    assert.ok(doc.querySelector('.jira16-conversation-panel'));
+    assert.ok(doc.querySelector('.jira16-inspector'));
+    const tabs=[...doc.querySelectorAll('.jira16-activity-tabs button')];
+    assert.deepEqual(tabs.map(x=>x.textContent),['Komentarze','Załączniki','Powiązania','Historia']);
+    assert.equal(doc.querySelector('[data-r112-attachments]').hidden,true);
+    tabs[1].click();await settle();
+    assert.equal(doc.querySelector('[data-r112-attachments]').hidden,false);
+    assert.equal(doc.querySelector('.jira16-conversation-panel').hidden,true);
+  }finally{cleanup(dom);}
 });
 
 test('1.6 settings controller builds a searchable administration sidebar and cards',async()=>{
-  const dom=settingsDom();dom.window.eval(ui);await settle();
-  const doc=dom.window.document,main=doc.querySelector('#main');
-  assert.ok(main.classList.contains('jira16-settings'));
-  assert.ok(doc.querySelector('.jira16-settings-nav-head'));
-  assert.equal(doc.querySelector('.version-chip').textContent,'Wersja 1.6.0');
-  assert.ok(doc.querySelector('.settings-row').classList.contains('jira16-settings-row'));
-  const input=doc.querySelector('.jira16-settings-filter input');
-  input.value='GitHub';input.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await settle();
-  const groups=[...doc.querySelectorAll('.settings-nav-group')];
-  assert.equal(groups.find(g=>g.querySelector('h3').textContent==='Integracje').hidden,false);
-  assert.equal(groups.find(g=>g.querySelector('h3').textContent==='System').hidden,true);
+  const dom=settingsDom();
+  try{
+    dom.window.eval(ui);await settle();
+    const doc=dom.window.document,main=doc.querySelector('#main');
+    assert.ok(main.classList.contains('jira16-settings'));
+    assert.ok(doc.querySelector('.jira16-settings-nav-head'));
+    assert.equal(doc.querySelector('.version-chip').textContent,'Wersja 1.6.0');
+    assert.ok(doc.querySelector('.settings-row').classList.contains('jira16-settings-row'));
+    const input=doc.querySelector('.jira16-settings-filter input');
+    input.value='GitHub';input.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await settle();
+    const groups=[...doc.querySelectorAll('.settings-nav-group')];
+    assert.equal(groups.find(g=>g.querySelector('h3').textContent==='Integracje').hidden,false);
+    assert.equal(groups.find(g=>g.querySelector('h3').textContent==='System').hidden,true);
+  }finally{cleanup(dom);}
 });
 
 test('1.6 settings CSS fully styles generated settings-center primitives',()=>{
