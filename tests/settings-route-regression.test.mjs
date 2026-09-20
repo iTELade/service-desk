@@ -15,15 +15,14 @@ test('settings route is owned by the native Settings Center and cannot render le
   assert.match(view, /settings-center-bootstrap/);
 });
 
-test('1.4 grouped administration still exposes every required management area', () => {
+test('1.5 grouped administration still exposes every required management area', () => {
   for (const group of ['Ogólne','Tożsamość i dostęp','Zarządzanie usługami','Komunikacja','Integracje','Zasoby / CMDB','System']) assert.ok(center.includes(group) || ui.includes(group), `missing group ${group}`);
   for (const href of ['/#/users','/#/directory','/#/admin/sso','/#/admin/approvals','/#/projects','/#/admin/templates','/#/admin/organizations','/#/admin/mail','/#/admin/mail-templates','/#/admin/sync','/#/admin/knowledge','/#/admin/api-tokens','/#/admin/webhooks','/#/admin/assets','/#/admin/updates','/#/admin/events','/#/admin-settings']) assert.ok(ui.includes(href), `missing administration link ${href}`);
 });
 
-test('1.4 controller owns Settings recovery and product version label', () => {
+test('1.5 controller owns Settings recovery and product version label', () => {
   assert.match(center, /const SETTINGS_VERSION='1\.2\.1';/);
-  assert.match(ui, /const VERSION='1\.4\.0';/);
+  assert.match(ui, /const VERSION='1\.5\.0';/);
   assert.match(ui, /function recoverSettingsCenter\(\)/);
-  assert.match(ui, /const versionLabel='Wersja '\+VERSION/);
-  assert.match(ui, /chip&&chip\.textContent!==versionLabel/);
+  assert.match(ui, /chip\)chip\.textContent='Wersja '\+VERSION/);
 });
