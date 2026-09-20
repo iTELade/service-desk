@@ -10,7 +10,7 @@ test("1.5.1 canonical UI assets are wired",()=>{
     assert.ok(s.includes("['/"+f));
   }
   assert.ok(i.includes('/release-1.1.2.js?v=1.5.1'),'feature module remains active');
-  assert.ok(i.includes('/queue-refresh-1.5.1.js?v=1.5.1'),'non-destructive queue refresh is active');
+  assert.match(i,/data-sd151-live-guard/,'non-destructive queue refresh is active');
 });
 
 test("1.5 controller covers auth portal agent queue ticket projects users and settings",()=>{
