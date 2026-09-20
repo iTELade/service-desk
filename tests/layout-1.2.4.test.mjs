@@ -7,18 +7,15 @@ const css=readFileSync(new URL('../public/app.css',import.meta.url),'utf8');
 const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 
-test('1.4.3 keeps the canonical CSS presentation layer from 1.4.1',()=>{
-  assert.match(css,/Service Desk 1\.4\.0 — Enterprise UI/);
-  assert.match(css,/Service Desk 1\.4\.1 — WOW enterprise hotfix/);
-  assert.match(index,/\/app\.css\?v=1\.4\.3/);
-  for(const retired of ['settings.css','release-1.1.2.css','release-1.1.4.css','release-1.1.4-layout.css','release-1.2.0.css','release-1.2.0-nav.css','settings-nav-complete.js']){
-    assert.ok(!index.includes('/'+retired+'?v='),`legacy presentation asset must be retired: ${retired}`);
-  }
+test('1.5.0 is a clean presentation boundary, not the old 1.4 layered CSS stack',()=>{
+  assert.match(css,/Service Desk 1\.5\.0 — Jira Service Management inspired workspace rebuild/);
+  assert.match(index,/\/app\.css\?v=1\.5\.0/);
+  for(const retired of ['settings.css','release-1.1.2.css','release-1.1.4.css','release-1.1.4-layout.css','release-1.2.0.css','release-1.2.0-nav.css','settings-nav-complete.js'])assert.ok(!index.includes('/'+retired+'?v='),`legacy presentation asset must be retired: ${retired}`);
 });
 
-test('1.4 queue is rebuilt as one work surface with safe refresh continuity',()=>{
-  assert.match(ui,/function rebuildQueueWorkspace\(\)/);
-  assert.match(ui,/sd14-queue-workspace/);
+test('1.5 queue is one work surface with safe refresh continuity',()=>{
+  assert.match(ui,/function rebuildQueue\(\)/);
+  assert.match(ui,/jsm-queue-workspace/);
   assert.match(ui,/sd14-view-settings/);
   assert.match(ui,/\[data-r112-queue-tools\]/);
   assert.match(ui,/function keepNewest\(nodes\)/);
@@ -29,18 +26,18 @@ test('1.4 queue is rebuilt as one work surface with safe refresh continuity',()=
   assert.match(css,/sd14-queue-ghost/);
 });
 
-test('1.4 ticket uses a dedicated enterprise header, work column and sticky context rail',()=>{
-  assert.match(ui,/function rebuildTicketWorkspace\(\)/);
+test('1.5 ticket uses a dedicated issue header, work column and sticky context rail',()=>{
+  assert.match(ui,/function rebuildTicket\(\)/);
   assert.match(ui,/sd14-ticket-header/);
   assert.match(ui,/sd14-ticket-title-row/);
   assert.match(ui,/sd14-ticket-main/);
   assert.match(ui,/const attachments=keepNewest/);
-  assert.match(css,/\.ticket-layout\{display:grid;grid-template-columns:minmax\(0,1fr\) 360px/);
-  assert.match(css,/\.ticket-sidebar\{[^}]*position:sticky/);
+  assert.match(css,/\.ticket-layout\{display:grid;grid-template-columns:minmax\(0,1fr\) 330px/);
+  assert.match(css,/\.ticket-sidebar\{position:sticky/);
   assert.match(css,/\.sd14-history/);
 });
 
-test('1.4 forces one light product theme across all surfaces',()=>{
+test('1.5 remains one forced light product theme',()=>{
   assert.match(ui,/function forceLightTheme\(\)/);
   assert.match(ui,/root\.dataset\.theme='light'/);
   assert.match(ui,/root\.style\.colorScheme='light'/);
@@ -48,10 +45,9 @@ test('1.4 forces one light product theme across all surfaces',()=>{
   assert.doesNotMatch(css,/@media\s*\(prefers-color-scheme:\s*dark\)/);
 });
 
-test('1.4.3 version and browser cache markers are aligned',()=>{
-  assert.match(version,/VERSION='1\.4\.3'/);
-  assert.match(ui,/const VERSION='1\.4\.0'/);
-  assert.match(index,/app\.js\?v=1\.4\.3/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.3/);
-  assert.doesNotMatch(index,/\?v=1\.3\.2/);
+test('1.5.0 version and browser cache markers are aligned',()=>{
+  assert.match(version,/VERSION='1\.5\.0'/);
+  assert.match(ui,/const VERSION='1\.5\.0'/);
+  assert.match(index,/app\.js\?v=1\.5\.0/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.5\.0/);
 });
