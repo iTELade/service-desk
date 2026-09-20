@@ -7,7 +7,7 @@
   const currentRoute=()=>location.hash.split('?')[0]||'';
   const norm=value=>String(value||'').replace(/\s+/g,' ').trim();
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let scheduled=false;
+  let scheduled=false,stopped=false;
 
   function headingPanel(root,matcher){
     return $$('.detail-panel',root).find(panel=>matcher(norm(panel.querySelector('h2')?.textContent)));
@@ -64,8 +64,7 @@
       tabs.innerHTML=entries.map(([key,label])=>`<button type="button" role="tab" data-jira16-tab="${key}">${escapeHtml(label)}</button>`).join('');
       for(const button of $$('button',tabs))button.addEventListener('click',()=>setActivity(main,button.dataset.jira16Tab));
     }
-    const requested=main.dataset.jira16Activity||'comments';
-    setActivity(main,requested);
+    setActivity(main,main.dataset.jira16Activity||'comments');
   }
 
   function decorateTicket(){
@@ -104,19 +103,12 @@
       const cards=[...sidebar.children].filter(node=>node.matches?.('.panel,.detail-panel'));
       cards.forEach((card,index)=>card.dataset.jira16InspectorCard=String(index+1));
     }
-
     ensureActivity(main,parts);
   }
 
   const settingsIcons={
-    'Start':'⌂',
-    'Ogólne':'⚙',
-    'Tożsamość i dostęp':'♙',
-    'Zarządzanie usługami':'▦',
-    'Komunikacja':'✉',
-    'Integracje':'⌘',
-    'Zasoby / CMDB':'◆',
-    'System':'◈'
+    'Start':'⌂','Ogólne':'⚙','Tożsamość i dostęp':'♙','Zarządzanie usługami':'▦',
+    'Komunikacja':'✉','Integracje':'⌘','Zasoby / CMDB':'◆','System':'◈'
   };
 
   function filterSettings(nav,query){
@@ -152,8 +144,7 @@
   }
 
   function decorateSettings(){
-    const route=currentRoute();
-    if(route!=='#/settings')return;
+    if(currentRoute()!=='#/settings')return;
     const main=$('#main');
     if(!main||main.querySelector('.loading'))return;
     const center=$('.settings-center',main)||$('.settings-shell',main);
@@ -171,10 +162,7 @@
       settingsNavHeader(nav);
       for(const group of $$('.settings-nav-group',nav)){
         const title=group.querySelector('h3');
-        if(title){
-          const clean=norm(title.textContent);
-          title.dataset.jira16Icon=settingsIcons[clean]||'·';
-        }
+        if(title){const clean=norm(title.textContent);title.dataset.jira16Icon=settingsIcons[clean]||'·';}
       }
       const input=$('.jira16-settings-filter input',nav);
       if(input?.value)filterSettings(nav,input.value);
@@ -188,7 +176,6 @@
       for(const row of $$('.settings-row',content))row.classList.add('jira16-settings-row');
       for(const block of $$('.settings-block,.settings-form',content))block.classList.add('jira16-settings-card');
     }
-
     for(const chip of $$('.version-chip',main))chip.textContent='Wersja '+VERSION;
   }
 
@@ -199,6 +186,7 @@
 
   function apply(){
     scheduled=false;
+    if(stopped)return;
     document.documentElement.dataset.agentExperience=VERSION;
     clearRouteClasses();
     decorateTicket();
@@ -207,12 +195,15 @@
   }
 
   function schedule(){
-    if(scheduled)return;
+    if(stopped||scheduled)return;
     scheduled=true;
     requestAnimationFrame(apply);
   }
 
-  new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});
+  const observer=new MutationObserver(schedule);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+  const stop=()=>{stopped=true;scheduled=false;observer.disconnect();window.removeEventListener('hashchange',schedule);window.removeEventListener('popstate',schedule);};
+  window.__deskAgentExperienceStop=stop;
   window.addEventListener('hashchange',schedule);
   window.addEventListener('popstate',schedule);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
