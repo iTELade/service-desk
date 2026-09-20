@@ -4,12 +4,14 @@ import {readFileSync} from "node:fs";
 const r=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const i=r("public/index.html"),s=r("server.mjs"),u=r("public/release-1.2.0.js"),c=r("public/app.css");
 
-test("1.5.1 canonical UI assets are wired",()=>{
+test("1.6 canonical UI assets are wired",()=>{
   for(const f of ["app.css","release-1.2.0.js"]){
-    assert.ok(i.includes("/"+f+"?v=1.5.1"));
+    assert.ok(i.includes("/"+f+"?v=1.6.0"));
     assert.ok(s.includes("['/"+f));
   }
-  assert.ok(i.includes('/release-1.1.2.js?v=1.5.1'),'feature module remains active');
+  assert.ok(i.includes('/release-1.1.2.js?v=1.6.0'),'feature module remains active');
+  assert.ok(i.includes('/agent-experience-1.6.css?v=1.6.0'),'agent experience stylesheet is active');
+  assert.ok(i.includes('/agent-experience-1.6.js?v=1.6.0'),'agent experience controller is active');
   assert.match(i,/data-sd151-live-guard/,'non-destructive queue refresh is active');
 });
 

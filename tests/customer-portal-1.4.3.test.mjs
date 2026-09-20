@@ -9,10 +9,10 @@ const ui=read('public/release-1.2.0.js');
 const version=read('lib/version.mjs');
 const release=read('RELEASE_NOTES_1.5.0.md');
 
-test('1.5.1 keeps schema 8 and advances the application/cache boundary',()=>{
-  assert.match(version,/VERSION='1\.5\.1'/);
+test('1.6.0 keeps schema 8 and advances the application/cache boundary',()=>{
+  assert.match(version,/VERSION='1\.6\.0'/);
   assert.match(version,/SCHEMA_VERSION=8/);
-  for(const asset of ['app.css','app.js','settings-center.js','security.js','release-1.1.2.js','release-1.2.0.js'])assert.ok(index.includes('/'+asset+'?v=1.5.1'),`missing 1.5.1 cache key for ${asset}`);
+  for(const asset of ['app.css','app.js','settings-center.js','security.js','release-1.1.2.js','release-1.2.0.js'])assert.ok(index.includes('/'+asset+'?v=1.6.0'),`missing 1.6.0 cache key for ${asset}`);
 });
 
 test('1.5.0 customer experience is part of the canonical design system instead of an inline overlay',()=>{

@@ -6,7 +6,7 @@ const ui=read('public/release-1.2.0.js');
 const index=read('public/index.html');
 const version=read('lib/version.mjs');
 
-test('updater still shows live progress and survives service restart in 1.5',()=>{
+test('updater still shows live progress and survives service restart in 1.6',()=>{
   assert.match(ui,/updatePhaseMeta/);
   assert.match(ui,/role="progressbar"/);
   assert.match(ui,/backing_up:\{label:'Kopia danych',progress:48\}/);
@@ -20,9 +20,10 @@ test('updater reloads exactly once after terminal success or rollback',()=>{
   assert.match(ui,/setTimeout\(\(\)=>location\.reload\(\),1200\)/);
 });
 
-test('1.5.1 aligns updater release version and browser cache keys',()=>{
-  assert.match(version,/VERSION='1\.5\.1'/);
-  assert.match(index,/app\.js\?v=1\.5\.1/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.5\.1/);
+test('1.6 aligns updater release version and browser cache keys',()=>{
+  assert.match(version,/VERSION='1\.6\.0'/);
+  assert.match(index,/app\.js\?v=1\.6\.0/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.6\.0/);
+  assert.match(index,/agent-experience-1\.6\.js\?v=1\.6\.0/);
   assert.doesNotMatch(index,/\?v=1\.4\.3/);
 });

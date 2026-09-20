@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 const server=readFileSync(new URL('../server.mjs',import.meta.url),'utf8');
 const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 
-test('1.5.1 index references only served canonical UI and required feature assets',()=>{
-  for(const [url,file] of [['/app.css','app.css'],['/app.js','app.js'],['/settings-center.js','settings-center.js'],['/security.js','security.js'],['/release-1.1.2.js','release-1.1.2.js'],['/release-1.2.0.js','release-1.2.0.js']]){
-    assert.ok(index.includes(url+'?v=1.5.1'),'index must reference '+url);
+test('1.6 index references only served canonical and Agent Experience assets',()=>{
+  for(const [url,file] of [['/app.css','app.css'],['/agent-experience-1.6.css','agent-experience-1.6.css'],['/app.js','app.js'],['/settings-center.js','settings-center.js'],['/security.js','security.js'],['/release-1.1.2.js','release-1.1.2.js'],['/release-1.2.0.js','release-1.2.0.js'],['/agent-experience-1.6.js','agent-experience-1.6.js']]){
+    assert.ok(index.includes(url+'?v=1.6.0'),'index must reference '+url);
     assert.ok(server.includes("['"+url+"', ['"+file+"',"),'server must serve '+url);
   }
   assert.match(index,/data-sd151-live-guard/);

@@ -1,0 +1,984 @@
+/* iTELade Service Desk 1.6.0 — Agent Experience
+   Purpose-built agent ticket + administration surfaces inspired by modern JSM Cloud.
+   This file intentionally scopes the redesign to agent ticket/settings routes. */
+
+:root{
+  --ax16-bg:#f4f5f7;
+  --ax16-surface:#ffffff;
+  --ax16-surface-subtle:#f8f9fb;
+  --ax16-border:#dcdfe4;
+  --ax16-border-subtle:#ebecf0;
+  --ax16-text:#172b4d;
+  --ax16-muted:#626f86;
+  --ax16-blue:#0c66e4;
+  --ax16-blue-hover:#0055cc;
+  --ax16-blue-soft:#e9f2ff;
+  --ax16-green:#216e4e;
+  --ax16-green-soft:#dcfff1;
+  --ax16-yellow:#7f5f01;
+  --ax16-yellow-soft:#fff7d6;
+  --ax16-red:#ae2e24;
+  --ax16-red-soft:#ffeceb;
+  --ax16-purple:#5e4db2;
+  --ax16-shadow:0 1px 2px rgba(9,30,66,.08),0 3px 12px rgba(9,30,66,.06);
+  --ax16-shadow-raised:0 8px 28px rgba(9,30,66,.14),0 2px 8px rgba(9,30,66,.08);
+  --ax16-radius:10px;
+  --ax16-radius-sm:7px;
+}
+
+/* ---------- Shared agent polish ---------- */
+body.jsm-route-ticket,
+body.jsm-route-settings{background:var(--ax16-bg)}
+body.jsm-route-ticket .workspace-content,
+body.jsm-route-settings .workspace-content{background:var(--ax16-bg)}
+body.jsm-route-ticket #main,
+body.jsm-route-settings #main{color:var(--ax16-text)}
+body.jsm-route-ticket button,
+body.jsm-route-ticket .button,
+body.jsm-route-settings button,
+body.jsm-route-settings .button{border-radius:6px}
+body.jsm-route-ticket input,
+body.jsm-route-ticket select,
+body.jsm-route-ticket textarea,
+body.jsm-route-settings input,
+body.jsm-route-settings select,
+body.jsm-route-settings textarea{border-radius:6px}
+
+/* ---------- Agent ticket / work item ---------- */
+body.jsm-route-ticket #main.jira16-ticket{
+  width:min(1540px,100%);
+  margin:0 auto;
+  padding:18px 28px 64px;
+}
+body.jsm-route-ticket #main.jira16-ticket>.jsm-route-breadcrumb{
+  margin:0 0 10px;
+  font-size:12px;
+}
+body.jsm-route-ticket .jira16-ticket .jsm-ticket-header,
+body.jsm-route-ticket .jira16-ticket .sd14-ticket-header{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:
+    "context context"
+    "title title"
+    "status transitions"
+    "tools tools";
+  column-gap:22px;
+  row-gap:0;
+  margin:0 0 20px;
+  padding:22px 24px 16px;
+  border:1px solid var(--ax16-border);
+  border-radius:var(--ax16-radius);
+  background:var(--ax16-surface);
+  box-shadow:var(--ax16-shadow);
+  overflow:visible;
+}
+body.jsm-route-ticket .jira16-ticket-context{
+  grid-area:context;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  margin-bottom:8px;
+  color:var(--ax16-muted);
+  font-size:12px;
+}
+body.jsm-route-ticket .jira16-ticket-context .jira16-type{
+  display:inline-flex;
+  align-items:center;
+  min-height:22px;
+  padding:2px 8px;
+  border-radius:5px;
+  background:var(--ax16-blue-soft);
+  color:#0c4aa6;
+  font-size:11px;
+  font-weight:700;
+}
+body.jsm-route-ticket .jira16-ticket-context .jira16-separator{color:#b7bdc8}
+body.jsm-route-ticket .jira16-ticket-context .jira16-context-text{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+body.jsm-route-ticket .jira16-ticket .breadcrumb{display:none}
+body.jsm-route-ticket .jira16-ticket .sd14-ticket-title-row{
+  grid-area:title;
+  min-width:0;
+  margin-bottom:16px;
+}
+body.jsm-route-ticket .jira16-ticket .page-heading{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:18px;
+  align-items:start;
+  width:100%;
+  margin:0;
+}
+body.jsm-route-ticket .jira16-ticket .page-heading .eyebrow{
+  margin-bottom:5px;
+  color:var(--ax16-muted);
+  font-size:12px;
+  font-weight:650;
+  letter-spacing:0;
+  text-transform:none;
+}
+body.jsm-route-ticket .jira16-ticket .page-heading h1{
+  max-width:1040px;
+  color:var(--ax16-text);
+  font-size:29px;
+  line-height:1.2;
+  font-weight:650;
+  letter-spacing:-.025em;
+  overflow-wrap:anywhere;
+}
+body.jsm-route-ticket .jira16-ticket .page-heading>button,
+body.jsm-route-ticket .jira16-ticket .page-heading>.button{align-self:start}
+body.jsm-route-ticket .jira16-ticket .ticket-current-status{
+  grid-area:status;
+  align-self:center;
+  display:flex;
+  gap:9px;
+  margin:0;
+  min-height:34px;
+  color:var(--ax16-muted);
+  font-size:12px;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-current-status>span:first-child{
+  font-weight:600;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-current-status .pill{
+  min-height:26px;
+  padding:4px 9px;
+  border-radius:5px;
+  font-size:11px;
+  letter-spacing:.01em;
+}
+body.jsm-route-ticket .jira16-ticket .transition-bar{
+  grid-area:transitions;
+  align-self:center;
+  justify-content:flex-end;
+  margin:0;
+  padding:0;
+  border:0;
+}
+body.jsm-route-ticket .jira16-ticket .transition-bar button{
+  min-height:34px;
+  padding:7px 12px;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-tools{
+  grid-area:tools;
+  gap:4px;
+  margin:14px -8px -6px;
+  padding:10px 8px 0;
+  border-top:1px solid var(--ax16-border-subtle);
+}
+body.jsm-route-ticket .jira16-ticket .ticket-tools button,
+body.jsm-route-ticket .jira16-ticket .ticket-tools .button{
+  min-height:30px;
+  padding:5px 8px;
+  border-color:transparent;
+  background:transparent;
+  color:#44546f;
+  font-size:12px;
+  font-weight:550;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-tools button:hover,
+body.jsm-route-ticket .jira16-ticket .ticket-tools .button:hover{
+  background:#f1f2f4;
+  color:var(--ax16-text);
+}
+
+body.jsm-route-ticket .jira16-ticket .ticket-layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 360px;
+  gap:22px;
+  align-items:start;
+}
+body.jsm-route-ticket .jira16-ticket .sd14-ticket-main{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  min-width:0;
+}
+body.jsm-route-ticket .jira16-ticket .sd14-ticket-main>.detail-panel,
+body.jsm-route-ticket .jira16-ticket .sd14-ticket-main>.r112-attachments,
+body.jsm-route-ticket .jira16-ticket .sd14-ticket-main>.sd14-history{
+  margin:0;
+}
+body.jsm-route-ticket .jira16-ticket .detail-panel,
+body.jsm-route-ticket .jira16-ticket .r112-attachments,
+body.jsm-route-ticket .jira16-ticket .sd14-history{
+  border:1px solid var(--ax16-border);
+  border-radius:var(--ax16-radius);
+  background:var(--ax16-surface);
+  box-shadow:0 1px 2px rgba(9,30,66,.04);
+}
+body.jsm-route-ticket .jira16-ticket .sd14-ticket-main>.detail-panel{
+  padding:20px 22px;
+}
+body.jsm-route-ticket .jira16-ticket .detail-panel>h2,
+body.jsm-route-ticket .jira16-ticket .section-heading h2,
+body.jsm-route-ticket .jira16-ticket .r112-attachments>h2{
+  color:var(--ax16-text);
+  font-size:15px;
+  line-height:1.3;
+  font-weight:650;
+}
+body.jsm-route-ticket .jira16-ticket .jira16-description-panel{
+  padding:24px 26px!important;
+}
+body.jsm-route-ticket .jira16-ticket .jira16-description-panel>h2::before{
+  content:"";
+  display:inline-block;
+  width:4px;
+  height:17px;
+  margin-right:9px;
+  border-radius:4px;
+  background:var(--ax16-blue);
+  vertical-align:-3px;
+}
+body.jsm-route-ticket .jira16-ticket .jira16-description-panel .prose,
+body.jsm-route-ticket .jira16-ticket .ticket-description{
+  margin-top:14px;
+  color:#344563;
+  font-size:14px;
+  line-height:1.72;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+body.jsm-route-ticket .jira16-ticket .resolution-panel{
+  border-left:4px solid #22a06b;
+  background:#f7fffb;
+}
+body.jsm-route-ticket .jira16-ticket .automation-deadline{
+  margin:0;
+  padding:11px 14px;
+  border:1px solid #e8c547;
+  border-radius:var(--ax16-radius-sm);
+  background:#fffdf0;
+  color:#5f4b00;
+  font-size:12px;
+}
+
+/* Activity — actual Jira-style tabs over existing functional panels */
+body.jsm-route-ticket .jira16-activity-tabs{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  min-height:48px;
+  padding:0 4px;
+  border-bottom:1px solid var(--ax16-border);
+  background:transparent;
+}
+body.jsm-route-ticket .jira16-activity-tabs::before{
+  content:"Aktywność";
+  margin-right:10px;
+  color:var(--ax16-text);
+  font-size:15px;
+  font-weight:650;
+}
+body.jsm-route-ticket .jira16-activity-tabs button{
+  position:relative;
+  min-height:42px;
+  padding:7px 10px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--ax16-muted);
+  font-size:12px;
+  font-weight:600;
+}
+body.jsm-route-ticket .jira16-activity-tabs button:hover{background:#f7f8f9;color:var(--ax16-text)}
+body.jsm-route-ticket .jira16-activity-tabs button.active{color:var(--ax16-blue)}
+body.jsm-route-ticket .jira16-activity-tabs button.active::after{
+  content:"";
+  position:absolute;
+  left:8px;
+  right:8px;
+  bottom:-1px;
+  height:2px;
+  border-radius:2px 2px 0 0;
+  background:var(--ax16-blue);
+}
+body.jsm-route-ticket .jira16-conversation-panel{
+  padding:0!important;
+  overflow:hidden;
+}
+body.jsm-route-ticket .jira16-conversation-panel>.section-heading{
+  display:none;
+}
+body.jsm-route-ticket .jira16-conversation-panel .conversation{
+  margin:0;
+  padding:6px 22px 0;
+}
+body.jsm-route-ticket .jira16-conversation-panel .comment{
+  position:relative;
+  min-height:68px;
+  padding:16px 0 16px 46px;
+  border-top:1px solid var(--ax16-border-subtle);
+}
+body.jsm-route-ticket .jira16-conversation-panel .comment:first-child{border-top:0}
+body.jsm-route-ticket .jira16-conversation-panel .comment-heading{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:6px;
+  color:var(--ax16-muted);
+  font-size:11px;
+}
+body.jsm-route-ticket .jira16-conversation-panel .comment-heading .comment-avatar{
+  position:absolute;
+  left:0;
+  top:15px;
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  min-height:34px!important;
+  margin:0!important;
+  border:1px solid #d6dae1!important;
+  border-radius:50%!important;
+  object-fit:cover!important;
+  background:#e9edf4!important;
+}
+body.jsm-route-ticket .jira16-conversation-panel .comment-heading strong{
+  color:var(--ax16-text);
+  font-size:13px;
+}
+body.jsm-route-ticket .jira16-conversation-panel .comment-heading time{margin-left:auto}
+body.jsm-route-ticket .jira16-conversation-panel .comment>.prose,
+body.jsm-route-ticket .jira16-conversation-panel .comment>p{
+  color:#344563;
+  font-size:13px;
+  line-height:1.62;
+}
+body.jsm-route-ticket .jira16-conversation-panel .comment.internal{
+  margin:8px 0;
+  padding:14px 14px 14px 58px;
+  border:1px solid #e8c547;
+  border-radius:8px;
+  background:#fffdf0;
+}
+body.jsm-route-ticket .jira16-conversation-panel .comment.internal .comment-avatar{left:12px;top:13px}
+body.jsm-route-ticket .jira16-conversation-panel form[data-form="comment"]{
+  margin:10px 16px 16px;
+  padding:14px;
+  border:1px solid var(--ax16-border);
+  border-radius:8px;
+  background:#f8f9fb;
+}
+body.jsm-route-ticket .jira16-conversation-panel form[data-form="comment"] textarea{
+  min-height:112px;
+  padding:10px 11px;
+  background:#fff;
+}
+body.jsm-route-ticket .jira16-conversation-panel .form-actions{margin-top:0}
+body.jsm-route-ticket .jira16-conversation-panel .private-label,
+body.jsm-route-ticket .jira16-conversation-panel .bot-label{
+  display:inline-flex;
+  align-items:center;
+  min-height:20px;
+  padding:2px 6px;
+  border-radius:10px;
+  font-size:10px;
+  font-weight:650;
+}
+body.jsm-route-ticket .jira16-conversation-panel .private-label{background:var(--ax16-yellow-soft);color:var(--ax16-yellow)}
+body.jsm-route-ticket .jira16-conversation-panel .bot-label{background:#f1f2f4;color:#44546f}
+body.jsm-route-ticket .jira16-ticket .r112-attachments{
+  padding:18px 20px!important;
+}
+body.jsm-route-ticket .jira16-ticket .r112-attachments form{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  gap:10px;
+  align-items:end;
+  margin-top:12px;
+}
+body.jsm-route-ticket .jira16-ticket .r112-attachments input[type="file"]{background:#fff}
+body.jsm-route-ticket .jira16-ticket .jira16-related-panel p{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:36px;
+  padding:7px 0;
+  border-bottom:1px solid var(--ax16-border-subtle);
+}
+body.jsm-route-ticket .jira16-ticket .jira16-related-panel p:last-child{border-bottom:0}
+body.jsm-route-ticket .jira16-ticket .sd14-history{
+  padding:0;
+  overflow:hidden;
+}
+body.jsm-route-ticket .jira16-ticket .sd14-history>summary{
+  min-height:46px;
+  padding:14px 18px;
+  color:var(--ax16-text);
+  font-size:14px;
+  font-weight:650;
+}
+body.jsm-route-ticket .jira16-ticket .activity{
+  margin:0;
+  padding:10px 18px 18px 38px;
+}
+body.jsm-route-ticket .jira16-ticket .activity li{padding:8px 0;color:#344563}
+
+/* Inspector / details rail */
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar{
+  position:sticky;
+  top:calc(var(--j-header) + 18px);
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  max-height:calc(100dvh - var(--j-header) - 36px);
+  overflow:auto;
+  padding-right:2px;
+  scrollbar-width:thin;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar::before{
+  content:"Szczegóły zgłoszenia";
+  display:block;
+  padding:0 2px 2px;
+  color:var(--ax16-text);
+  font-size:13px;
+  font-weight:650;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar>.panel,
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar>.detail-panel{
+  margin:0;
+  padding:16px;
+  border:1px solid var(--ax16-border);
+  border-radius:var(--ax16-radius);
+  background:var(--ax16-surface);
+  box-shadow:0 1px 2px rgba(9,30,66,.04);
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar h2{
+  margin-bottom:13px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--ax16-border-subtle);
+  color:var(--ax16-text);
+  font-size:13px;
+  font-weight:650;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar form{
+  gap:10px;
+  margin-bottom:14px;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar label{
+  gap:4px;
+  color:var(--ax16-muted);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.025em;
+  text-transform:uppercase;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar select,
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar input{
+  min-height:34px;
+  color:var(--ax16-text);
+  font-size:12px;
+  text-transform:none;
+  letter-spacing:0;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar dl{
+  display:grid;
+  grid-template-columns:108px minmax(0,1fr);
+  gap:9px 12px;
+  margin:0;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar dt{
+  color:var(--ax16-muted);
+  font-size:11px;
+  font-weight:500;
+}
+body.jsm-route-ticket .jira16-ticket .ticket-sidebar dd{
+  min-width:0;
+  margin:0;
+  color:var(--ax16-text);
+  font-size:12px;
+  font-weight:550;
+  overflow-wrap:anywhere;
+}
+body.jsm-route-ticket .jira16-ticket .elapsed-total{
+  display:block;
+  margin:-2px 0 14px;
+  color:var(--ax16-text);
+  font-size:24px;
+  line-height:1;
+  font-weight:650;
+}
+body.jsm-route-ticket .jira16-ticket .sla-block{
+  position:relative;
+  display:grid;
+  gap:4px;
+  margin:0 -4px 8px;
+  padding:11px 12px 11px 14px;
+  border-radius:7px;
+  background:#f7f8f9;
+  overflow:hidden;
+}
+body.jsm-route-ticket .jira16-ticket .sla-block::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:#22a06b;
+}
+body.jsm-route-ticket .jira16-ticket .sla-block:has(.overdue)::before,
+body.jsm-route-ticket .jira16-ticket .sla-block:has(.sla-breached)::before{background:#e34935}
+body.jsm-route-ticket .jira16-ticket .sla-block span{color:#344563;font-size:11px;font-weight:600}
+body.jsm-route-ticket .jira16-ticket .sla-block strong{font-size:12px}
+body.jsm-route-ticket .jira16-ticket .sla-block small{font-size:10px}
+
+/* ---------- Administration center ---------- */
+body.jsm-route-settings #main.jira16-settings{
+  width:min(1580px,100%);
+  margin:0 auto;
+  padding:18px 28px 64px;
+}
+body.jsm-route-settings #main.jira16-settings>.jsm-route-breadcrumb{margin-bottom:10px}
+body.jsm-route-settings .jira16-settings>.settings-section-head:first-of-type,
+body.jsm-route-settings .jira16-settings-page-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+  margin:0 0 18px;
+  padding:0 2px;
+}
+body.jsm-route-settings .jira16-settings>.settings-section-head:first-of-type .eyebrow,
+body.jsm-route-settings .jira16-settings-page-head .eyebrow{
+  margin-bottom:6px;
+  color:var(--ax16-blue);
+  font-size:10px;
+  letter-spacing:.09em;
+}
+body.jsm-route-settings .jira16-settings>.settings-section-head:first-of-type h2,
+body.jsm-route-settings .jira16-settings-page-head h2{
+  font-size:28px;
+  line-height:1.2;
+  letter-spacing:-.025em;
+}
+body.jsm-route-settings .jira16-settings>.settings-section-head:first-of-type p,
+body.jsm-route-settings .jira16-settings-page-head p{
+  max-width:800px;
+  margin-top:6px;
+  color:var(--ax16-muted);
+  font-size:13px;
+}
+body.jsm-route-settings .jira16-settings .version-chip{
+  min-height:26px;
+  padding:4px 9px;
+  border:1px solid var(--ax16-border);
+  border-radius:13px;
+  background:#fff;
+  color:#44546f;
+  font-size:11px;
+}
+body.jsm-route-settings .jira16-settings .settings-center,
+body.jsm-route-settings .jira16-settings .settings-shell{
+  display:grid;
+  grid-template-columns:292px minmax(0,1fr);
+  gap:0;
+  min-height:720px;
+  border:1px solid var(--ax16-border);
+  border-radius:var(--ax16-radius);
+  background:var(--ax16-surface);
+  box-shadow:var(--ax16-shadow);
+  overflow:hidden;
+}
+body.jsm-route-settings .jira16-settings .settings-nav{
+  position:relative;
+  padding:0 10px 18px;
+  border-right:1px solid var(--ax16-border);
+  background:#f7f8fa;
+  overflow:auto;
+}
+body.jsm-route-settings .jira16-settings-nav-head{
+  position:sticky;
+  top:0;
+  z-index:4;
+  margin:0 -10px 10px;
+  padding:16px 16px 13px;
+  border-bottom:1px solid var(--ax16-border);
+  background:rgba(247,248,250,.97);
+  backdrop-filter:blur(8px);
+}
+body.jsm-route-settings .jira16-settings-nav-head .jira16-admin-kicker{
+  display:block;
+  margin-bottom:2px;
+  color:var(--ax16-muted);
+  font-size:9px;
+  font-weight:750;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+body.jsm-route-settings .jira16-settings-nav-head strong{
+  display:block;
+  margin-bottom:10px;
+  color:var(--ax16-text);
+  font-size:16px;
+  font-weight:650;
+}
+body.jsm-route-settings .jira16-settings-filter{
+  position:relative;
+  display:block;
+}
+body.jsm-route-settings .jira16-settings-filter::before{
+  content:"⌕";
+  position:absolute;
+  left:10px;
+  top:6px;
+  z-index:1;
+  color:var(--ax16-muted);
+  font-size:16px;
+}
+body.jsm-route-settings .jira16-settings-filter input{
+  min-height:34px;
+  padding-left:30px;
+  border-color:#c9ced6;
+  background:#fff;
+  font-size:12px;
+}
+body.jsm-route-settings .jira16-settings .settings-nav-group{
+  margin:0 0 13px;
+}
+body.jsm-route-settings .jira16-settings .settings-nav-group h3{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-height:26px;
+  padding:6px 9px 4px;
+  color:#6b778c;
+  font-size:9px;
+  font-weight:750;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+body.jsm-route-settings .jira16-settings .settings-nav-group h3::before{
+  content:attr(data-jira16-icon);
+  display:grid;
+  place-items:center;
+  width:16px;
+  height:16px;
+  color:#6b778c;
+  font-size:11px;
+}
+body.jsm-route-settings .jira16-settings .settings-nav button,
+body.jsm-route-settings .jira16-settings .settings-nav-link{
+  position:relative;
+  min-height:36px;
+  margin:1px 0;
+  padding:7px 10px 7px 13px;
+  border-radius:6px;
+  color:#344563;
+  font-size:12px;
+  font-weight:550;
+}
+body.jsm-route-settings .jira16-settings .settings-nav button:hover,
+body.jsm-route-settings .jira16-settings .settings-nav-link:hover{
+  background:#ebedf0;
+  color:var(--ax16-text);
+}
+body.jsm-route-settings .jira16-settings .settings-nav button.active,
+body.jsm-route-settings .jira16-settings .settings-nav [aria-current="page"]{
+  background:var(--ax16-blue-soft);
+  color:#0c4aa6;
+  font-weight:650;
+}
+body.jsm-route-settings .jira16-settings .settings-nav button.active::before,
+body.jsm-route-settings .jira16-settings .settings-nav [aria-current="page"]::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:7px;
+  bottom:7px;
+  width:3px;
+  border-radius:3px;
+  background:var(--ax16-blue);
+}
+body.jsm-route-settings .jira16-settings .settings-content{
+  min-width:0;
+  padding:30px clamp(28px,4vw,54px) 54px;
+  background:#fff;
+}
+body.jsm-route-settings .jira16-settings .settings-content>.loading{padding:40px 0}
+body.jsm-route-settings .jira16-settings .settings-content>.settings-section-head,
+body.jsm-route-settings .jira16-settings .settings-content>.settings-section-head:first-child{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  max-width:1080px;
+  margin:0 0 24px;
+  padding:0 0 18px;
+  border-bottom:1px solid var(--ax16-border-subtle);
+}
+body.jsm-route-settings .jira16-settings .settings-content>.settings-section-head .eyebrow{
+  margin-bottom:5px;
+  color:var(--ax16-blue);
+}
+body.jsm-route-settings .jira16-settings .settings-content>.settings-section-head h2{
+  color:var(--ax16-text);
+  font-size:23px;
+  letter-spacing:-.018em;
+}
+body.jsm-route-settings .jira16-settings .settings-content>.settings-section-head p{
+  max-width:760px;
+  margin-top:7px;
+  color:var(--ax16-muted);
+  font-size:13px;
+  line-height:1.55;
+}
+body.jsm-route-settings .jira16-settings .settings-head-actions{display:flex;align-items:center;gap:8px}
+
+body.jsm-route-settings .jira16-settings .settings-metrics{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  max-width:1080px;
+  margin:0 0 20px;
+}
+body.jsm-route-settings .jira16-settings .settings-metrics>div{
+  position:relative;
+  min-height:104px;
+  padding:16px 17px;
+  border:1px solid var(--ax16-border);
+  border-radius:9px;
+  background:#fff;
+  box-shadow:0 1px 2px rgba(9,30,66,.04);
+  overflow:hidden;
+}
+body.jsm-route-settings .jira16-settings .settings-metrics>div::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:3px;
+  background:linear-gradient(90deg,var(--ax16-blue),#579dff);
+}
+body.jsm-route-settings .jira16-settings .settings-metrics span{
+  display:block;
+  color:var(--ax16-muted);
+  font-size:11px;
+  font-weight:600;
+}
+body.jsm-route-settings .jira16-settings .settings-metrics strong{
+  display:block;
+  margin-top:14px;
+  color:var(--ax16-text);
+  font-size:26px;
+  line-height:1;
+  font-weight:650;
+}
+
+body.jsm-route-settings .jira16-settings .settings-block,
+body.jsm-route-settings .jira16-settings .settings-form{
+  max-width:1080px;
+  margin:0 0 18px!important;
+  padding:0;
+  border:1px solid var(--ax16-border);
+  border-radius:9px;
+  background:#fff;
+  box-shadow:0 1px 2px rgba(9,30,66,.04);
+  overflow:hidden;
+}
+body.jsm-route-settings .jira16-settings .settings-block>h3,
+body.jsm-route-settings .jira16-settings .settings-form>h3{
+  margin:0;
+  padding:15px 18px 13px;
+  border-bottom:1px solid var(--ax16-border-subtle);
+  color:var(--ax16-text);
+  font-size:13px;
+  font-weight:650;
+}
+body.jsm-route-settings .jira16-settings .settings-block>p{
+  padding:14px 18px;
+  color:#44546f;
+  line-height:1.55;
+}
+body.jsm-route-settings .jira16-settings .settings-block>.button,
+body.jsm-route-settings .jira16-settings .settings-block>button{
+  margin:0 18px 16px;
+}
+body.jsm-route-settings .jira16-settings .settings-form>form,
+body.jsm-route-settings .jira16-settings form.settings-form,
+body.jsm-route-settings .jira16-settings .settings-form[data-settings-center-form]{
+  padding:18px;
+}
+body.jsm-route-settings .jira16-settings form.panel.settings-form{
+  padding:20px;
+}
+body.jsm-route-settings .jira16-settings .settings-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(210px,auto);
+  align-items:center;
+  gap:18px;
+  min-height:78px;
+  padding:15px 18px;
+  border-bottom:1px solid var(--ax16-border-subtle);
+  background:#fff;
+}
+body.jsm-route-settings .jira16-settings .settings-row:last-child{border-bottom:0}
+body.jsm-route-settings .jira16-settings .settings-row:hover{background:#fafbfc}
+body.jsm-route-settings .jira16-settings .settings-row-main h3{
+  color:var(--ax16-text);
+  font-size:13px;
+  font-weight:650;
+}
+body.jsm-route-settings .jira16-settings .settings-row-main p{
+  max-width:720px;
+  margin-top:4px;
+  color:var(--ax16-muted);
+  font-size:12px;
+  line-height:1.5;
+}
+body.jsm-route-settings .jira16-settings .settings-row-side{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:12px;
+}
+body.jsm-route-settings .jira16-settings .settings-row-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+body.jsm-route-settings .jira16-settings .settings-status{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:24px;
+  padding:3px 8px;
+  border-radius:12px;
+  font-size:10px;
+  font-weight:700;
+  white-space:nowrap;
+}
+body.jsm-route-settings .jira16-settings .settings-status::before{
+  content:"";
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+}
+body.jsm-route-settings .jira16-settings .settings-status.ok{background:var(--ax16-green-soft);color:var(--ax16-green)}
+body.jsm-route-settings .jira16-settings .settings-status.warn{background:var(--ax16-yellow-soft);color:var(--ax16-yellow)}
+body.jsm-route-settings .jira16-settings .settings-shortcuts{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:16px 18px 18px;
+}
+body.jsm-route-settings .jira16-settings .settings-shortcuts .button{
+  margin:0;
+  border:1px solid var(--ax16-border);
+  background:#fff;
+}
+body.jsm-route-settings .jira16-settings .settings-shortcuts .button:hover{background:#f7f8f9}
+body.jsm-route-settings .jira16-settings .settings-kv{
+  display:grid;
+  grid-template-columns:190px minmax(0,1fr);
+  margin:0;
+  padding:4px 18px 14px;
+}
+body.jsm-route-settings .jira16-settings .settings-kv dt,
+body.jsm-route-settings .jira16-settings .settings-kv dd{
+  margin:0;
+  padding:11px 0;
+  border-bottom:1px solid var(--ax16-border-subtle);
+}
+body.jsm-route-settings .jira16-settings .settings-kv dt{color:var(--ax16-text);font-size:12px;font-weight:650}
+body.jsm-route-settings .jira16-settings .settings-kv dd{color:var(--ax16-muted);font-size:12px}
+body.jsm-route-settings .jira16-settings .settings-brand-preview{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:18px;
+  border-bottom:1px solid var(--ax16-border-subtle);
+}
+body.jsm-route-settings .jira16-settings .settings-brand-preview img{
+  width:64px;
+  height:64px;
+  object-fit:contain;
+  border:1px solid var(--ax16-border);
+  border-radius:10px;
+  background:#fff;
+}
+body.jsm-route-settings .jira16-settings .settings-brand-preview h3{font-size:14px}
+body.jsm-route-settings .jira16-settings .settings-brand-preview p{margin-top:4px;color:var(--ax16-muted);font-size:12px}
+body.jsm-route-settings .jira16-settings .table-scroll{
+  border:1px solid var(--ax16-border);
+  border-radius:8px;
+  overflow:auto;
+}
+body.jsm-route-settings .jira16-settings table{border:0!important;border-radius:0!important}
+body.jsm-route-settings .jira16-settings fieldset{
+  margin:0;
+  padding:16px;
+  border:1px solid var(--ax16-border);
+  border-radius:8px;
+}
+body.jsm-route-settings .jira16-settings legend{padding:0 6px;color:var(--ax16-text);font-weight:650}
+body.jsm-route-settings .jira16-settings .form-actions{
+  padding-top:14px;
+  border-top:1px solid var(--ax16-border-subtle);
+}
+body.jsm-route-settings .jira16-settings-empty-filter{
+  padding:16px 12px;
+  color:var(--ax16-muted);
+  font-size:12px;
+}
+
+/* Wider modal language for ticket/settings workflows */
+body.jsm-route-ticket dialog,
+body.jsm-route-settings dialog{
+  border-radius:12px;
+  box-shadow:0 24px 80px rgba(9,30,66,.36);
+}
+body.jsm-route-ticket dialog h2,
+body.jsm-route-settings dialog h2{font-size:20px;letter-spacing:-.015em}
+
+/* Responsive behavior */
+@media(max-width:1280px){
+  body.jsm-route-ticket .jira16-ticket .ticket-layout{grid-template-columns:minmax(0,1fr) 320px;gap:16px}
+  body.jsm-route-settings .jira16-settings .settings-center,
+  body.jsm-route-settings .jira16-settings .settings-shell{grid-template-columns:260px minmax(0,1fr)}
+  body.jsm-route-settings .jira16-settings .settings-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:980px){
+  body.jsm-route-ticket #main.jira16-ticket,
+  body.jsm-route-settings #main.jira16-settings{padding-left:18px;padding-right:18px}
+  body.jsm-route-ticket .jira16-ticket .ticket-layout{grid-template-columns:1fr}
+  body.jsm-route-ticket .jira16-ticket .ticket-sidebar{position:static;max-height:none;overflow:visible}
+  body.jsm-route-ticket .jira16-ticket .ticket-sidebar::before{margin-top:4px}
+  body.jsm-route-settings .jira16-settings .settings-center,
+  body.jsm-route-settings .jira16-settings .settings-shell{grid-template-columns:220px minmax(0,1fr)}
+  body.jsm-route-settings .jira16-settings .settings-content{padding:24px 22px 44px}
+  body.jsm-route-settings .jira16-settings .settings-row{grid-template-columns:1fr;gap:10px}
+  body.jsm-route-settings .jira16-settings .settings-row-side{justify-content:flex-start}
+}
+@media(max-width:760px){
+  body.jsm-route-ticket .jira16-ticket .jsm-ticket-header,
+  body.jsm-route-ticket .jira16-ticket .sd14-ticket-header{
+    grid-template-columns:1fr;
+    grid-template-areas:"context" "title" "status" "transitions" "tools";
+  }
+  body.jsm-route-ticket .jira16-ticket .transition-bar{justify-content:flex-start;margin-top:8px}
+  body.jsm-route-ticket .jira16-ticket .page-heading{grid-template-columns:1fr}
+  body.jsm-route-ticket .jira16-ticket .page-heading h1{font-size:24px}
+  body.jsm-route-ticket .jira16-activity-tabs{overflow-x:auto}
+  body.jsm-route-ticket .jira16-activity-tabs::before{position:sticky;left:0;background:#fff;padding-right:8px}
+  body.jsm-route-ticket .jira16-ticket .r112-attachments form{grid-template-columns:1fr}
+  body.jsm-route-settings .jira16-settings .settings-center,
+  body.jsm-route-settings .jira16-settings .settings-shell{display:block}
+  body.jsm-route-settings .jira16-settings .settings-nav{position:relative;max-height:none;border-right:0;border-bottom:1px solid var(--ax16-border)}
+  body.jsm-route-settings .jira16-settings-nav-head{position:relative}
+  body.jsm-route-settings .jira16-settings .settings-nav-group{display:inline-block;width:100%}
+  body.jsm-route-settings .jira16-settings .settings-metrics{grid-template-columns:1fr}
+  body.jsm-route-settings .jira16-settings .settings-kv{grid-template-columns:1fr}
+  body.jsm-route-settings .jira16-settings .settings-kv dd{padding-top:0}
+}
