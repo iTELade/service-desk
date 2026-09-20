@@ -7,10 +7,10 @@ const css=readFileSync(new URL('../public/app.css',import.meta.url),'utf8');
 const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 
-test('1.4.2 keeps the canonical CSS presentation layer from 1.4.1',()=>{
+test('1.4.3 keeps the canonical CSS presentation layer from 1.4.1',()=>{
   assert.match(css,/Service Desk 1\.4\.0 — Enterprise UI/);
   assert.match(css,/Service Desk 1\.4\.1 — WOW enterprise hotfix/);
-  assert.match(index,/\/app\.css\?v=1\.4\.2/);
+  assert.match(index,/\/app\.css\?v=1\.4\.3/);
   for(const retired of ['settings.css','release-1.1.2.css','release-1.1.4.css','release-1.1.4-layout.css','release-1.2.0.css','release-1.2.0-nav.css','settings-nav-complete.js']){
     assert.ok(!index.includes('/'+retired+'?v='),`legacy presentation asset must be retired: ${retired}`);
   }
@@ -48,10 +48,10 @@ test('1.4 forces one light product theme across all surfaces',()=>{
   assert.doesNotMatch(css,/@media\s*\(prefers-color-scheme:\s*dark\)/);
 });
 
-test('1.4.2 version and browser cache markers are aligned',()=>{
-  assert.match(version,/VERSION='1\.4\.2'/);
+test('1.4.3 version and browser cache markers are aligned',()=>{
+  assert.match(version,/VERSION='1\.4\.3'/);
   assert.match(ui,/const VERSION='1\.4\.0'/);
-  assert.match(index,/app\.js\?v=1\.4\.2/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.2/);
+  assert.match(index,/app\.js\?v=1\.4\.3/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.4\.3/);
   assert.doesNotMatch(index,/\?v=1\.3\.2/);
 });

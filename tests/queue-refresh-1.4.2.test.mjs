@@ -7,10 +7,10 @@ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 const guard=index.match(/<script data-sd142-live-guard>([\s\S]*?)<\/script>/)?.[1]||'';
 
-test('1.4.2 installs the queue refresh guard before the application module',()=>{
+test('1.4.2 queue refresh guard remains installed before the 1.4.3 application module',()=>{
   assert.ok(guard,'queue refresh guard must be embedded in index');
-  assert.ok(index.indexOf('data-sd142-live-guard')<index.indexOf('/app.js?v=1.4.2'),'guard must execute before app.js registers live refresh');
-  assert.match(version,/VERSION='1\.4\.2'/);
+  assert.ok(index.indexOf('data-sd142-live-guard')<index.indexOf('/app.js?v=1.4.3'),'guard must execute before app.js registers live refresh');
+  assert.match(version,/VERSION='1\.4\.3'/);
 });
 
 test('1.4.2 ignores ticking SLA countdown values when deciding whether the queue changed',()=>{
