@@ -4,12 +4,12 @@ import {readFileSync} from "node:fs";
 const r=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const i=r("public/index.html"),s=r("server.mjs"),u=r("public/release-1.2.0.js"),c=r("public/app.css");
 
-test("1.4.2 canonical UI assets are wired",()=>{
+test("1.4.3 canonical UI assets are wired",()=>{
   for(const f of ["app.css","release-1.2.0.js"]){
-    assert.ok(i.includes("/"+f+"?v=1.4.2"));
+    assert.ok(i.includes("/"+f+"?v=1.4.3"));
     assert.ok(s.includes("['/"+f));
   }
-  assert.ok(i.includes('/release-1.1.2.js?v=1.4.2'),'feature module remains active');
+  assert.ok(i.includes('/release-1.1.2.js?v=1.4.3'),'feature module remains active');
 });
 
 test("1.4 enterprise controller covers auth portal agent queue ticket and settings",()=>{
