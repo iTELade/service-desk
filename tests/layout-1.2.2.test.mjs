@@ -24,10 +24,12 @@ test('1.5 design system covers every primary product surface',()=>{
   assert.match(css,/@media\(max-width:620px\)/);
 });
 
-test('1.5.0 cache boundary loads one canonical presentation and controller without 1.4 overlays',()=>{
+test('1.5.1 cache boundary loads the canonical presentation plus contained hotfix assets',()=>{
   assert.match(ui,/const VERSION='1\.5\.0'/);
-  assert.match(index,/app\.css\?v=1\.5\.0/);
-  assert.match(index,/release-1\.2\.0\.js\?v=1\.5\.0/);
+  assert.match(index,/app\.css\?v=1\.5\.1/);
+  assert.match(index,/release-1\.2\.0\.js\?v=1\.5\.1/);
+  assert.match(index,/queue-refresh-1\.5\.1\.js\?v=1\.5\.1/);
+  assert.match(index,/hotfix-1\.5\.1\.css\?v=1\.5\.1/);
   assert.doesNotMatch(index,/data-sd143-customer-style|data-sd143-customer-ui/);
   assert.doesNotMatch(index,/release-1\.1\.4-layout\.css\?v=/);
 });
