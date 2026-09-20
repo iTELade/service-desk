@@ -6,7 +6,8 @@
   <meta name="description" content="Service Desk — IT service management, support portal and team workspace.">
   <title>Service Desk</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/app.css?v=1.5.1">
+  <link rel="stylesheet" href="/app.css?v=1.6.0">
+  <link rel="stylesheet" href="/agent-experience-1.6.css?v=1.6.0">
   <style data-sd151-hotfix>
     .comment-avatar{display:inline-block!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;max-width:32px!important;max-height:32px!important;margin:0 9px 0 0!important;border-radius:50%!important;object-fit:cover!important;vertical-align:middle!important;background:#dfe7f5!important;border:1px solid var(--j-border)!important}
     body.jsm-route-users tbody td:first-child{min-width:280px;vertical-align:middle}
@@ -15,11 +16,11 @@
     body.jsm-route-users tbody tr{height:58px}
     .queue-live-empty{padding:28px;text-align:center;color:var(--j-muted)}
   </style>
-  <script src="/i18n.js?v=1.5.1"></script>
+  <script src="/i18n.js?v=1.6.0"></script>
   <script data-sd151-live-guard>
   (()=>{
     'use strict';
-    const VERSION='1.5.1',nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);let refreshCallback=null,probeBusy=false;
+    const VERSION='1.6.0',nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);let refreshCallback=null,probeBusy=false;
     const source=fn=>{try{return Function.prototype.toString.call(fn);}catch{return '';}};
     const isLiveRefresh=fn=>typeof fn==='function'&&source(fn).includes('refreshLiveView');
     const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -46,13 +47,14 @@
     document.documentElement.dataset.queueRefreshGuard=VERSION;
   })();
   </script>
-  <script type="module" src="/app.js?v=1.5.1"></script>
-  <script type="module" src="/settings-center.js?v=1.5.1"></script>
-  <script defer src="/security.js?v=1.5.1"></script>
-  <script defer src="/release-1.1.2.js?v=1.5.1"></script>
-  <script defer src="/release-1.2.0.js?v=1.5.1"></script>
-  <script data-sd151-ui>
-  (()=>{'use strict';const VERSION='1.5.1';let scheduled=false;function apply(){scheduled=false;document.documentElement.dataset.deskHotfix=VERSION;for(const chip of document.querySelectorAll('.version-chip')){const text='Wersja '+VERSION;if(chip.textContent!==text)chip.textContent=text;}}function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(apply);}new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();})();
+  <script type="module" src="/app.js?v=1.6.0"></script>
+  <script type="module" src="/settings-center.js?v=1.6.0"></script>
+  <script defer src="/security.js?v=1.6.0"></script>
+  <script defer src="/release-1.1.2.js?v=1.6.0"></script>
+  <script defer src="/release-1.2.0.js?v=1.6.0"></script>
+  <script defer src="/agent-experience-1.6.js?v=1.6.0"></script>
+  <script data-sd151-ui data-sd160-ui>
+  (()=>{'use strict';const VERSION='1.6.0';let scheduled=false;function apply(){scheduled=false;document.documentElement.dataset.deskHotfix=VERSION;for(const chip of document.querySelectorAll('.version-chip')){const text='Wersja '+VERSION;if(chip.textContent!==text)chip.textContent=text;}}function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(apply);}new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();})();
   </script>
 </head>
 <body>
