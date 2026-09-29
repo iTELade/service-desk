@@ -1,38 +1,84 @@
-# iTELade Service Desk 1.4.0
+# iTELade Service Desk 1.6.1
 
-Self-hosted Service Desk / ITSM platform for customer support and internal IT operations. It combines customer portals, internal and external projects, configurable workflows, SLA, automation, Assets / CMDB, LDAP / Active Directory, SSO/OIDC, inbound and outbound mail, API/webhooks, GitHub Issues intake, approvals, audit, saved queues and an extensible plugin foundation.
+Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
-Service Desk is an independent iTELade project. It is not an Atlassian product and is not intended to be a source-compatible clone of Jira Service Management. The 1.4 agent workspace follows familiar enterprise service-management information hierarchy while retaining its own implementation, branding and authorization model.
+Service Desk combines customer portals, internal and external projects, configurable workflows, SLA, automation, Assets / CMDB, LDAP / Active Directory, SSO/OIDC, inbound and outbound mail, API/webhooks, GitHub Issues intake, approvals, audit, saved queues, protected attachments and an extensible plugin foundation.
+
+Service Desk is an independent iTELade project. It is not an Atlassian product and is not intended to be a source-compatible clone of Jira Service Management. The interface follows familiar enterprise service-management interaction patterns while retaining its own implementation, branding, data model and authorization model.
 
 ## Current release
 
-**Service Desk 1.4.0**
+**Service Desk 1.6.1**
 
-Release: https://github.com/iTELade/service-desk/releases/tag/v1.4.0
+Release: https://github.com/iTELade/service-desk/releases/tag/v1.6.1
 
-Detailed notes: [RELEASE_NOTES_1.4.0.md](RELEASE_NOTES_1.4.0.md)
+Detailed notes: [RELEASE_NOTES_1.6.1.md](RELEASE_NOTES_1.6.1.md)
 
-UI contract: [UI_1.4.md](UI_1.4.md)
+Previous major Agent Experience release: [RELEASE_NOTES_1.6.0.md](RELEASE_NOTES_1.6.0.md)
 
-Database schema: **8**. Service Desk 1.4.0 does not require a database migration from supported 1.3.x installations.
+Validation checklist: [VALIDATION.md](VALIDATION.md)
 
-## What is new in 1.4.0
+Database schema: **8**. Service Desk 1.6.1 does **not** require a database migration from 1.6.0.
 
-1.4.0 is a major product-interface rebuild rather than another styling hotfix.
+## What changed in 1.6.1
 
-- one canonical active presentation layer instead of stacked release CSS overlays,
-- enterprise light application shell with fixed navigation, sticky top bar and permission-aware global search,
-- rebuilt queue workspace for operational triage,
-- rebuilt ticket workspace with primary work column and sticky contextual/SLA rail,
-- consistent design system for board, projects, users, Administration Center, customer portal and authentication screens,
-- a single supported light presentation across the active product,
-- safe queue refresh continuity without restoring stale interactive DOM,
-- queue-tool and attachment deduplication guards,
-- preserved saved views, column preferences, quick filters, SLA, workflows, automations and integrations,
-- retained updater progress/reconnect/rollback behavior,
-- no database schema change.
+1.6.1 is a focused QA and production-readiness hotfix for the 1.6 Agent Experience release.
 
-The browser no longer loads the historical release stylesheet stack. `public/app.css` is the canonical 1.4 presentation source. Historical assets remain in the repository/image for rollback and source history but do not compete with the live interface.
+- removed dependency on CSP-blocked inline hotfix scripts and styles,
+- preserved non-destructive five-second queue refresh through same-origin external code,
+- fixed queue column preference remounting after DOM rerenders,
+- made queue column mapping work with both English and Polish labels,
+- blocked attachment creation and deletion on archived tickets/projects,
+- purged stored attachment data when a ticket is deleted,
+- fixed relationship lookup for unpadded ticket keys such as `QA-1`,
+- changed stale mention lookups from unhandled 500 errors to controlled 404 responses,
+- removed Settings version-chip mutation churn,
+- added proper keyboard and ARIA behavior to ticket activity tabs,
+- fixed attachment input handling in the create-ticket dialog,
+- aligned visible product/version markers to 1.6.1,
+- completed English labels in the 1.6 Agent Experience surfaces,
+- replaced the obsolete validation document with a 1.6.1 smoke-test checklist.
+
+Schema remains **8** and no migration is required.
+
+## Agent Experience
+
+The 1.6 line focuses on the two surfaces used most by support teams: the ticket workspace and the Administration Center.
+
+### Ticket workspace
+
+The ticket screen uses a work-item layout instead of a stack of generic administration cards.
+
+- full-width ticket header with request context, title, current status and workflow transitions,
+- wide primary work column,
+- dedicated sticky details inspector,
+- clear description section,
+- activity tabs for Comments, Attachments, Related items and History,
+- internal notes visually separated from public replies,
+- compact SLA and elapsed-time information,
+- reporter, assignment, classification and dates in the right-hand inspector,
+- responsive layout for narrower screens,
+- keyboard-accessible activity tabs with Arrow keys, Home and End.
+
+Existing workflows, comments, internal notes, links, assets, attachments, automation and authorization remain backend-controlled.
+
+### Administration Center
+
+`/#/settings` is the native Administration Center inside the normal Service Desk shell.
+
+Administration is grouped into:
+
+- General,
+- Identity & Access,
+- Service Management,
+- Communication,
+- Integrations,
+- Assets / CMDB,
+- System.
+
+The 1.6 administration workspace adds searchable settings navigation, clearer hierarchy, status cards, configuration summaries and consistent form/table styling.
+
+Dedicated routes remain available for LDAP, SSO, users, workflow templates, organizations, mailboxes, e-mail templates, project synchronization, GitHub Issues, webhooks, Knowledge Base, API tokens, plugins, Assets, audit, updates, module errors and advanced settings.
 
 ## Core capabilities
 
@@ -48,140 +94,37 @@ The browser no longer loads the historical release stylesheet stack. `public/app
 - TOTP and FIDO2 / WebAuthn security keys,
 - inbound email via IMAP and outbound SMTP,
 - automatic requester provisioning from email and GitHub Issues,
-- API tokens, webhooks and integration audit,
-- approvals, notifications, watchers and saved queues,
+- API tokens and webhooks,
+- approvals, notifications and watchers,
+- saved queue views and column preferences,
 - one-way GitHub Issues → Service Desk intake,
 - public GitHub project mode with anonymous read and GitHub-authenticated write,
 - protected ticket attachments and inbound IMAP attachment import,
 - permission-aware global search,
-- native Administration Center under `/#/settings`,
+- native Administration Center,
 - plugin registry and lifecycle foundation,
 - English, Polish and German UI support.
-
-## Enterprise agent workspace
-
-The 1.4 workspace is designed for daily corporate support operations rather than decorative dashboards.
-
-The desktop shell uses a **248 px fixed navigation rail** and a sticky top bar. The navigation can be reduced to a **72 px compact mode** and exposes operational entry points such as Knowledge Base, Assets / CMDB and mail channels when the signed-in role is allowed to use them.
-
-The top bar keeps project context, global search, notifications, refresh and the primary create-ticket action in a stable location. Controls, tables, forms, dialogs, focus states, spacing and typography use the same design system throughout the product.
-
-The active product is intentionally **light-only** in the 1.4 line. Old dark/system presentation controls are normalized to the light presentation so stale browser/account preferences cannot switch the interface back to a competing theme.
 
 ## Queue workspace
 
 `/#/queue` is the primary triage surface for Agents and Project Managers.
-
-The workspace is ordered around the way tickets are actually processed:
-
-1. page and project context,
-2. operational counters,
-3. queue tabs,
-4. optional personal **Widok i sortowanie** controls,
-5. primary filters,
-6. issue table.
 
 Queue capabilities include:
 
 - project, status, priority, classification, category, assignee, archive and scope filters,
 - personal saved queue preferences,
 - saved views,
-- primary and secondary sorting,
-- quick operational filters such as assigned to me, unassigned and waiting for customer,
+- sorting and quick operational filters,
 - configurable visible columns and saved column order,
 - SLA indicators,
-- server-side permission filtering on every result,
-- background refresh without replacing the visible workspace with a blocking loading screen.
+- server-side permission filtering,
+- background refresh without replacing the workspace with a blocking loading screen.
 
-Ticket key/title, status, priority, assignee, SLA and update time are kept readable without oversized rows. Horizontal overflow is contained inside the ticket list instead of widening the entire application shell.
-
-### Stable queue refresh
-
-During a same-route/background refresh, Service Desk keeps the last stable queue visible as a passive visual layer while the real queue is rebuilt underneath.
-
-The passive layer has IDs and `data-*` hooks removed, cannot receive focus or interaction and is removed as soon as the refreshed queue is ready. The application **does not restore stale HTML into the active `#main` tree**, preventing the duplicated toolbar/module regression seen in older frontend builds.
-
-## Ticket workspace
-
-The 1.4 ticket view is organized around case handling.
-
-The ticket header keeps breadcrumb, ticket identity, title, current status, workflow transitions and issue actions together. On desktop the body uses:
-
-- a primary work column for description, conversation, related work, attachments and history,
-- a **360 px sticky context rail** for editable fields, requester context, elapsed time and SLA information.
-
-Description and conversation typography are optimized for longer work sessions. Internal notes remain clearly distinct from customer-visible comments. The reply composer receives a larger work area, and protected attachments are rendered as compact file rows with metadata and actions.
-
-Asynchronous attachment rendering is deduplicated so only the newest interactive attachment block remains. Change history is secondary and collapsible instead of dominating the ticket.
-
-Existing workflow transitions, comments, internal notes, SLA behavior, links, assets and attachment authorization remain backend-controlled and unchanged by the presentation rebuild.
-
-## Board
-
-The board keeps existing workflow behavior while using the same enterprise visual language as the queue.
-
-- neutral Kanban columns,
-- clear status headings and counts,
-- compact issue cards,
-- drag/drop where supported,
-- explicit transition controls,
-- contained horizontal scrolling instead of page-wide overflow.
-
-## Projects and service catalogue
-
-Projects and service/request cards use one consistent card hierarchy. Internal and external project behavior remains unchanged, including:
-
-- project membership and isolation,
-- customer portal availability,
-- request types and forms,
-- configurable workflows and statuses,
-- SLA policies,
-- automations,
-- project-specific mail/integration settings.
-
-## Users and identity
-
-User and identity administration uses the same enterprise forms and tables as the rest of the application.
-
-Supported identity sources and security behavior remain unchanged:
-
-- local accounts,
-- LDAP / Active Directory accounts and synchronization,
-- SSO/OIDC providers,
-- GitHub OAuth mapping,
-- TOTP,
-- FIDO2 / WebAuthn security keys,
-- account activation/blocking and project memberships.
-
-## Administration Center
-
-`/#/settings` is the native Administration Center and remains inside the normal application shell.
-
-Administration is grouped into:
-
-- General,
-- Identity & Access,
-- Service Management,
-- Communication,
-- Integrations,
-- Assets / CMDB,
-- System.
-
-Dedicated native routes remain reachable for LDAP, SSO, user access, workflow templates, organizations, mailboxes, e-mail templates, project synchronization, GitHub Issues, webhooks, Knowledge Base, API tokens, plugins, Assets, audit, updates, module errors and advanced settings.
-
-The standalone legacy `v8.html` administration interface remains retired and redirects into the native shell.
-
-## Customer portal and authentication
-
-Customer-facing pages share the 1.4 light product language without exposing the dense agent workspace.
-
-The customer portal, public project portals, ticket pages, login, registration, invite, password reset and MFA screens use the same typography, controls and surface system while keeping a simpler information hierarchy.
-
-Customer visibility and write permissions are always determined server-side. Presentation changes do not widen access to private projects, internal comments, internal attachments or internal directories.
+In 1.6.1 saved column preferences are restored after queue rerenders and column mapping tolerates localized English/Polish header labels.
 
 ## Attachments
 
-Attachments are stored outside the public web root in the protected Service Desk data store. Each record contains a non-guessable identifier, safe original filename, MIME type, size, SHA-256 checksum, uploader, source and public/internal visibility.
+Attachments are stored outside the public web root in the protected Service Desk data store. Each record includes a safe filename, MIME type, size, SHA-256 checksum, uploader, source and public/internal visibility.
 
 Current policy:
 
@@ -189,17 +132,15 @@ Current policy:
 - executable/script/active HTML/SVG content is rejected,
 - internal attachments are available only to users who can work the ticket,
 - every list/download request re-checks ticket access,
-- inbound IMAP attachments are imported for new tickets and replies,
-- tiny inline tracking/signature image artifacts are ignored where practical,
-- rejected e-mail attachments do not discard the whole message.
-
-Because attachment bytes are stored with application data, the normal consistent database backup includes them.
+- archived tickets/projects reject attachment mutation,
+- ticket deletion purges stored attachment data,
+- inbound IMAP attachments are supported for new tickets and replies.
 
 ## Global search
 
-The application header includes permission-aware global search. Search covers accessible ticket keys, titles and descriptions and, for staff, authorized users, organizations and Assets / CMDB records. Exact ticket keys such as `ITA-123` are prioritized.
+The application header includes permission-aware global search. Search covers accessible ticket keys, titles and descriptions and, for staff, authorized users, organizations and Assets / CMDB records.
 
-Customer searches do not become an internal directory. Public GitHub portal access does not expand visibility into private projects. A Knowledge Base result provider can be connected without redesigning the search contract.
+Ticket relationship lookup accepts both padded and unpadded keys where appropriate, for example `QA-1`, `QA-10` and `QA-00001` depending on project numbering.
 
 ## GitHub Issues integration
 
@@ -217,9 +158,28 @@ GitHub Issue closed
 further handling in Service Desk
 ```
 
-The GitHub issue author becomes the Service Desk reporter. The configured integration account remains the technical creator/audit actor. When GitHub SSO is enabled, users are mapped by immutable numeric GitHub user ID and can sign in even when their public email is hidden.
+The GitHub issue author becomes the Service Desk reporter. The configured integration account remains the technical creator/audit actor. When GitHub SSO is enabled, users are mapped by immutable numeric GitHub user ID.
 
 The GitHub Personal Access Token used for issue ingestion is separate from the OAuth App Client ID / Client Secret used for GitHub login.
+
+## Identity and security
+
+Supported authentication and identity features include:
+
+- local accounts,
+- LDAP / Active Directory,
+- LDAP group-based role and project mapping,
+- OIDC / SSO providers,
+- GitHub OAuth,
+- TOTP,
+- FIDO2 / WebAuthn,
+- account activation and blocking,
+- project membership enforcement,
+- CSRF protection,
+- strict Content Security Policy,
+- encrypted application secrets.
+
+1.6.1 keeps the strict `script-src 'self'` / `style-src 'self'` model and no longer relies on inline bootstrap hotfix code.
 
 ## Architecture
 
@@ -231,26 +191,26 @@ The GitHub Personal Access Token used for issue ingestion is separate from the O
 
 SQLite is used by a single application writer. Do not run multiple Service Desk replicas against the same SQLite volume.
 
-Service Desk 1.4.0 keeps database schema version **8**.
+Current database schema version: **8**.
 
-### Frontend boundary in 1.4
-
-The active browser presentation is intentionally simplified:
+### Active frontend boundary
 
 ```text
 app.css                     canonical product presentation
+agent-experience-1.6.css    1.6 ticket/settings Agent Experience layer
 app.js                      core application/router
 settings-center.js          native Settings Center
-release-1.1.2.js            functional search/queue/attachment module
-release-1.2.0.js            1.4 enterprise UI controller + updater UX
-security.js                 security-related browser features
+release-1.1.2.js            search/queue/attachment features
+release-1.2.0.js            shared enterprise UI + updater UX
+agent-experience-1.6.js     1.6 ticket/settings controller
+security.js                 security features + safe queue refresh guard
 ```
 
-Historical release styles/scripts may remain in the source tree or image for rollback/history but are not loaded into the active 1.4 interface.
+Historical release assets may remain in the source tree for rollback/history but are not intended to compete with the active presentation layer.
 
 ## New installation
 
-Requirements: Docker Engine, Docker Compose v2, HTTPS reverse proxy and a public `APP_URL` matching the deployed domain.
+Requirements: Docker Engine, Docker Compose v2, HTTPS reverse proxy and an `APP_URL` matching the deployed public URL.
 
 ```bash
 unzip Service_Desk_Docker.zip
@@ -260,7 +220,7 @@ docker compose up -d --build desk
 docker compose logs --tail=30 desk
 ```
 
-For Nginx Proxy Manager, point the Proxy Host at the `service-desk` container on port `3000`, enable TLS and Force SSL. Port 3000 does not need to be published directly on the host when the proxy shares the Docker network.
+For Nginx Proxy Manager, point the Proxy Host at the Service Desk container on port `3000`, enable TLS and Force SSL.
 
 On a fresh installation, open the Service Desk URL and use the one-time installation code from the container logs to create the organization and first Global Administrator.
 
@@ -268,13 +228,13 @@ On a fresh installation, open the Service Desk URL and use the one-time installa
 
 Stable releases contain `desk-release.json` with the exact GHCR image digest and database compatibility information. Supported installations can use the built-in updater.
 
-Published image:
+Current release image:
 
 ```text
-ghcr.io/itelade/service-desk:v1.4.0
+ghcr.io/itelade/service-desk:v1.6.1
 ```
 
-The updater shows live milestone progress, survives the temporary application restart, reconnects to an in-progress update job, reports rollback state and reloads the browser once after a successful update or completed rollback.
+The updater shows live milestone progress, survives the temporary application restart, reconnects to an in-progress update job, reports rollback state and reloads the browser once after success or completed rollback.
 
 See [UPDATES.md](UPDATES.md) and [UPGRADE.md](UPGRADE.md).
 
@@ -297,35 +257,36 @@ npm run test:ci
 bash -n scripts/upgrade.sh
 ```
 
-CI validates dependencies, syntax/static checks, the full test suite and upgrade-script syntax. The 1.4 regression gate also verifies the canonical presentation boundary, light-only theme, responsive shell, queue continuity, ticket composition, Administration Center coverage and updater behavior.
+CI validates dependencies, syntax/static checks, the full test suite and upgrade-script syntax.
 
-External production LDAP, mailbox, OAuth and reverse-proxy environments are not contacted by unit/integration CI and should still be validated on a test deployment before production rollout.
+1.6.1 adds regression coverage for the QA hotfixes around CSP, queue refresh/preferences, archive/delete attachment lifecycle, relationship lookup, stale mentions, Settings mutation stability, activity-tab accessibility, create-ticket attachments and release versioning.
 
-## UI development rules
+Environment-level checks that CI cannot fully prove are documented in [VALIDATION.md](VALIDATION.md), including live LDAP/AD, OIDC/Keycloak, mail, GitHub integration, Docker updater/rollback, multiple browsers and physical WebAuthn devices.
 
-See [UI_1.4.md](UI_1.4.md). The central rules for the 1.4 line are:
+## Release verification
 
-- `public/app.css` is the canonical active presentation layer,
-- do not reintroduce broad stacked release CSS overlays,
-- do not restore stale queue HTML into live `#main`,
-- do not duplicate queue tools, ticket attachments, ticket headers or Settings navigation,
-- preserve server-side authorization and project isolation,
-- keep the active product light-only,
-- add/update regression coverage with meaningful 1.4.x UI changes.
+Before production rollout:
+
+```bash
+npm run test:ci
+sha256sum -c MANIFEST.sha256
+```
+
+Then complete the smoke checklist in [VALIDATION.md](VALIDATION.md).
 
 ## Documentation
 
-- [RELEASE_NOTES_1.4.0.md](RELEASE_NOTES_1.4.0.md) — current major release notes,
-- [UI_1.4.md](UI_1.4.md) — 1.4 visual and interaction contract,
-- [RELEASE_NOTES_1.3.2.md](RELEASE_NOTES_1.3.2.md) — previous 1.3.x polish release,
+- [RELEASE_NOTES_1.6.1.md](RELEASE_NOTES_1.6.1.md) — current hotfix release notes,
+- [RELEASE_NOTES_1.6.0.md](RELEASE_NOTES_1.6.0.md) — Agent Experience release,
+- [VALIDATION.md](VALIDATION.md) — current validation and smoke-test checklist,
+- [UI_1.4.md](UI_1.4.md) — base visual/interaction contract,
 - [CHANGELOG.md](CHANGELOG.md) — release history,
 - [MODULES.md](MODULES.md) — projects, mail, SLA, LDAP/SSO, integrations and permissions,
 - [AUTOMATION.md](AUTOMATION.md) — triggers, conditions, actions and scheduling,
 - [API.md](API.md) — API and token usage,
 - [KNOWLEDGE_INTEGRATION.md](KNOWLEDGE_INTEGRATION.md) — Knowledge Base integration direction,
 - [UPDATES.md](UPDATES.md) — release publishing and updater,
-- [UPGRADE.md](UPGRADE.md) — upgrade procedure,
-- [VALIDATION.md](VALIDATION.md) — validated scenarios and known validation boundaries.
+- [UPGRADE.md](UPGRADE.md) — upgrade procedure.
 
 ## License
 
