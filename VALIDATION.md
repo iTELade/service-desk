@@ -1,25 +1,46 @@
-# Walidacja 0.8.0
+# Walidacja 1.6.1
 
-Przed publikacją `v0.8.0` wykonaj:
+Przed publikacją `v1.6.1` wykonaj:
 
 ```bash
-sha256sum -c MANIFEST.sha256
 npm ci
 npm run check
-npm test
+npm run test:ci
 bash -n scripts/upgrade.sh
 ```
 
-Następnie sprawdź co najmniej:
-- logowanie lokalne, LDAP i SSO,
-- TOTP: konfigurację przez QR, kod ręczny i recovery codes,
-- FIDO2/WebAuthn: dodanie, logowanie i usunięcie klucza,
-- synchronizację LDAP i nadawanie Administratora,
-- kolejki, dashboard i zapisane widoki,
-- approvals, organizacje i środki trwałe,
-- inbound e-mail, API tokens i webhooki,
-- GitHub Issues → Service Desk,
-- `/healthz` zwracający wersję `0.8.0` i schemat `8`,
-- aktualizację z poprzedniej kopii danych oraz rollback.
+Przed utworzeniem finalnego artefaktu wydania odśwież `MANIFEST.sha256`, a następnie sprawdź:
 
-Integracja Knowledge Base nie należy do zakresu 0.8.0.
+```bash
+sha256sum -c MANIFEST.sha256
+```
+
+## Smoke test 1.6.1
+
+Sprawdź co najmniej:
+- `/healthz` zwraca wersję `1.6.1` i schemat `8`,
+- brak błędów CSP dla własnych assetów aplikacji; `document.documentElement.dataset.queueRefreshGuard === '1.6.1'`,
+- awatary komentarzy pozostają 32×32 px na desktopie i mobile,
+- zapisany układ kolejki odtwarza wybrane kolumny po reloadzie i po live refresh,
+- kontrolki kolejki odtwarzają się po ponownym renderze tej samej trasy,
+- klient nie może dodać ani usunąć załącznika w zarchiwizowanej sprawie lub zarchiwizowanym projekcie,
+- usunięcie zgłoszenia usuwa rekordy i bajty z `r112_attachments`,
+- lookup powiązań zwraca krótkie klucze, np. `QA-1`, `QA-10`, `QA-99`,
+- `/api/desk/mentions` dla nieistniejącego ticket ID zwraca kontrolowane 404 zamiast 500,
+- ekran Settings pozostaje bezczynny bez ciągłej pętli identycznych mutacji `.version-chip`,
+- zakładki aktywności działają klawiaturą: ArrowLeft/Right/Up/Down oraz Home/End, z poprawnym `role=tab`, `tabpanel`, `aria-controls` i `aria-labelledby`,
+- formularz `data-form=create-ticket` zawiera input załączników i pliki są przesyłane po utworzeniu sprawy,
+- nagłówek produktu i Settings pokazują `1.6.1`,
+- świeża instancja z językiem `en` pokazuje angielskie etykiety kolejki, ticketu, aktywności, załączników i ustawień.
+
+## Integracje i testy środowiskowe
+
+Po testach automatycznych wykonaj smoke test na docelowym środowisku dla:
+- logowania lokalnego, LDAP/AD i SSO/OIDC,
+- TOTP i WebAuthn/FIDO2, jeżeli są używane,
+- inbound e-mail i odpowiedzi SMTP,
+- GitHub Issues → Service Desk,
+- backupu przed aktualizacją, aktualizacji 1.6.0 → 1.6.1 oraz rollbacku,
+- Chromium oraz co najmniej jednego dodatkowego silnika przeglądarki używanego produkcyjnie.
+
+Testy jednostkowe/DOM nie zastępują testu prawdziwej przeglądarki ani testu aktualizacji z Dockerem.
