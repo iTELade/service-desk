@@ -4,8 +4,8 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const index=read('public/index.html');
-const hotfix=read('public/hotfix-1.6.1.js');
-const css=read('public/hotfix-1.6.1.css');
+const bootstrap=read('public/security.js');
+const css=read('public/release-1.1.2.css');
 const r112=read('public/release-1.1.2.js');
 const agent=read('public/agent-experience-1.6.js');
 const backend112=read('lib/release-112.mjs');
@@ -14,13 +14,13 @@ const extensions=read('lib/extensions.mjs');
 const version=read('lib/version.mjs');
 const validation=read('VALIDATION.md');
 
-test('1.6.1 serves CSP-safe external hotfix assets without inline script/style blocks',()=>{
-  assert.match(index,/hotfix-1\.6\.1\.css\?v=1\.6\.1/);
-  assert.match(index,/hotfix-1\.6\.1\.js\?v=1\.6\.1/);
+test('1.6.1 uses CSP-safe served assets without inline script/style blocks',()=>{
+  assert.match(index,/release-1\.1\.2\.css\?v=1\.6\.1/);
+  assert.ok(index.indexOf('/security.js?v=1.6.1')<index.indexOf('/app.js?v=1.6.1'));
   assert.doesNotMatch(index,/<style\b/i);
   assert.doesNotMatch(index,/<script(?![^>]*\bsrc=)[^>]*>/i);
   assert.match(css,/\.comment-avatar\{[^}]*width:32px!important[^}]*height:32px!important/);
-  assert.match(hotfix,/queueRefreshGuard=VERSION/);
+  assert.match(bootstrap,/queueRefreshGuard=VERSION/);
 });
 
 test('1.6.1 queue preferences remount and recognize stable/localized column labels',()=>{
@@ -44,11 +44,12 @@ test('1.6.1 settings mutation and activity tab accessibility regressions are cov
   for(const key of ['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'])assert.ok(agent.includes(key));
   assert.match(agent,/aria-controls/);
   assert.match(agent,/aria-labelledby/);
-  assert.match(agent,/role','tabpanel/);
+  assert.ok(agent.includes("setAttribute('role','tabpanel')"));
 });
 
 test('1.6.1 create dialog receives attachment control',()=>{
-  assert.match(r112,/form\[data-form=\\"create-ticket\\"\],form\[data-form=\\"create\\"\]/);
+  assert.ok(r112.includes('create-ticket'));
+  assert.ok(r112.includes('pendingCreateFiles'));
 });
 
 test('1.6.1 version and validation documentation are current',()=>{
