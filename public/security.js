@@ -1,94 +1,51 @@
+(()=>{
+  'use strict';
+  const VERSION='1.6.1',nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);let refreshCallback=null,probeBusy=false;
+  const source=fn=>{try{return Function.prototype.toString.call(fn);}catch{return '';}};
+  const isLiveRefresh=fn=>typeof fn==='function'&&source(fn).includes('refreshLiveView');
+  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const cls=value=>String(value??'').replace(/[^a-zA-Z0-9_-]/g,'');
+  const setText=(node,value)=>{const next=String(value);if(node&&node.textContent!==next)node.textContent=next;};
+  const setHtml=(node,value)=>{if(node&&node.innerHTML!==value)node.innerHTML=value;};
+  function dirtyControl(el){if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;if(el instanceof HTMLSelectElement)return [...el.options].some(o=>o.selected!==o.defaultSelected);return false;}
+  function queueEditorBusy(){if(document.hidden||document.querySelector('dialog[open]'))return true;const active=document.activeElement;if(active?.closest?.('#main form.filters,[data-r112-queue-tools]'))return true;return [...document.querySelectorAll('#main form.filters input,#main form.filters textarea,#main form.filters select,[data-r112-queue-tools] input,[data-r112-queue-tools] select')].some(dirtyControl);}
+  function generalEditorBusy(){if(document.hidden||document.querySelector('dialog[open]'))return true;const active=document.activeElement;return Boolean(active&&active!==document.body&&active.matches?.('input,textarea,select,[contenteditable="true"]'));}
+  function fmtDate(value){if(!value)return '—';try{return new Intl.DateTimeFormat(document.documentElement.lang==='en'?'en-GB':'pl-PL',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));}catch{return String(value);}}
+  function duration(ms){let total=Math.max(0,Math.round((Number(ms)||0)/60000));const days=Math.floor(total/1440);total-=days*1440;const hours=Math.floor(total/60),minutes=total-hours*60;if(days)return `${days} d ${hours} h ${minutes} min`;if(hours)return `${hours} h ${minutes} min`;return `${minutes} min`;}
+  function statusMarkup(t){return `<span class="pill ${cls(t.status_category||t.status)}">${esc(t.status_name||t.workflow_status||t.status||'—')}</span>`;}
+  function priorityMarkup(t){return `<span class="priority ${cls(t.priority)}">${esc(t.priority||'—')}</span>`;}
+  function slaMarkup(t){if(!t.sla?.length)return '<span class="hint">—</span>';return t.sla.map(s=>{let label;if(s.state==='not_started')label='Not started';else if(s.state==='paused')label='Paused';else if(s.state==='completed')label=s.breached?'Breached':'Met';else if(s.state==='stopped')label='Stopped';else label=(s.breached?'Over by ':'Remaining ')+duration(Math.abs(Number(s.remaining_ms)||0));return `<span class="${s.breached?'overdue':'sla-ok'}">${esc(s.name)}: ${esc(label)}</span>`;}).join('<br>');}
+  function issueMarkup(t){const form=t.request_form?.name||t.type||'Request';return `<a class="issue-title" href="#/ticket/${esc(t.key)}"><span class="key">${esc(t.key)}</span><span>${esc(t.title)}</span></a><small class="row-meta">${esc(t.project_name||'')} · ${esc(form)}</small>`;}
+  const aliases={issue:['zgłoszenie','request','issue'],status:['status'],priority:['priorytet','priority'],assignee:['opiekun','assignee'],sla:['sla'],updated:['aktualizacja','updated']};
+  function tableShape(table){const heads=[...table.querySelectorAll('thead th')];const index=key=>heads.findIndex(th=>{const explicit=th.dataset.columnKey;if(explicit)return explicit===key;const text=th.textContent.trim().toLocaleLowerCase();return aliases[key].some(a=>text===a||text.startsWith(a));});return{headers:heads,issue:index('issue'),status:index('status'),priority:index('priority'),assignee:index('assignee'),sla:index('sla'),updated:index('updated')};}
+  function rowMarkup(t,shape){const values=new Array(shape.headers.length).fill('');if(shape.issue>=0)values[shape.issue]=issueMarkup(t);if(shape.status>=0)values[shape.status]=statusMarkup(t);if(shape.priority>=0)values[shape.priority]=priorityMarkup(t);if(shape.assignee>=0)values[shape.assignee]=esc(t.assignee_name||'Unassigned');if(shape.sla>=0)values[shape.sla]=slaMarkup(t);if(shape.updated>=0)values[shape.updated]=esc(fmtDate(t.updated_at));return `<tr data-live-ticket="${esc(t.key)}">${values.map((html,i)=>`<td${i===shape.updated?' class="date"':''}>${html}</td>`).join('')}</tr>`;}
+  function patchRow(row,t,shape){row.dataset.liveTicket=t.key;const cells=row.cells;if(shape.issue>=0)setHtml(cells[shape.issue],issueMarkup(t));if(shape.status>=0)setHtml(cells[shape.status],statusMarkup(t));if(shape.priority>=0)setHtml(cells[shape.priority],priorityMarkup(t));if(shape.assignee>=0)setText(cells[shape.assignee],t.assignee_name||'Unassigned');if(shape.sla>=0)setHtml(cells[shape.sla],slaMarkup(t));if(shape.updated>=0)setText(cells[shape.updated],fmtDate(t.updated_at));}
+  function patchQueue(data,stats){const main=document.querySelector('#main');if(!main)return;const metricValues=[stats?.open??0,stats?.in_progress??0,stats?.waiting??0,(stats?.resolved??0)+(stats?.closed??0)];[...main.querySelectorAll('.metrics>div strong')].slice(0,4).forEach((node,i)=>setText(node,metricValues[i]));const table=main.querySelector('.panel .table-scroll table'),tbody=table?.tBodies?.[0];if(!table||!tbody)return;const shape=tableShape(table),tickets=data?.tickets||[],rows=[...tbody.rows],currentKeys=rows.map(row=>row.querySelector('.key')?.textContent?.trim()||row.dataset.liveTicket||''),nextKeys=tickets.map(t=>String(t.key)),sameShape=currentKeys.length===nextKeys.length&&currentKeys.every((key,i)=>key===nextKeys[i]);if(!tickets.length)setHtml(tbody,`<tr><td colspan="${Math.max(1,shape.headers.length)}"><div class="queue-live-empty">No requests in this view</div></td></tr>`);else if(sameShape)rows.forEach((row,i)=>patchRow(row,tickets[i],shape));else setHtml(tbody,tickets.map(t=>rowMarkup(t,shape)).join(''));const pagination=main.querySelector('.pagination');if(pagination){const pages=Math.max(1,Math.ceil((Number(data.total)||0)/(Number(data.limit)||1)));setText(pagination.querySelector('span'),`${data.total} requests · page ${data.page} of ${pages}`);}}
+  async function refreshQueueInPlace(){if(probeBusy||queueEditorBusy())return;const hash=location.hash;if(!/^#\/queue(?:\?|$)/.test(hash))return;probeBusy=true;try{const query=hash.split('?')[1]||'',responses=await Promise.all([nativeFetch('/api/tickets?'+query,{credentials:'same-origin',cache:'no-store'}),nativeFetch('/api/stats?'+query,{credentials:'same-origin',cache:'no-store'})]);if(!responses[0].ok||!responses[1].ok)return;const [data,stats]=await Promise.all([responses[0].json(),responses[1].json()]);if(location.hash!==hash)return;patchQueue(data,stats);document.documentElement.dataset.queueLastRefresh=String(Date.now());}catch{}finally{probeBusy=false;}}
+  async function guardedRefresh(fn){if(/^#\/queue(?:\?|$)/.test(location.hash))return refreshQueueInPlace();if(generalEditorBusy())return;try{return fn?.();}catch{}}
+  window.setInterval=function(fn,delay,...args){if(Number(delay)===5000&&isLiveRefresh(fn)){refreshCallback=()=>fn(...args);return nativeSetInterval(()=>void guardedRefresh(refreshCallback),5000);}return nativeSetInterval(fn,delay,...args);};
+  window.addEventListener=function(type,listener,options){if(type==='focus'&&isLiveRefresh(listener))return nativeAddEventListener(type,()=>void guardedRefresh(refreshCallback||listener),options);return nativeAddEventListener(type,listener,options);};
+  document.documentElement.dataset.queueRefreshGuard=VERSION;
+})();
+
 (() => {
   const $=(s,e=document)=>e.querySelector(s),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let csrf=null;
   const jsonHeaders=()=>({'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':csrf}:{})});
   async function session(){if(csrf)return csrf;const r=await fetch('/api/me',{credentials:'same-origin'});if(!r.ok)throw new Error('Session expired.');const v=await r.json();csrf=v.csrf;return csrf;}
-  async function call(path,{method='GET',data,auth=true}={}){
-    if(auth&&method!=='GET')await session();
-    const r=await fetch('/api'+path,{method,credentials:'same-origin',headers:jsonHeaders(),...(data===undefined?{}:{body:JSON.stringify(data)})});
-    const v=await r.json().catch(()=>({error:'Invalid server response.'}));if(!r.ok)throw new Error(v.error||'Request failed.');return v;
-  }
+  async function call(path,{method='GET',data,auth=true}={}){if(auth&&method!=='GET')await session();const r=await fetch('/api'+path,{method,credentials:'same-origin',headers:jsonHeaders(),...(data===undefined?{}:{body:JSON.stringify(data)})});const v=await r.json().catch(()=>({error:'Invalid server response.'}));if(!r.ok)throw new Error(v.error||'Request failed.');return v;}
   function modal(html){const m=$('#modal');m.classList.remove('wide-modal');m.innerHTML=`<button class="modal-close" aria-label="Close" data-security-close>×</button>${html}`;if(!m.open)m.showModal();return m;}
   function status(msg,bad=false){let n=$('#notices');if(!n)return;const el=document.createElement('div');el.className='notice'+(bad?' bad':'');el.textContent=msg;n.append(el);setTimeout(()=>el.remove(),7000);}
   const toBytes=s=>Uint8Array.from(atob(String(s).replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((String(s).length+3)%4)),c=>c.charCodeAt(0));
   const fromBytes=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  function credentialJSON(c){
-    const r=c.response;
-    return {id:c.id,type:c.type,rawId:fromBytes(c.rawId),response:{
-      clientDataJSON:fromBytes(r.clientDataJSON),
-      ...(r.attestationObject?{attestationObject:fromBytes(r.attestationObject),transports:r.getTransports?.()||[]}:{authenticatorData:fromBytes(r.authenticatorData),signature:fromBytes(r.signature),userHandle:r.userHandle?fromBytes(r.userHandle):null})
-    },clientExtensionResults:c.getClientExtensionResults?.()||{}};
-  }
-  function publicKeyOptions(v){
-    const p=structuredClone(v);p.challenge=toBytes(p.challenge);
-    if(p.user?.id)p.user.id=toBytes(p.user.id);
-    for(const x of p.excludeCredentials||[])x.id=toBytes(x.id);
-    for(const x of p.allowCredentials||[])x.id=toBytes(x.id);
-    return p;
-  }
-  async function showMfa(){
-    const s=await call('/mfa/status');
-    const keys=s.security_keys||[];
-    modal(`<h2>Two-step verification</h2>
-      <p>${s.totp_enabled?'Authenticator app is enabled.':'Authenticator app is not configured.'} ${keys.length?`Registered security keys: ${keys.length}.`:''}</p>
-      <section class="panel detail-panel"><h3>Authenticator app (TOTP)</h3>
-      ${s.totp_enabled?`<p>Recovery codes remaining: <strong>${s.recovery_remaining}</strong></p><form data-security="totp-disable"><label>2FA or recovery code<input name="code" required autocomplete="one-time-code" maxlength="40"></label><div class="form-actions"><button class="danger-text" type="submit">Disable authenticator app</button></div></form>`:`<button class="primary" data-security-action="totp-setup">Configure authenticator app</button>`}</section>
-      <section class="panel detail-panel"><div class="section-heading"><div><h3>Hardware security keys</h3><p class="hint">FIDO2 / WebAuthn keys such as YubiKey, Feitian or compatible platform authenticators.</p></div><button class="primary" data-security-action="key-add">Add security key</button></div>
-      ${keys.map(k=>`<div class="button-row" style="justify-content:space-between"><span><strong>${esc(k.name)}</strong><small class="row-meta">${k.last_used_at?'Last used '+esc(k.last_used_at):'Never used'}</small></span><button class="danger-text" data-security-action="key-remove" data-id="${k.id}">Remove</button></div>`).join('')||'<p class="hint">No hardware key is registered.</p>'}</section>`);
-  }
-  async function setupTotp(){
-    const s=await call('/mfa/setup',{method:'POST',data:{}});
-    modal(`<h2>Add authenticator app</h2><p>Scan the QR code with Microsoft Authenticator, Google Authenticator, 1Password, Bitwarden or another TOTP app.</p>
-      <div class="mfa-qr" style="display:flex;justify-content:center;background:#fff;padding:12px;border-radius:12px;max-width:320px">${s.qr_svg}</div>
-      <details><summary>Enter the key manually</summary><code class="mfa-secret">${esc(s.secret)}</code><p class="hint">TOTP · 6 digits · 30 seconds · SHA-1</p></details>
-      <form data-security="totp-enable"><label>Code from authenticator<input name="code" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" autofocus></label><div class="form-actions"><button class="primary" type="submit">Enable 2FA</button></div></form>`);
-  }
-  async function addKey(){
-    if(!window.PublicKeyCredential||!navigator.credentials)throw new Error('This browser does not support WebAuthn security keys.');
-    const options=await call('/mfa/security-key/register-options',{method:'POST',data:{}});
-    const cred=await navigator.credentials.create({publicKey:publicKeyOptions(options.publicKey)});
-    if(!cred)throw new Error('Security-key registration was cancelled.');
-    const name=prompt('Name this security key:', 'Security key')||'Security key';
-    await call('/mfa/security-key/register',{method:'POST',data:{token:options.token,name,credential:credentialJSON(cred)}});
-    status('Security key added.');await showMfa();
-  }
-  async function useKey(){
-    if(!window.PublicKeyCredential||!navigator.credentials)throw new Error('This browser does not support WebAuthn security keys.');
-    const loginChallenge=document.querySelector('[data-security-action="key-login"]')?.dataset.challenge||(location.hash.match(/^#\/mfa\/([^/?]+)/)||[])[1];
-    if(!loginChallenge)throw new Error('Login challenge is missing.');
-    const options=await call('/mfa/security-key/options',{method:'POST',auth:false,data:{challenge:loginChallenge}});
-    const cred=await navigator.credentials.get({publicKey:publicKeyOptions(options.publicKey)});
-    if(!cred)throw new Error('Security-key verification was cancelled.');
-    await call('/mfa/security-key/verify',{method:'POST',auth:false,data:{challenge:loginChallenge,token:options.token,credential:credentialJSON(cred)}});
-    location.hash='#/queue';location.reload();
-  }
-  function enhanceMfaLogin(){
-    const card=$('.auth-card');if(!card||!card.querySelector('form[data-v7="mfa-login"]')||card.querySelector('[data-security-action="key-login"]'))return;
-    const link=card.querySelector('a[href="#/login"]'),btn=document.createElement('button');btn.type='button';btn.className='button full';btn.dataset.securityAction='key-login';btn.textContent='Use a hardware security key';link?.before(btn);
-  }
-  document.addEventListener('click',async ev=>{
-    const legacy=ev.target.closest('[data-v7-action="mfa"],[data-v7-action="mfa-setup"]');
-    const b=ev.target.closest('[data-security-action],[data-security-close]');
-    if(!legacy&&!b)return;
-    if(legacy){ev.preventDefault();ev.stopImmediatePropagation();}
-    if(b?.hasAttribute('data-security-close')){ev.preventDefault();$('#modal')?.close();return;}
-    const action=legacy?.dataset.v7Action==='mfa'?'mfa-open':legacy?.dataset.v7Action==='mfa-setup'?'totp-setup':b?.dataset.securityAction;
-    try{
-      if(action==='mfa-open')await showMfa();
-      if(action==='totp-setup')await setupTotp();
-      if(action==='key-add')await addKey();
-      if(action==='key-remove'){if(confirm('Remove this security key?')){await call('/mfa/security-key/remove',{method:'POST',data:{id:Number(b.dataset.id)}});status('Security key removed.');await showMfa();}}
-      if(action==='key-login')await useKey();
-    }catch(err){status(err.message,true);}
-  },true);
-  document.addEventListener('submit',async ev=>{
-    const f=ev.target.closest('[data-security]');if(!f)return;ev.preventDefault();ev.stopImmediatePropagation();
-    const data=Object.fromEntries(new FormData(f)),submit=f.querySelector('[type=submit]');if(submit)submit.disabled=true;
-    try{
-      if(f.dataset.security==='totp-enable'){const r=await call('/mfa/enable',{method:'POST',data:{code:data.code}});modal(`<h2>2FA is active</h2><p>Store these recovery codes in a safe place. Each code can be used once.</p><pre>${esc(r.recovery_codes.join('\n'))}</pre><div class="form-actions"><button data-security-close>Close</button></div>`);}
-      if(f.dataset.security==='totp-disable'){await call('/mfa/disable',{method:'POST',data:{code:data.code}});status('Authenticator app disabled.');await showMfa();}
-    }catch(err){status(err.message,true);}finally{if(submit)submit.disabled=false;}
-  },true);
-  new MutationObserver(enhanceMfaLogin).observe(document.documentElement,{childList:true,subtree:true});
-  addEventListener('hashchange',enhanceMfaLogin);addEventListener('DOMContentLoaded',enhanceMfaLogin);
+  function credentialJSON(c){const r=c.response;return {id:c.id,type:c.type,rawId:fromBytes(c.rawId),response:{clientDataJSON:fromBytes(r.clientDataJSON),...(r.attestationObject?{attestationObject:fromBytes(r.attestationObject),transports:r.getTransports?.()||[]}:{authenticatorData:fromBytes(r.authenticatorData),signature:fromBytes(r.signature),userHandle:r.userHandle?fromBytes(r.userHandle):null})},clientExtensionResults:c.getClientExtensionResults?.()||{}};}
+  function publicKeyOptions(v){const p=structuredClone(v);p.challenge=toBytes(p.challenge);if(p.user?.id)p.user.id=toBytes(p.user.id);for(const x of p.excludeCredentials||[])x.id=toBytes(x.id);for(const x of p.allowCredentials||[])x.id=toBytes(x.id);return p;}
+  async function showMfa(){const s=await call('/mfa/status');const keys=s.security_keys||[];modal(`<h2>Two-step verification</h2><p>${s.totp_enabled?'Authenticator app is enabled.':'Authenticator app is not configured.'} ${keys.length?`Registered security keys: ${keys.length}.`:''}</p><section class="panel detail-panel"><h3>Authenticator app (TOTP)</h3>${s.totp_enabled?`<p>Recovery codes remaining: <strong>${s.recovery_remaining}</strong></p><form data-security="totp-disable"><label>2FA or recovery code<input name="code" required autocomplete="one-time-code" maxlength="40"></label><div class="form-actions"><button class="danger-text" type="submit">Disable authenticator app</button></div></form>`:`<button class="primary" data-security-action="totp-setup">Configure authenticator app</button>`}</section><section class="panel detail-panel"><div class="section-heading"><div><h3>Hardware security keys</h3><p class="hint">FIDO2 / WebAuthn keys such as YubiKey, Feitian or compatible platform authenticators.</p></div><button class="primary" data-security-action="key-add">Add security key</button></div>${keys.map(k=>`<div class="button-row" style="justify-content:space-between"><span><strong>${esc(k.name)}</strong><small class="row-meta">${k.last_used_at?'Last used '+esc(k.last_used_at):'Never used'}</small></span><button class="danger-text" data-security-action="key-remove" data-id="${k.id}">Remove</button></div>`).join('')||'<p class="hint">No hardware key is registered.</p>'}</section>`);}
+  async function setupTotp(){const s=await call('/mfa/setup',{method:'POST',data:{}});modal(`<h2>Add authenticator app</h2><p>Scan the QR code with Microsoft Authenticator, Google Authenticator, 1Password, Bitwarden or another TOTP app.</p><div class="mfa-qr" style="display:flex;justify-content:center;background:#fff;padding:12px;border-radius:12px;max-width:320px">${s.qr_svg}</div><details><summary>Enter the key manually</summary><code class="mfa-secret">${esc(s.secret)}</code><p class="hint">TOTP · 6 digits · 30 seconds · SHA-1</p></details><form data-security="totp-enable"><label>Code from authenticator<input name="code" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" autofocus></label><div class="form-actions"><button class="primary" type="submit">Enable 2FA</button></div></form>`);}
+  async function addKey(){if(!window.PublicKeyCredential||!navigator.credentials)throw new Error('This browser does not support WebAuthn security keys.');const options=await call('/mfa/security-key/register-options',{method:'POST',data:{}});const cred=await navigator.credentials.create({publicKey:publicKeyOptions(options.publicKey)});if(!cred)throw new Error('Security-key registration was cancelled.');const name=prompt('Name this security key:', 'Security key')||'Security key';await call('/mfa/security-key/register',{method:'POST',data:{token:options.token,name,credential:credentialJSON(cred)}});status('Security key added.');await showMfa();}
+  async function useKey(){if(!window.PublicKeyCredential||!navigator.credentials)throw new Error('This browser does not support WebAuthn security keys.');const loginChallenge=document.querySelector('[data-security-action="key-login"]')?.dataset.challenge||(location.hash.match(/^#\/mfa\/([^/?]+)/)||[])[1];if(!loginChallenge)throw new Error('Login challenge is missing.');const options=await call('/mfa/security-key/options',{method:'POST',auth:false,data:{challenge:loginChallenge}});const cred=await navigator.credentials.get({publicKey:publicKeyOptions(options.publicKey)});if(!cred)throw new Error('Security-key verification was cancelled.');await call('/mfa/security-key/verify',{method:'POST',auth:false,data:{challenge:loginChallenge,token:options.token,credential:credentialJSON(cred)}});location.hash='#/queue';location.reload();}
+  function enhanceMfaLogin(){const card=$('.auth-card');if(!card||!card.querySelector('form[data-v7="mfa-login"]')||card.querySelector('[data-security-action="key-login"]'))return;const link=card.querySelector('a[href="#/login"]'),btn=document.createElement('button');btn.type='button';btn.className='button full';btn.dataset.securityAction='key-login';btn.textContent='Use a hardware security key';link?.before(btn);}
+  document.addEventListener('click',async ev=>{const legacy=ev.target.closest('[data-v7-action="mfa"],[data-v7-action="mfa-setup"]');const b=ev.target.closest('[data-security-action],[data-security-close]');if(!legacy&&!b)return;if(legacy){ev.preventDefault();ev.stopImmediatePropagation();}if(b?.hasAttribute('data-security-close')){ev.preventDefault();$('#modal')?.close();return;}const action=legacy?.dataset.v7Action==='mfa'?'mfa-open':legacy?.dataset.v7Action==='mfa-setup'?'totp-setup':b?.dataset.securityAction;try{if(action==='mfa-open')await showMfa();if(action==='totp-setup')await setupTotp();if(action==='key-add')await addKey();if(action==='key-remove'){if(confirm('Remove this security key?')){await call('/mfa/security-key/remove',{method:'POST',data:{id:Number(b.dataset.id)}});status('Security key removed.');await showMfa();}}if(action==='key-login')await useKey();}catch(err){status(err.message,true);}},true);
+  document.addEventListener('submit',async ev=>{const f=ev.target.closest('[data-security]');if(!f)return;ev.preventDefault();ev.stopImmediatePropagation();const data=Object.fromEntries(new FormData(f)),submit=f.querySelector('[type=submit]');if(submit)submit.disabled=true;try{if(f.dataset.security==='totp-enable'){const r=await call('/mfa/enable',{method:'POST',data:{code:data.code}});modal(`<h2>2FA is active</h2><p>Store these recovery codes in a safe place. Each code can be used once.</p><pre>${esc(r.recovery_codes.join('\n'))}</pre><div class="form-actions"><button data-security-close>Close</button></div>`);}if(f.dataset.security==='totp-disable'){await call('/mfa/disable',{method:'POST',data:{code:data.code}});status('Authenticator app disabled.');await showMfa();}}catch(err){status(err.message,true);}finally{if(submit)submit.disabled=false;}},true);
+  new MutationObserver(enhanceMfaLogin).observe(document.documentElement,{childList:true,subtree:true});addEventListener('hashchange',enhanceMfaLogin);addEventListener('DOMContentLoaded',enhanceMfaLogin);
 })();
