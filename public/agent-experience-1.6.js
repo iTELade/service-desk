@@ -1,12 +1,13 @@
 (()=>{
   'use strict';
 
-  const VERSION='1.6.0';
+  const VERSION='1.6.1';
   const $=(selector,root=document)=>root.querySelector(selector);
   const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
   const currentRoute=()=>location.hash.split('?')[0]||'';
   const norm=value=>String(value||'').replace(/\s+/g,' ').trim();
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const tr=value=>window.DeskLocale?.t?.(value)||value;
   let scheduled=false,stopped=false;
 
   function headingPanel(root,matcher){
@@ -16,15 +17,15 @@
   function ticketPanels(main){
     const layout=$('.ticket-layout',main),primary=layout?.firstElementChild;
     if(!layout||!primary)return null;
-    const description=headingPanel(primary,text=>/^Opis$/i.test(text));
+    const description=headingPanel(primary,text=>/^(Opis|Description)$/i.test(text));
     const conversation=$$('.detail-panel',primary).find(panel=>panel.querySelector('.conversation'))||null;
-    const related=headingPanel(primary,text=>/Powiązania|urządzenia/i.test(text));
-    const history=$('.sd14-history',primary)||headingPanel(primary,text=>/^Historia zmian$/i.test(text));
+    const related=headingPanel(primary,text=>/Powiązania|urządzenia|Related|Assets/i.test(text));
+    const history=$('.sd14-history',primary)||headingPanel(primary,text=>/^(Historia zmian|Change history)$/i.test(text));
     const attachments=$('[data-r112-attachments]',primary)||$('[data-r112-attachments]',main);
     return {layout,primary,description,conversation,related,history,attachments};
   }
 
-  function setActivity(main,name){
+  function setActivity(main,name,{focus=false}={}){
     const parts=ticketPanels(main);if(!parts)return;
     const map={comments:parts.conversation,attachments:parts.attachments,related:parts.related,history:parts.history};
     const available=Object.entries(map).filter(([,node])=>node);
@@ -33,21 +34,37 @@
     for(const [key,node] of available){
       node.hidden=key!==name;
       node.dataset.jira16ActivityPanel=key;
+      node.setAttribute('role','tabpanel');
+      node.id=`jira16-panel-${key}`;
+      node.setAttribute('aria-labelledby',`jira16-tab-${key}`);
     }
     for(const button of $$('.jira16-activity-tabs button',main)){
       const active=button.dataset.jira16Tab===name;
       button.classList.toggle('active',active);
       button.setAttribute('aria-selected',String(active));
       button.tabIndex=active?0:-1;
+      if(active&&focus)button.focus();
     }
+  }
+
+  function onTabKeydown(event,main,tabs){
+    const buttons=$$('button[role="tab"]',tabs);if(!buttons.length)return;
+    const current=buttons.indexOf(event.currentTarget);if(current<0)return;
+    let next=null;
+    if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(current+1)%buttons.length;
+    else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(current-1+buttons.length)%buttons.length;
+    else if(event.key==='Home')next=0;
+    else if(event.key==='End')next=buttons.length-1;
+    if(next===null)return;
+    event.preventDefault();setActivity(main,buttons[next].dataset.jira16Tab,{focus:true});
   }
 
   function ensureActivity(main,parts){
     const entries=[
-      ['comments','Komentarze',parts.conversation],
-      ['attachments','Załączniki',parts.attachments],
-      ['related','Powiązania',parts.related],
-      ['history','Historia',parts.history]
+      ['comments',tr('Komentarze'),parts.conversation],
+      ['attachments',tr('Załączniki'),parts.attachments],
+      ['related',tr('Powiązania'),parts.related],
+      ['history',tr('Historia'),parts.history]
     ].filter(([, ,node])=>node);
     if(!entries.length)return;
     const signature=entries.map(([key])=>key).join('|');
@@ -56,13 +73,17 @@
       tabs=document.createElement('div');
       tabs.className='jira16-activity-tabs';
       tabs.setAttribute('role','tablist');
+      tabs.setAttribute('aria-label',tr('Aktywność zgłoszenia'));
       const anchor=parts.conversation||parts.attachments||parts.related||parts.history;
       anchor?.before(tabs);
     }
-    if(tabs.dataset.signature!==signature){
+    if(tabs.dataset.signature!==signature||$$('button',tabs).some((b,i)=>b.textContent!==entries[i]?.[1])){
       tabs.dataset.signature=signature;
-      tabs.innerHTML=entries.map(([key,label])=>`<button type="button" role="tab" data-jira16-tab="${key}">${escapeHtml(label)}</button>`).join('');
-      for(const button of $$('button',tabs))button.addEventListener('click',()=>setActivity(main,button.dataset.jira16Tab));
+      tabs.innerHTML=entries.map(([key,label])=>`<button id="jira16-tab-${key}" type="button" role="tab" aria-controls="jira16-panel-${key}" data-jira16-tab="${key}">${escapeHtml(label)}</button>`).join('');
+      for(const button of $$('button',tabs)){
+        button.addEventListener('click',()=>setActivity(main,button.dataset.jira16Tab));
+        button.addEventListener('keydown',event=>onTabKeydown(event,main,tabs));
+      }
     }
     setActivity(main,main.dataset.jira16Activity||'comments');
   }
@@ -85,7 +106,7 @@
       const breadcrumb=norm($('.breadcrumb',header)?.textContent||$('.breadcrumb',main)?.textContent);
       const eyebrow=norm($('.page-heading .eyebrow',header)?.textContent);
       const routeKey=decodeURIComponent(currentRoute().split('/').pop()||'');
-      context.innerHTML=`<span class="jira16-type">Service request</span><span class="jira16-separator">/</span><span class="jira16-context-text">${escapeHtml(breadcrumb||eyebrow||routeKey)}</span>`;
+      context.innerHTML=`<span class="jira16-type">${escapeHtml(tr('Wniosek o usługę'))}</span><span class="jira16-separator">/</span><span class="jira16-context-text">${escapeHtml(breadcrumb||eyebrow||routeKey)}</span>`;
       header.prepend(context);
     }
 
@@ -107,17 +128,17 @@
   }
 
   const settingsIcons={
-    'Start':'⌂','Ogólne':'⚙','Tożsamość i dostęp':'♙','Zarządzanie usługami':'▦',
-    'Komunikacja':'✉','Integracje':'⌘','Zasoby / CMDB':'◆','System':'◈'
+    'Start':'⌂','Ogólne':'⚙','General':'⚙','Tożsamość i dostęp':'♙','Identity and access':'♙','Zarządzanie usługami':'▦','Service management':'▦',
+    'Komunikacja':'✉','Communication':'✉','Integracje':'⌘','Integrations':'⌘','Zasoby / CMDB':'◆','Assets / CMDB':'◆','System':'◈'
   };
 
   function filterSettings(nav,query){
-    const needle=norm(query).toLocaleLowerCase('pl');
+    const needle=norm(query).toLocaleLowerCase(window.DeskLocale?.locale==='en'?'en':'pl');
     let visible=0;
     for(const group of $$('.settings-nav-group',nav)){
       let groupVisible=0;
       for(const item of $$('button,.settings-nav-link,a',group)){
-        const match=!needle||norm(item.textContent).toLocaleLowerCase('pl').includes(needle)||norm(group.querySelector('h3')?.textContent).toLocaleLowerCase('pl').includes(needle);
+        const match=!needle||norm(item.textContent).toLocaleLowerCase().includes(needle)||norm(group.querySelector('h3')?.textContent).toLocaleLowerCase().includes(needle);
         item.hidden=!match;
         if(match)groupVisible++;
       }
@@ -125,7 +146,7 @@
       if(groupVisible)visible+=groupVisible;
     }
     let empty=$('.jira16-settings-empty-filter',nav);
-    if(!empty){empty=document.createElement('div');empty.className='jira16-settings-empty-filter';empty.textContent='Brak ustawień pasujących do wyszukiwania.';nav.append(empty);}
+    if(!empty){empty=document.createElement('div');empty.className='jira16-settings-empty-filter';empty.textContent=tr('Brak ustawień pasujących do wyszukiwania.');nav.append(empty);}
     empty.hidden=visible>0;
   }
 
@@ -134,7 +155,7 @@
     if(!header){
       header=document.createElement('div');
       header.className='jira16-settings-nav-head';
-      header.innerHTML='<span class="jira16-admin-kicker">Service Management</span><strong>Administracja</strong><label class="jira16-settings-filter"><input type="search" autocomplete="off" placeholder="Szukaj ustawień…" aria-label="Szukaj ustawień"></label>';
+      header.innerHTML=`<span class="jira16-admin-kicker">Service Management</span><strong>${escapeHtml(tr('Administracja'))}</strong><label class="jira16-settings-filter"><input type="search" autocomplete="off" placeholder="${escapeHtml(tr('Szukaj ustawień…'))}" aria-label="${escapeHtml(tr('Szukaj ustawień'))}"></label>`;
       nav.prepend(header);
       const input=$('input',header);
       input.addEventListener('input',()=>filterSettings(nav,input.value));
@@ -176,7 +197,7 @@
       for(const row of $$('.settings-row',content))row.classList.add('jira16-settings-row');
       for(const block of $$('.settings-block,.settings-form',content))block.classList.add('jira16-settings-card');
     }
-    for(const chip of $$('.version-chip',main))chip.textContent='Wersja '+VERSION;
+    for(const chip of $$('.version-chip',main)){const next=`${tr('Wersja')} ${VERSION}`;if(chip.textContent!==next)chip.textContent=next;}
   }
 
   function clearRouteClasses(){
@@ -191,7 +212,7 @@
     clearRouteClasses();
     decorateTicket();
     decorateSettings();
-    for(const chip of $$('.version-chip'))if(chip.textContent!==`Wersja ${VERSION}`)chip.textContent=`Wersja ${VERSION}`;
+    for(const chip of $$('.version-chip')){const next=`${tr('Wersja')} ${VERSION}`;if(chip.textContent!==next)chip.textContent=next;}
   }
 
   function schedule(){
