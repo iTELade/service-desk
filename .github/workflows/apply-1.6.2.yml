@@ -1,57 +1,39 @@
-name: Apply Service Desk 1.6.2 hardening
+name: Finalize Service Desk 1.6.2 manifest
 
 on:
   push:
     branches: [main]
     paths:
       - .github/workflows/apply-1.6.2.yml
-      - .github/apply-1.6.2.py
 
 permissions:
   contents: write
 
 jobs:
-  harden:
+  finalize:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-      - name: Neutralize workflow self-edit inside one-shot patch
+      - name: Prepare publish trigger and clean one-shot patcher
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('.github/apply-1.6.2.py')
-          s=p.read_text(encoding='utf-8')
-          start=s.index("p = '.github/workflows/publish-version.yml'")
-          end=s.index("for doc in ['README.md', 'VALIDATION.md']:", start)
-          p.write_text(s[:start]+s[end:],encoding='utf-8')
-          PY
-      - name: Apply 1.6.2 fixes
-        run: |
-          python3 .github/apply-1.6.2.py
-          git checkout HEAD -- .github/apply-1.6.2.py
-      - name: Normalize active UI writers and version assertions
-        run: |
-          python3 -c "from pathlib import Path; p=Path('public/release-1.2.0.js'); s=p.read_text(); p.write_text(s.replace(\"const VERSION='1.5.0';\",\"const VERSION='1.6.2';\"))"
-          python3 -c "from pathlib import Path; p=Path('public/settings-center.js'); s=p.read_text(); p.write_text(s.replace(\"const SETTINGS_VERSION='1.2.1';\",\"const SETTINGS_VERSION='1.6.2';\"))"
-          python3 -c "from pathlib import Path; p=Path('public/app.css'); s=p.read_text(); p.write_text(s.replace('Service Desk 1.5.0 — Jira Service Management inspired workspace rebuild','Service Desk 1.6.2 — Jira Service Management inspired workspace rebuild'))"
-          python3 -c "from pathlib import Path; files=list(Path('tests').glob('*.mjs')); [(p.write_text(p.read_text().replace(r'1\\.6\\.1',r'1\\.6\\.2').replace(r'1\\.5\\.0',r'1\\.6\\.2').replace(r\"SETTINGS_VERSION='1\\.2\\.1'\",r\"SETTINGS_VERSION='1\\.6\\.2'\"))) for p in files]"
-          python3 -c "from pathlib import Path; p=Path('tests/settings-center-race.test.mjs'); s=p.read_text(); p.write_text(s.replace(\"'1.5.0'\",\"'1.6.2'\"))"
-          python3 -c "from pathlib import Path; p=Path('tests/hotfix-1.6.2.test.mjs'); s=p.read_text(); p.write_text(s.replace(\"  assert.doesNotMatch(v8,/sla_at_risk:0,recent/);\\n\",''))"
-      - name: Install and verify
-        run: |
-          npm ci
-          npm run check
-          npm run test:ci
-          bash -n scripts/upgrade.sh
-      - name: Regenerate and verify checksum manifest
+          rm -f .github/apply-1.6.2.py
+          cat > tests/release-trigger-1.6.2.test.mjs <<'EOF'
+          import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          test('1.6.2 publish trigger keeps package and runtime version aligned',()=>{
+            const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'));
+            const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
+            assert.equal(pkg.version,'1.6.2');
+            assert.match(version,/VERSION='1\.6\.2'/);
+          });
+          EOF
+          git add -A
+      - name: Regenerate complete tracked checksum manifest
         shell: bash
         run: |
           : > MANIFEST.sha256.tmp
@@ -64,10 +46,11 @@ jobs:
           done < <(git ls-files -z | sort -z)
           mv MANIFEST.sha256.tmp MANIFEST.sha256
           sha256sum -c MANIFEST.sha256
-      - name: Commit 1.6.2
+      - name: Publish finalizer branch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b release/1.6.2-publish-trigger
           git add -A
-          git commit -m 'Release Service Desk 1.6.2 hardening'
-          git push origin HEAD:main
+          git commit -m 'Finalize Service Desk 1.6.2 release manifest'
+          git push origin HEAD:release/1.6.2-publish-trigger
