@@ -1,4 +1,4 @@
-name: Finalize Service Desk 1.6.2 manifest
+name: Finalize Service Desk 2.0.0 manifest
 
 on:
   push:
@@ -18,24 +18,10 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Prepare publish trigger and clean one-shot patcher
-        run: |
-          rm -f .github/apply-1.6.2.py
-          cat > tests/release-trigger-1.6.2.test.mjs <<'EOF'
-          import test from 'node:test';
-          import assert from 'node:assert/strict';
-          import {readFileSync} from 'node:fs';
-          test('1.6.2 publish trigger keeps package and runtime version aligned',()=>{
-            const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-            const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
-            assert.equal(pkg.version,'1.6.2');
-            assert.match(version,/VERSION='1\.6\.2'/);
-          });
-          EOF
-          git add -A
       - name: Regenerate complete tracked checksum manifest
         shell: bash
         run: |
+          git add -A
           : > MANIFEST.sha256.tmp
           while IFS= read -r -d '' rel; do
             if [[ "$rel" == "MANIFEST.sha256" ]]; then continue; fi
@@ -46,11 +32,11 @@ jobs:
           done < <(git ls-files -z | sort -z)
           mv MANIFEST.sha256.tmp MANIFEST.sha256
           sha256sum -c MANIFEST.sha256
-      - name: Publish finalizer branch
+      - name: Publish manifest fix branch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -b release/1.6.2-publish-trigger
-          git add -A
-          git commit -m 'Finalize Service Desk 1.6.2 release manifest'
-          git push origin HEAD:release/1.6.2-publish-trigger
+          git checkout -b release/2.0.0-manifest-fix
+          git add MANIFEST.sha256
+          git commit -m 'Finalize Service Desk 2.0.0 release manifest'
+          git push -f origin HEAD:release/2.0.0-manifest-fix
