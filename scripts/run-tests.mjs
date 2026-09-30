@@ -5,14 +5,14 @@ import {VERSION} from '../lib/version.mjs';
 
 const testsDir=join(process.cwd(),'tests');
 const integrationSource=join(testsDir,'integration.test.mjs');
-const integrationGenerated=join(testsDir,'__integration-v8.generated.mjs');
+const integrationGenerated=join(testsDir,'__integration-v9.generated.mjs');
 const releaseSource=join(testsDir,'release-1.0.1.test.mjs');
 const releaseGenerated=join(testsDir,'__release-current.generated.mjs');
 const v6Source=join(testsDir,'v6.test.mjs');
 const v6Generated=join(testsDir,'__v6-current.generated.mjs');
 
 const legacy="assert.equal(clean.prepare('PRAGMA user_version').get().user_version,7)";
-const current="assert.equal(clean.prepare('PRAGMA user_version').get().user_version,8)";
+const current="assert.equal(clean.prepare('PRAGMA user_version').get().user_version,9)";
 let integrationBody=readFileSync(integrationSource,'utf8');
 const matches=integrationBody.split(legacy).length-1;
 if(matches!==1)throw new Error(`Expected exactly one legacy schema assertion, found ${matches}. Update tests/integration.test.mjs directly.`);
@@ -27,6 +27,7 @@ if(!releaseBody.includes(historicalVersion)&&!releaseBody.includes(escapedHistor
 releaseBody=releaseBody
   .replaceAll(historicalVersion,VERSION)
   .replaceAll(escapedHistorical,escapedCurrent)
+  .replaceAll('assert.equal(SCHEMA_VERSION,8)','assert.equal(SCHEMA_VERSION,9)')
   .replace('1\\.0\\.[0123]','1\\.0\\.[01234]');
 
 // Modern canonical UI (1.4+) deliberately retires the historical Settings/release CSS
@@ -45,9 +46,9 @@ const parts=VERSION.split('.').map(Number);
 if(parts.length!==3||parts.some(Number.isNaN))throw new Error(`Invalid VERSION ${VERSION}`);
 const futureVersion=`${parts[0]}.${parts[1]}.${parts[2]+1}`;
 let v6Body=readFileSync(v6Source,'utf8');
-const updateFixture=/version:'\d+\.\d+\.\d+',schema:8,minimum_schema:6,tag:'v\d+\.\d+\.\d+'/;
+const updateFixture=/version:'\d+\.\d+\.\d+',schema:\d+,minimum_schema:6,tag:'v\d+\.\d+\.\d+'/;
 if(!updateFixture.test(v6Body))throw new Error('Could not locate updater release fixture in tests/v6.test.mjs.');
-v6Body=v6Body.replace(updateFixture,`version:'${futureVersion}',schema:8,minimum_schema:6,tag:'v${futureVersion}'`);
+v6Body=v6Body.replace(updateFixture,`version:'${futureVersion}',schema:9,minimum_schema:6,tag:'v${futureVersion}'`);
 writeFileSync(v6Generated,v6Body);
 
 try{
@@ -56,7 +57,7 @@ try{
     .map(name=>join('tests',name));
   files.push(join('tests','__release-current.generated.mjs'));
   files.push(join('tests','__v6-current.generated.mjs'));
-  files.push(join('tests','__integration-v8.generated.mjs'));
+  files.push(join('tests','__integration-v9.generated.mjs'));
   const result=spawnSync(process.execPath,['--test',...files],{stdio:'inherit',env:process.env});
   if(result.error)throw result.error;
   process.exitCode=result.status??1;

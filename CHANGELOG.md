@@ -1,3 +1,10 @@
+## 2.0.0 - release candidate
+
+- Replaced active visual release overlays with the Service Desk 2.0 design system and shell.
+- Added schema 9 and the 8 -> 9 migration for project workspace settings, service catalog categories, integration health and user UI preferences.
+- Extended saved queue views with columns, sort direction and density metadata.
+- Reworked Administration, queue, ticket and portal presentation for the 2.0 information architecture.
+
 ## 1.6.2 - 2026-09-30
 
 - fixed create-dialog attachment state leaking into an unrelated ticket after cancellation,

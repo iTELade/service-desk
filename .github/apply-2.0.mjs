@@ -135,13 +135,15 @@ const routeName=value=>{
   if(value.startsWith('#/ticket/'))return 'ticket';
   if(value.startsWith('#/project/')&&value.includes('/settings'))return 'project-settings';
   if(value.startsWith('#/portal'))return 'portal';
-  return value.replace(/^#\//,'').split('/')[0]||'home';
+  return value.startsWith('#/')?(value.slice(2).split('/')[0]||'home'):'home';
 };
 const labels={queue:'Queues',board:'Board',projects:'Projects',users:'Customers & people',settings:'Administration',ticket:'Request',portal:'Help center',reports:'Reports'};
 function navGroup(link){const href=link.getAttribute('href')||'';if(/queue|board/.test(href))return 'Work';if(/projects|assets|knowledge|reports/.test(href))return 'Service management';if(/users|organizations/.test(href))return 'People';if(/settings|admin/.test(href))return 'Administration';return 'More';}
 function decorateNavigation(){
   const nav=$('.workspace .sidebar nav');if(!nav)return;
   nav.classList.add('sd20-nav');
+  if(nav.dataset.sd20Decorated==='1')return;
+  nav.dataset.sd20Decorated='1';
   const seen=new Set();
   for(const link of $$(':scope > a',nav)){
     const group=navGroup(link);link.dataset.sd20Group=group;link.classList.add('sd20-nav-link');

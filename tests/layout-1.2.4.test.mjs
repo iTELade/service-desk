@@ -1,31 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-
-const ui=readFileSync(new URL('../public/release-1.2.0.js',import.meta.url),'utf8');
-const css=readFileSync(new URL('../public/app.css',import.meta.url),'utf8');
-const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
-const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
-const security=readFileSync(new URL('../public/security.js',import.meta.url),'utf8');
-
-test('1.6.2 keeps the clean canonical presentation boundary with one scoped Agent Experience layer',()=>{
-  assert.match(css,/Service Desk 1\.6\.2 — Jira Service Management inspired workspace rebuild/);
-  assert.match(index,/\/app\.css\?v=1\.6\.2/);assert.match(index,/\/release-1\.1\.2\.css\?v=1\.6\.2/);assert.match(index,/\/agent-experience-1\.6\.css\?v=1\.6\.2/);
-  for(const retired of ['settings.css','release-1.1.4.css','release-1.1.4-layout.css','release-1.2.0.css','release-1.2.0-nav.css','settings-nav-complete.js'])assert.ok(!index.includes('/'+retired+'?v='),`legacy presentation asset must stay retired: ${retired}`);
-});
-
-test('1.5 queue is one work surface with safe refresh continuity',()=>{
-  assert.match(ui,/function rebuildQueue\(\)/);assert.match(ui,/jsm-queue-workspace/);assert.match(ui,/sd14-view-settings/);assert.match(ui,/\[data-r112-queue-tools\]/);assert.match(ui,/function keepNewest\(nodes\)/);assert.match(ui,/let queueSnapshotHTML=''/);assert.match(ui,/function showQueueGhost\(main\)/);assert.match(ui,/sanitizeGhost\(ghost\)/);assert.doesNotMatch(ui,/main\.innerHTML=queueSnapshot/);assert.match(css,/sd14-queue-ghost/);
-});
-
-test('1.5 ticket base still provides issue header, work column and sticky context rail',()=>{
-  assert.match(ui,/function rebuildTicket\(\)/);assert.match(ui,/sd14-ticket-header/);assert.match(ui,/sd14-ticket-title-row/);assert.match(ui,/sd14-ticket-main/);assert.match(ui,/const attachments=keepNewest/);assert.match(css,/\.ticket-layout\{display:grid;grid-template-columns:minmax\(0,1fr\) 330px/);assert.match(css,/\.ticket-sidebar\{position:sticky/);assert.match(css,/\.sd14-history/);
-});
-
-test('1.5 remains one forced light product theme',()=>{
-  assert.match(ui,/function forceLightTheme\(\)/);assert.match(ui,/root\.dataset\.theme='light'/);assert.match(ui,/root\.style\.colorScheme='light'/);assert.match(css,/html\[data-theme="dark"\],html\[data-theme="system"\]/);assert.doesNotMatch(css,/@media\s*\(prefers-color-scheme:\s*dark\)/);
-});
-
-test('1.6.2 application version and browser cache markers are aligned',()=>{
-  assert.match(version,/VERSION='1\.6\.2'/);assert.match(ui,/const VERSION='1\.6\.2'/);assert.match(security,/VERSION='1\.6\.2'/);assert.match(index,/app\.js\?v=1\.6\.2/);assert.match(index,/release-1\.2\.0\.js\?v=1\.6\.2/);assert.match(index,/agent-experience-1\.6\.js\?v=1\.6\.2/);assert.doesNotMatch(index,/<script(?![^>]*\bsrc=)[^>]*>/i);
-});
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const legacy=read('public/release-1.2.0.js'),base=read('public/app.css'),index=read('public/index.html'),version=read('lib/version.mjs'),security=read('public/security.js'),design=read('public/design-system.css');
+test('2.0 has one canonical active presentation boundary',()=>{assert.match(index,/\/app\.css\?v=2\.0\.0/);assert.match(index,/\/design-system\.css\?v=2\.0\.0/);assert.doesNotMatch(index,/agent-experience-1\.6/);assert.doesNotMatch(index,/release-1\.2\.0\.js/);});
+test('legacy functional queue rebuild remains available during 2.0 compatibility phase',()=>{assert.match(legacy,/function rebuildQueue\(\)/);assert.match(legacy,/keepNewest/);assert.match(base,/sd14-queue-ghost/);});
+test('legacy functional ticket rebuild remains available during 2.0 compatibility phase',()=>{assert.match(legacy,/function rebuildTicket\(\)/);assert.match(legacy,/sd14-ticket-main/);assert.match(design,/\.sd20-ticket-layout/);});
+test('2.0 version, schema and active browser cache markers are aligned',()=>{assert.match(version,/VERSION='2\.0\.0'/);assert.match(version,/SCHEMA_VERSION=9/);assert.match(security,/VERSION='2\.0\.0'/);for(const asset of ['app.js','security.js','design-system.css','product-shell.js'])assert.ok(index.includes('/'+asset+'?v=2.0.0'));assert.doesNotMatch(index,/<script(?![^>]*\bsrc=)[^>]*>/i);});

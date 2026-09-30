@@ -1,5 +1,10 @@
 # iTELade Service Desk 1.6.2
 
+## Service Desk 2.0
+
+The 2.0 line introduces a unified Jira Service Management-inspired product shell, schema 9 and a forward-only database migration. See `UI_2.0.md` and `MIGRATION_2.0.md` before upgrading.
+
+
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
 Service Desk combines customer portals, internal and external projects, configurable workflows, SLA, automation, Assets / CMDB, LDAP / Active Directory, SSO/OIDC, inbound and outbound mail, API/webhooks, GitHub Issues intake, approvals, audit, saved queues, protected attachments and an extensible plugin foundation.
