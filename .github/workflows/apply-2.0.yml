@@ -1,0 +1,46 @@
+name: Apply Service Desk 2.0
+
+on:
+  push:
+    branches:
+      - feature/service-desk-2.0
+    paths:
+      - .github/apply-2.0.mjs
+      - .github/workflows/apply-2.0.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/service-desk-2.0
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Apply 2.0 patch
+        run: node .github/apply-2.0.mjs
+      - name: Install dependencies
+        run: npm ci
+      - name: Syntax and static checks
+        run: npm run check
+      - name: Test suite
+        run: npm run test:ci
+      - name: Upgrade script syntax
+        run: bash -n scripts/upgrade.sh
+      - name: Commit validated 2.0 changes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: prepare Service Desk 2.0 and schema 9"
+          git push origin HEAD:feature/service-desk-2.0
