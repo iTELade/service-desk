@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {JSDOM} from 'jsdom';
+const shell=readFileSync(new URL('../public/product-shell.js',import.meta.url),'utf8');
+const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const css=readFileSync(new URL('../public/design-system.css',import.meta.url),'utf8');
+const boot=(hash,main)=>{const dom=new JSDOM(`<!doctype html><body class="sd20"><div class="workspace"><aside class="sidebar"><a class="brand"><span>Desk</span></a><nav><a href="#/queue">Kolejki</a><a href="#/projects">Projekty</a><a href="#/users">Użytkownicy</a><a href="#/settings">Ustawienia</a></nav></aside><div class="workspace-content"><header class="topbar"></header><main id="main">${main}</main></div></div></body>`,{url:'https://desk.example/'+hash,runScripts:'outside-only'});dom.window.requestAnimationFrame=fn=>dom.window.setTimeout(fn,0);dom.window.eval(shell);return dom;};
+const settle=()=>new Promise(resolve=>setTimeout(resolve,10));
+test('2.0 index uses one design system and retires active visual release overlays',()=>{assert.ok(index.includes('/design-system.css?v=2.0.0'));assert.ok(index.includes('/product-shell.js?v=2.0.0'));assert.doesNotMatch(index,/agent-experience-1.6/);assert.doesNotMatch(index,/release-1.2.0/);});
+test('2.0 shell groups navigation and adds route context',async()=>{const dom=boot('#/queue','<div class="page-heading"><h1>Kolejki</h1></div><div class="metrics"></div><form class="filters"></form><div class="table-scroll"><table></table></div>');await settle();const d=dom.window.document;assert.equal(d.querySelector('.brand span').textContent,'iTELade Service Management');assert.ok(d.querySelector('.sd20-nav-group'));assert.ok(d.querySelector('.sd20-context'));assert.ok(d.querySelector('#main').classList.contains('sd20-queue-workspace'));dom.window.close();});
+test('2.0 Settings gains dedicated administration navigation surface and search',async()=>{const dom=boot('#/settings','<span class="version-chip">Wersja 2.0.0</span><div class="settings-center"><aside class="settings-nav"><a class="settings-nav-link">LDAP / AD</a></aside><section class="settings-content"></section></div>');await settle();const d=dom.window.document;assert.ok(d.querySelector('.sd20-settings-center'));assert.ok(d.querySelector('.sd20-settings-search input'));dom.window.close();});
+test('2.0 design system defines shell, queue, ticket, settings and responsive portal primitives',()=>{for(const token of ['--sd20-sidebar-width','.sd20-queue-table','.sd20-ticket-layout','.sd20-settings-center','.sd20-customer-portal','@media (max-width:820px)'])assert.ok(css.includes(token),token);});

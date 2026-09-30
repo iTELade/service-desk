@@ -1,5 +1,6 @@
 import {createReset,applyPendingReset} from './lib/reset.mjs';
 import {migrateV8} from './lib/migration-v8.mjs';
+import {migrateV9} from './lib/migration-v9.mjs';
 import {createV8} from './lib/v8.mjs';
 import {createSecurityKeys} from './lib/security-keys.mjs';
 import {migrateV7} from './lib/migration-v7.mjs';
@@ -41,7 +42,7 @@ const resetBootstrap = applyPendingReset(dataDir);
 const db = new DatabaseSync(join(dataDir, 'desk.sqlite'));
 db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
 const schemaVersion = db.prepare('PRAGMA user_version').get().user_version;
-if (schemaVersion > 8) throw new Error('Baza wymaga nowszej wersji aplikacji.');
+if (schemaVersion > 9) throw new Error('Baza wymaga nowszej wersji aplikacji.');
 if (!schemaVersion) {
   db.exec(`BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -138,6 +139,7 @@ if(db.prepare('PRAGMA user_version').get().user_version<5)migrateV5(db);
 if(db.prepare('PRAGMA user_version').get().user_version<6)migrateV6(db);
 migrateV7(db);
 if(db.prepare('PRAGMA user_version').get().user_version<8)migrateV8(db);
+if(db.prepare('PRAGMA user_version').get().user_version<9)migrateV9(db);
 // Fresh installations do not need the legacy built-in automation account.
 if(!schemaVersion&&!db.prepare('SELECT id FROM projects LIMIT 1').get())db.prepare("DELETE FROM users WHERE email='bot@desk.invalid' AND password='!service'").run();
 const mfa=createMfa(db,{dataDir});
@@ -277,7 +279,9 @@ function queryTickets(search,user){
 const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
+  ['/product-shell.js', ['product-shell.js', 'text/javascript; charset=utf-8']],
   ['/app.css', ['app.css', 'text/css; charset=utf-8']],
+  ['/design-system.css', ['design-system.css', 'text/css; charset=utf-8']],
   ['/agent-experience-1.6.css', ['agent-experience-1.6.css', 'text/css; charset=utf-8']],
   ['/release-1.1.2.css', ['release-1.1.2.css', 'text/css; charset=utf-8']],
   ['/release-1.1.3.css', ['release-1.1.3.css', 'text/css; charset=utf-8']],

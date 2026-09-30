@@ -44,3 +44,12 @@ Po testach automatycznych wykonaj smoke test na docelowym środowisku dla:
 - Chromium oraz co najmniej jednego dodatkowego silnika przeglądarki używanego produkcyjnie.
 
 Testy jednostkowe/DOM nie zastępują testu prawdziwej przeglądarki ani testu aktualizacji z Dockerem.
+
+
+## Service Desk 2.0
+
+- schema 8 -> 9 migration must pass tests/v9.test.mjs;
+- index.html must load design-system.css and product-shell.js with the current version;
+- active 1.2.x / 1.6.x visual decorator assets must not be loaded;
+- queue, ticket, Settings and portal shell primitives are covered by tests/ui-2.0.test.mjs;
+- production promotion additionally requires manual integration smoke tests listed in RELEASE_NOTES_2.0.0.md.

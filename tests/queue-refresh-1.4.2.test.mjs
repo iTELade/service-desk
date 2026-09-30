@@ -8,9 +8,9 @@ const guard=readFileSync(new URL('../public/security.js',import.meta.url),'utf8'
 const liveGuard=guard.split('\n\n(() => {')[0];
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 
-test('1.6.2 queue refresh guard loads before the application live refresh',()=>{
-  assert.match(version,/VERSION='1\.6\.2'/);
-  assert.ok(index.indexOf('/security.js?v=1.6.2')<index.indexOf('/app.js?v=1.6.2'));
+test('2.0.0 queue refresh guard loads before the application live refresh',()=>{
+  assert.match(version,/VERSION='2\.0\.0'/);
+  assert.ok(index.indexOf('/security.js?v=2.0.0')<index.indexOf('/app.js?v=2.0.0'));
   assert.match(liveGuard,/queueRefreshGuard=VERSION/);
   assert.match(app,/setInterval\(\(\)=>void refreshLiveView\(\),5000\)/);
 });

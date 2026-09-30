@@ -1,6 +1,6 @@
 (()=>{
   'use strict';
-  const VERSION='1.6.2',nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);let refreshCallback=null,probeBusy=false;
+  const VERSION='2.0.0',nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);let refreshCallback=null,probeBusy=false;
   const source=fn=>{try{return Function.prototype.toString.call(fn);}catch{return '';}};
   const isLiveRefresh=fn=>typeof fn==='function'&&source(fn).includes('refreshLiveView');
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
