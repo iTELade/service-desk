@@ -1,0 +1,236 @@
+from pathlib import Path
+import json
+
+
+def read(path):
+    return Path(path).read_text(encoding='utf-8')
+
+def write(path, text):
+    Path(path).write_text(text, encoding='utf-8')
+
+def replace(path, old, new, count=-1):
+    text = read(path)
+    if old not in text:
+        raise SystemExit(f'Expected patch target not found in {path}: {old[:120]!r}')
+    write(path, text.replace(old, new, count))
+
+pkg = json.loads(read('package.json'))
+pkg['version'] = '1.6.2'
+write('package.json', json.dumps(pkg, ensure_ascii=False, indent=2) + '\n')
+lock = json.loads(read('package-lock.json'))
+lock['version'] = '1.6.2'
+if isinstance(lock.get('packages'), dict) and '' in lock['packages']:
+    lock['packages']['']['version'] = '1.6.2'
+write('package-lock.json', json.dumps(lock, ensure_ascii=False, indent=2) + '\n')
+replace('lib/version.mjs', "export const VERSION='1.6.1';", "export const VERSION='1.6.2';")
+
+p = 'public/release-1.1.2.js'
+text = read(p)
+text = text.replace('let sessionCache=null,searchTimer=null,pendingCreateFiles=[];', 'let sessionCache=null,searchTimer=null,pendingCreateFiles=null;')
+old = '''  async function installCreateAttachment(){const form=document.querySelector('form[data-form="create-ticket"],form[data-form="create"]');if(!form||form.querySelector('[data-r112-create-files]'))return;const label=document.createElement('label');label.innerHTML=`${esc(tr('Załączniki'))} <input type="file" multiple data-r112-create-files><small class="hint">${esc(tr('Maks. 2 MB na plik. Zablokowane pliki wykonywalne i aktywna zawartość HTML/JS.'))}</small>`;form.querySelector('.form-actions')?.before(label);label.querySelector('input').addEventListener('change',e=>pendingCreateFiles=[...e.target.files]);}'''
+new = '''  async function installCreateAttachment(){const form=document.querySelector('form[data-form="create-ticket"],form[data-form="create"]');if(!form||form.querySelector('[data-r112-create-files]'))return;const label=document.createElement('label');label.innerHTML=`${esc(tr('Załączniki'))} <input type="file" multiple data-r112-create-files><small class="hint">${esc(tr('Maks. 2 MB na plik. Zablokowane pliki wykonywalne i aktywna zawartość HTML/JS.'))}</small>`;form.querySelector('.form-actions')?.before(label);const input=label.querySelector('input');let selectedFiles=[];input.addEventListener('change',e=>selectedFiles=[...e.target.files]);form.addEventListener('submit',()=>{const token=selectedFiles.length?{form,files:[...selectedFiles],submittedAt:Date.now()}:null;pendingCreateFiles=token;if(token)setTimeout(()=>{if(pendingCreateFiles===token&&document.body.contains(form))pendingCreateFiles=null;},15000);},{capture:true});form.addEventListener('reset',()=>{selectedFiles=[];if(pendingCreateFiles?.form===form)pendingCreateFiles=null;});}'''
+if old not in text:
+    raise SystemExit('QA-13 create attachment target not found')
+text = text.replace(old, new)
+old = "if(pendingCreateFiles.length){const files=pendingCreateFiles;pendingCreateFiles=[];await uploadFiles(key,files,false);section.remove();decorate();}"
+new = "if(pendingCreateFiles?.files?.length){const pending=pendingCreateFiles;pendingCreateFiles=null;if(Date.now()-pending.submittedAt<=60000){await uploadFiles(key,pending.files,false);section.remove();decorate();}}"
+if old not in text:
+    raise SystemExit('QA-13 attachment consume target not found')
+text = text.replace(old, new)
+old = "const n=new URLSearchParams(q);for(const key of ['assignee','status','queue'])if(['mine','unassigned','waiting','active'].includes(quick))n.delete(key);"
+new = "const n=new URLSearchParams(q);for(const key of ['assignee','status','queue','sla_risk'])n.delete(key);"
+if old not in text:
+    raise SystemExit('QA-15 queue query target not found')
+text = text.replace(old, new)
+old = "else if(quick==='oldest')n.set('sort','created_asc');"
+new = "else if(quick==='oldest')n.set('sort','created_asc');else if(quick==='sla_risk')n.set('sla_risk','1');"
+if old not in text:
+    raise SystemExit('QA-15 sla quick target not found')
+text = text.replace(old, new)
+write(p, text)
+
+replace(
+    'public/security.js',
+    "function dirtyControl(el){if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;if(el instanceof HTMLSelectElement)return [...el.options].some(o=>o.selected!==o.defaultSelected);return false;}",
+    "function dirtyControl(el){if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;if(el instanceof HTMLSelectElement){const options=[...el.options],defaults=options.filter(o=>o.defaultSelected).map(o=>o.value);if(!el.multiple&&!defaults.length&&options[0])defaults.push(options[0].value);const selected=options.filter(o=>o.selected).map(o=>o.value);return selected.length!==defaults.length||selected.some((v,i)=>v!==defaults[i]);}return false;}"
+)
+
+p = 'server.mjs'
+text = read(p)
+old = '''  return {
+    total: db.prepare('SELECT COUNT(*) n FROM tickets t' + clause).get(...values).n,
+    tickets: db.prepare(ticketSelect + clause + ' ORDER BY '+order+' LIMIT ? OFFSET ?').all(...values, size, (page - 1) * size).map(t=>ticketWithSla(t,user)),
+    page, limit: size
+  };'''
+new = '''  if(search.get('sla_risk')==='1'){
+    const all=db.prepare(ticketSelect + clause + ' ORDER BY '+order).all(...values).map(t=>ticketWithSla(t,user));
+    const risky=all.filter(t=>(t.sla||[]).some(s=>s.state==='running'&&(s.breached||(Number(s.target_ms)>0&&Number(s.remaining_ms)<=Number(s.target_ms)*0.25))));
+    return {total:risky.length,tickets:risky.slice((page-1)*size,page*size),page,limit:size};
+  }
+  return {
+    total: db.prepare('SELECT COUNT(*) n FROM tickets t' + clause).get(...values).n,
+    tickets: db.prepare(ticketSelect + clause + ' ORDER BY '+order+' LIMIT ? OFFSET ?').all(...values, size, (page - 1) * size).map(t=>ticketWithSla(t,user)),
+    page, limit: size
+  };'''
+if old not in text:
+    raise SystemExit('QA-15 server query target not found')
+write(p, text.replace(old, new))
+
+p = 'lib/v8.mjs'
+text = read(p)
+old = '''  function dashboard(u){
+    staff(u);const visible=projects.list(u).filter(p=>p.can_work&&p.project_type!=='assets').map(p=>p.id);
+    if(!visible.length)return {projects:0,open:0,unassigned:0,waiting:0,sla_at_risk:0,recent:[]};
+    const placeholders=visible.map(()=>'?').join(',');
+    const base=`project_id IN (${placeholders}) AND deleted_at IS NULL AND archived_at IS NULL`;
+    const count=where=>db.prepare(`SELECT COUNT(*) n FROM tickets WHERE ${base} AND ${where}`).get(...visible).n;
+    const recent=db.prepare(`SELECT key,title,priority,workflow_status,updated_at FROM tickets WHERE ${base} ORDER BY updated_at DESC LIMIT 10`).all(...visible);
+    return {projects:visible.length,open:count("status NOT IN ('resolved','closed')"),unassigned:count("assignee_id IS NULL AND status NOT IN ('resolved','closed')"),waiting:count("status='waiting'"),sla_at_risk:0,recent};
+  }'''
+new = '''  function dashboard(u){
+    staff(u);const visible=projects.list(u).filter(p=>p.can_work&&p.project_type!=='assets').map(p=>p.id);
+    if(!visible.length)return {projects:0,open:0,unassigned:0,waiting:0,sla_at_risk:0,recent:[]};
+    const placeholders=visible.map(()=>'?').join(',');
+    const base=`project_id IN (${placeholders}) AND deleted_at IS NULL AND archived_at IS NULL`;
+    const count=where=>db.prepare(`SELECT COUNT(*) n FROM tickets WHERE ${base} AND ${where}`).get(...visible).n;
+    const openTickets=db.prepare(`SELECT * FROM tickets WHERE ${base} AND status NOT IN ('resolved','closed')`).all(...visible);
+    const slaAtRisk=openTickets.filter(t=>(desk.detail(t,u).sla||[]).some(s=>s.state==='running'&&(s.breached||(Number(s.target_ms)>0&&Number(s.remaining_ms)<=Number(s.target_ms)*0.25)))).length;
+    const recent=db.prepare(`SELECT key,title,priority,workflow_status,updated_at FROM tickets WHERE ${base} ORDER BY updated_at DESC LIMIT 10`).all(...visible);
+    return {projects:visible.length,open:openTickets.length,unassigned:count("assignee_id IS NULL AND status NOT IN ('resolved','closed')"),waiting:count("status='waiting'"),sla_at_risk:slaAtRisk,recent};
+  }'''
+if old not in text:
+    raise SystemExit('QA-16 dashboard target not found')
+write(p, text.replace(old, new))
+
+replace('public/release-1.1.3.js', "const VERSION='1.1.3';", "const VERSION='1.6.2';")
+replace('public/settings-nav-complete.js', "const SETTINGS_NAV_VERSION = '1.3.2';", "const SETTINGS_NAV_VERSION = '1.6.2';")
+
+for path in Path('public').glob('*'):
+    if path.is_file() and path.suffix in {'.js', '.html'}:
+        s = path.read_text(encoding='utf-8')
+        if '1.6.1' in s:
+            path.write_text(s.replace('1.6.1', '1.6.2'), encoding='utf-8')
+
+p = 'public/i18n.js'
+text = read(p)
+marker = "    ['Komunikacja','Communication','Kommunikation'],['Tożsamość i dostęp','Identity and access','Identität und Zugriff'],['System','System','System'],['Bezpieczeństwo','Security','Sicherheit'],\n"
+addition = """    ['Komunikacja','Communication','Kommunikation'],['Tożsamość i dostęp','Identity and access','Identität und Zugriff'],['System','System','System'],['Bezpieczeństwo','Security','Sicherheit'],
+    ['Obsługa i realizacja','Service delivery','Servicebereitstellung'],['OBSŁUGA I REALIZACJA','SERVICE DELIVERY','SERVICEBEREITSTELLUNG'],['Baza wiedzy','Knowledge base','Wissensdatenbank'],['Poczta i powiadomienia','Mail and notifications','E-Mail und Benachrichtigungen'],
+    ['Komentarze','Comments','Kommentare'],['Załączniki','Attachments','Anhänge'],['Powiązania','Related','Verknüpfungen'],['Historia','History','Verlauf'],['Aktywność zgłoszenia','Ticket activity','Ticket-Aktivität'],
+    ['Szukaj ustawień…','Search settings…','Einstellungen durchsuchen…'],['Szukaj ustawień','Search settings','Einstellungen durchsuchen'],['Brak ustawień pasujących do wyszukiwania.','No settings match your search.','Keine passenden Einstellungen gefunden.'],
+    ['Wygląd i marka','Branding and appearance','Darstellung und Branding'],['Katalog LDAP / Active Directory','LDAP / Active Directory','LDAP / Active Directory'],['Logowanie SSO / OIDC','SSO / OIDC login','SSO / OIDC-Anmeldung'],['MFA i moje konto','MFA and my account','MFA und mein Konto'],
+    ['Wnioski o zmiany profilu','Profile change requests','Profiländerungsanträge'],['Zarządzanie usługami','Service management','Service-Management'],['Szablony workflow i statusów','Workflow and status templates','Workflow- und Statusvorlagen'],['Zatwierdzenia obiegu','Workflow approvals','Workflow-Genehmigungen'],
+    ['Domyślna poczta SMTP i kolejka','Default SMTP and queue','Standard-SMTP und Warteschlange'],['Skrzynki zespołów · IMAP i SMTP','Team mailboxes · IMAP and SMTP','Team-Postfächer · IMAP und SMTP'],['Szablony powiadomień e-mail','Email notification templates','E-Mail-Benachrichtigungsvorlagen'],
+    ['Przegląd integracji','Integrations overview','Integrationsübersicht'],['GitHub Issues','GitHub Issues','GitHub Issues'],['Tokeny API','API tokens','API-Token'],['Przegląd zasobów / CMDB','Assets / CMDB overview','Assets / CMDB-Übersicht'],['Katalog środków trwałych','Assets catalog','Asset-Katalog'],
+    ['Diagnostyka i utrzymanie','Diagnostics and maintenance','Diagnose und Wartung'],['Zaawansowane ustawienia systemu','Advanced system settings','Erweiterte Systemeinstellungen'],
+"""
+if marker not in text:
+    raise SystemExit('QA-11 i18n marker not found')
+write(p, text.replace(marker, addition))
+
+for path in Path('tests').glob('*.mjs'):
+    s = path.read_text(encoding='utf-8')
+    s = s.replace('1.6.1', '1.6.2').replace('Wersja 1.5.0', 'Wersja 1.6.2')
+    path.write_text(s, encoding='utf-8')
+
+p = '.github/workflows/publish-version.yml'
+text = read(p)
+needle = '          bash -n scripts/upgrade.sh\n'
+if needle not in text:
+    raise SystemExit('publish checksum insertion target not found')
+text = text.replace(needle, needle + '          sha256sum -c MANIFEST.sha256\n', 1)
+refresh = '      - name: Refresh repository checksum manifest\n'
+if refresh not in text:
+    raise SystemExit('post-release manifest refresh step not found')
+write(p, text.split(refresh, 1)[0])
+
+for doc in ['README.md', 'VALIDATION.md']:
+    write(doc, read(doc).replace('1.6.1', '1.6.2'))
+
+changelog = read('CHANGELOG.md')
+entry = """## 1.6.2 - 2026-09-30
+
+- fixed create-dialog attachment state leaking into an unrelated ticket after cancellation,
+- restored non-destructive queue refresh when untouched selects have implicit browser defaults,
+- made the SLA-risk quick filter server-side and pagination-safe,
+- replaced the dashboard's hard-coded `sla_at_risk: 0` with live SLA metrics,
+- unified active Settings decorators on the current application version to stop mutation churn,
+- expanded the English translation layer for Settings and ticket activity,
+- hardened release publishing so checksum verification happens before tagging/release creation.
+
+"""
+if changelog.startswith('# '):
+    pos = changelog.find('\n') + 1
+    changelog = changelog[:pos] + '\n' + entry + changelog[pos:].lstrip('\n')
+else:
+    changelog = entry + changelog
+write('CHANGELOG.md', changelog)
+
+write('RELEASE_NOTES_1.6.2.md', """# Service Desk 1.6.2
+
+Service Desk 1.6.2 is a hardening release following the full 1.6.1 QA retest. Database schema remains **8** and no migration is required.
+
+## Fixed
+
+- Create-ticket attachments are scoped to the submitted create form and are no longer carried from a cancelled dialog into an unrelated customer ticket.
+- Queue live refresh no longer treats a browser's implicit first `<select>` option as an unsaved user change.
+- `SLA zagrożone / SLA at risk` is now a server-side numeric filter and pagination is applied after the risk set is computed.
+- The v8 dashboard computes `sla_at_risk` from live ticket SLA metrics instead of returning a hard-coded zero.
+- Legacy Settings decorators now use the same application version as the rest of the UI, removing the 1.5/1.6 version-chip rewrite loop.
+- English translations cover the Settings and ticket activity labels reproduced by QA.
+- Release publishing verifies `MANIFEST.sha256` before release creation; the tagged source must already contain a valid manifest.
+
+## Validation
+
+- `npm run check`
+- `npm run test:ci`
+- `bash -n scripts/upgrade.sh`
+- `sha256sum -c MANIFEST.sha256`
+
+Environment-level checks are still required for live AD/LDAP, Keycloak/OIDC, Mailcow/inbound mail, GitHub Issues integration, Docker updater/rollback, Safari/Firefox and physical FIDO2/WebAuthn devices.
+""")
+
+write('tests/hotfix-1.6.2.test.mjs', r"""import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+
+test('1.6.2 scopes pending create attachments to submit',()=>{
+  const s=read('public/release-1.1.2.js');
+  assert.match(s,/pendingCreateFiles=null/);
+  assert.match(s,/form\.addEventListener\('submit'/);
+  assert.doesNotMatch(s,/addEventListener\('change',e=>pendingCreateFiles=/);
+  assert.match(s,/pendingCreateFiles\?\.files\?\.length/);
+});
+
+test('1.6.2 queue refresh understands implicit select defaults',()=>{
+  const s=read('public/security.js');
+  assert.match(s,/!el\.multiple&&!defaults\.length&&options\[0\]/);
+});
+
+test('1.6.2 SLA risk is an API filter and dashboard metric',()=>{
+  const ui=read('public/release-1.1.2.js'),server=read('server.mjs'),v8=read('lib/v8.mjs');
+  assert.match(ui,/quick==='sla_risk'\)n\.set\('sla_risk','1'\)/);
+  assert.match(server,/search\.get\('sla_risk'\)==='1'/);
+  assert.match(server,/Number\(s\.remaining_ms\).*0\.25/);
+  assert.match(v8,/sla_at_risk:slaAtRisk/);
+  assert.doesNotMatch(v8,/sla_at_risk:0,recent/);
+});
+
+test('1.6.2 Settings decorators share one current version',()=>{
+  assert.match(read('public/agent-experience-1.6.js'),/VERSION='1\.6\.2'/);
+  assert.match(read('public/release-1.1.3.js'),/VERSION='1\.6\.2'/);
+  assert.match(read('public/settings-nav-complete.js'),/SETTINGS_NAV_VERSION = '1\.6\.2'/);
+});
+
+test('1.6.2 English coverage includes reproduced mixed-language labels',()=>{
+  const s=read('public/i18n.js');
+  for(const label of ['OBSŁUGA I REALIZACJA','Baza wiedzy','Poczta i powiadomienia','Komentarze','Załączniki'])assert.ok(s.includes(label));
+});
+
+test('1.6.2 publishing verifies committed checksums before release',()=>{
+  const s=read('.github/workflows/publish-version.yml');
+  assert.match(s,/sha256sum -c MANIFEST\.sha256/);
+  assert.doesNotMatch(s,/Refresh repository checksum manifest/);
+});
+""")
