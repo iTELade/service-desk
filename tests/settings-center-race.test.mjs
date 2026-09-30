@@ -19,8 +19,8 @@ test('1.5 Settings recovery clears stale center marker after legacy settings ove
   await settle();
   const main = dom.window.document.querySelector('#main');
   assert.equal(main.dataset.settingsCenterVersion, undefined);
-  assert.equal(main.dataset.settingsRecovery, '1.5.0');
-  assert.match(main.innerHTML, /settings-center-recover-1\.5\.0/);
+  assert.equal(main.dataset.settingsRecovery, '1.6.2');
+  assert.match(main.innerHTML, /settings-center-recover-1\.6\.2/);
   assert.equal(dom.window.document.documentElement.dataset.theme, 'light');
 });
 
@@ -30,7 +30,7 @@ test('1.5 Settings navigation exposes every administration group and critical mo
   const dom = boot(`<!doctype html><html><body><main id="main"><span class="version-chip">Wersja 1.0.3</span><div class="settings-center"><aside class="settings-nav">${nav}</aside><section class="settings-content"></section></div></main></body></html>`);
   await settle();
   const doc = dom.window.document;
-  assert.equal(doc.querySelector('.version-chip').textContent, 'Wersja 1.5.0');
+  assert.equal(doc.querySelector('.version-chip').textContent, 'Wersja 1.6.2');
   const hrefs = [...doc.querySelectorAll('.settings-nav-link')].map(a => a.getAttribute('href'));
   for (const expected of ['/#/users','/#/directory','/#/admin/sso','/#/projects','/#/admin/templates','/#/admin/mail','/#/admin/mail-templates','/#/admin/sync','/#/admin/knowledge','/#/admin/api-tokens','/#/admin/webhooks','/#/settings?section=github','/#/settings?section=plugins','/#/admin/assets','/#/settings?section=audit','/#/admin/updates','/#/admin/events','/#/admin-settings']) assert.ok(hrefs.includes(expected), `missing Settings link ${expected}`);
 });

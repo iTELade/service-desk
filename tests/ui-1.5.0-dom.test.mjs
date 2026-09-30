@@ -82,7 +82,7 @@ test('1.5 Settings DOM keeps the native center and expands its navigation instea
   const main=`<span class="version-chip">Wersja 1.2.1</span><div class="settings-center"><aside class="settings-nav">${nav}</aside><section class="settings-content"><h1>Administracja</h1><div id="sentinel">Nie usuwaj mnie</div></section></div>`;
   const dom=boot(staffShell(main),'#/settings');await settle();const doc=dom.window.document;
   assert.ok(doc.querySelector('#sentinel'));
-  assert.equal(doc.querySelector('.version-chip').textContent,'Wersja 1.5.0');
+  assert.equal(doc.querySelector('.version-chip').textContent,'Wersja 1.6.2');
   assert.ok(doc.querySelector('.settings-nav-link[href="/#/admin/sso"]'));
   assert.ok(doc.querySelector('.settings-nav-link[href="/#/admin/updates"]'));
   assert.ok(doc.body.classList.contains('jsm-route-settings'));

@@ -1,13 +1,13 @@
 (()=>{
   'use strict';
-  const VERSION='1.6.1',nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);let refreshCallback=null,probeBusy=false;
+  const VERSION='1.6.2',nativeSetInterval=window.setInterval.bind(window),nativeAddEventListener=window.addEventListener.bind(window),nativeFetch=window.fetch.bind(window);let refreshCallback=null,probeBusy=false;
   const source=fn=>{try{return Function.prototype.toString.call(fn);}catch{return '';}};
   const isLiveRefresh=fn=>typeof fn==='function'&&source(fn).includes('refreshLiveView');
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const cls=value=>String(value??'').replace(/[^a-zA-Z0-9_-]/g,'');
   const setText=(node,value)=>{const next=String(value);if(node&&node.textContent!==next)node.textContent=next;};
   const setHtml=(node,value)=>{if(node&&node.innerHTML!==value)node.innerHTML=value;};
-  function dirtyControl(el){if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;if(el instanceof HTMLSelectElement)return [...el.options].some(o=>o.selected!==o.defaultSelected);return false;}
+  function dirtyControl(el){if(el instanceof HTMLInputElement){if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;return el.value!==el.defaultValue;}if(el instanceof HTMLTextAreaElement)return el.value!==el.defaultValue;if(el instanceof HTMLSelectElement){const options=[...el.options],defaults=options.filter(o=>o.defaultSelected).map(o=>o.value);if(!el.multiple&&!defaults.length&&options[0])defaults.push(options[0].value);const selected=options.filter(o=>o.selected).map(o=>o.value);return selected.length!==defaults.length||selected.some((v,i)=>v!==defaults[i]);}return false;}
   function queueEditorBusy(){if(document.hidden||document.querySelector('dialog[open]'))return true;const active=document.activeElement;if(active?.closest?.('#main form.filters,[data-r112-queue-tools]'))return true;return [...document.querySelectorAll('#main form.filters input,#main form.filters textarea,#main form.filters select,[data-r112-queue-tools] input,[data-r112-queue-tools] select')].some(dirtyControl);}
   function generalEditorBusy(){if(document.hidden||document.querySelector('dialog[open]'))return true;const active=document.activeElement;return Boolean(active&&active!==document.body&&active.matches?.('input,textarea,select,[contenteditable="true"]'));}
   function fmtDate(value){if(!value)return '—';try{return new Intl.DateTimeFormat(document.documentElement.lang==='en'?'en-GB':'pl-PL',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));}catch{return String(value);}}

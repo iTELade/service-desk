@@ -262,6 +262,11 @@ function queryTickets(search,user){
   const size = Math.min(100, Math.max(1, Number(search.get('limit')) || 25));
   const page = Math.max(1, Math.floor(Number(search.get('page')) || 1));
   if (!Number.isSafeInteger(page) || !Number.isSafeInteger(size) || (page - 1) * size > 10000000) fail(400, 'Nieprawidłowa strona.');
+  if(search.get('sla_risk')==='1'){
+    const all=db.prepare(ticketSelect + clause + ' ORDER BY '+order).all(...values).map(t=>ticketWithSla(t,user));
+    const risky=all.filter(t=>(t.sla||[]).some(s=>s.state==='running'&&(s.breached||(Number(s.target_ms)>0&&Number(s.remaining_ms)<=Number(s.target_ms)*0.25))));
+    return {total:risky.length,tickets:risky.slice((page-1)*size,page*size),page,limit:size};
+  }
   return {
     total: db.prepare('SELECT COUNT(*) n FROM tickets t' + clause).get(...values).n,
     tickets: db.prepare(ticketSelect + clause + ' ORDER BY '+order+' LIMIT ? OFFSET ?').all(...values, size, (page - 1) * size).map(t=>ticketWithSla(t,user)),

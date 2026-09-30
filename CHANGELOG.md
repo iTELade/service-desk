@@ -1,3 +1,13 @@
+## 1.6.2 - 2026-09-30
+
+- fixed create-dialog attachment state leaking into an unrelated ticket after cancellation,
+- restored non-destructive queue refresh when untouched selects have implicit browser defaults,
+- made the SLA-risk quick filter server-side and pagination-safe,
+- replaced the dashboard's hard-coded `sla_at_risk: 0` with live SLA metrics,
+- unified active Settings decorators on the current application version to stop mutation churn,
+- expanded the English translation layer for Settings and ticket activity,
+- hardened release publishing so checksum verification happens before tagging/release creation.
+
 ## 1.2.1 - 2026-09-16
 
 - Updates: live milestone progress bar on the update page.

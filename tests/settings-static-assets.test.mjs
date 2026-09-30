@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 const server=readFileSync(new URL('../server.mjs',import.meta.url),'utf8');
 const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 
-test('1.6.1 index references only served canonical assets',()=>{
+test('1.6.2 index references only served canonical assets',()=>{
   for(const [url,file] of [['/app.css','app.css'],['/release-1.1.2.css','release-1.1.2.css'],['/agent-experience-1.6.css','agent-experience-1.6.css'],['/i18n.js','i18n.js'],['/security.js','security.js'],['/app.js','app.js'],['/settings-center.js','settings-center.js'],['/release-1.1.2.js','release-1.1.2.js'],['/release-1.2.0.js','release-1.2.0.js'],['/agent-experience-1.6.js','agent-experience-1.6.js']]){
-    assert.ok(index.includes(url+'?v=1.6.1'),'index must reference '+url);
+    assert.ok(index.includes(url+'?v=1.6.2'),'index must reference '+url);
     assert.ok(server.includes("['"+url+"', ['"+file+"',"),'server must serve '+url);
   }
   assert.doesNotMatch(index,/<style\b/i);

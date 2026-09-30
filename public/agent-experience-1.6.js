@@ -1,7 +1,7 @@
 (()=>{
   'use strict';
 
-  const VERSION='1.6.1';
+  const VERSION='1.6.2';
   const $=(selector,root=document)=>root.querySelector(selector);
   const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
   const currentRoute=()=>location.hash.split('?')[0]||'';

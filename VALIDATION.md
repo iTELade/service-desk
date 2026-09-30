@@ -1,6 +1,6 @@
-# Walidacja 1.6.1
+# Walidacja 1.6.2
 
-Przed publikacją `v1.6.1` wykonaj:
+Przed publikacją `v1.6.2` wykonaj:
 
 ```bash
 npm ci
@@ -15,11 +15,11 @@ Przed utworzeniem finalnego artefaktu wydania odśwież `MANIFEST.sha256`, a nas
 sha256sum -c MANIFEST.sha256
 ```
 
-## Smoke test 1.6.1
+## Smoke test 1.6.2
 
 Sprawdź co najmniej:
-- `/healthz` zwraca wersję `1.6.1` i schemat `8`,
-- brak błędów CSP dla własnych assetów aplikacji; `document.documentElement.dataset.queueRefreshGuard === '1.6.1'`,
+- `/healthz` zwraca wersję `1.6.2` i schemat `8`,
+- brak błędów CSP dla własnych assetów aplikacji; `document.documentElement.dataset.queueRefreshGuard === '1.6.2'`,
 - awatary komentarzy pozostają 32×32 px na desktopie i mobile,
 - zapisany układ kolejki odtwarza wybrane kolumny po reloadzie i po live refresh,
 - kontrolki kolejki odtwarzają się po ponownym renderze tej samej trasy,
@@ -30,7 +30,7 @@ Sprawdź co najmniej:
 - ekran Settings pozostaje bezczynny bez ciągłej pętli identycznych mutacji `.version-chip`,
 - zakładki aktywności działają klawiaturą: ArrowLeft/Right/Up/Down oraz Home/End, z poprawnym `role=tab`, `tabpanel`, `aria-controls` i `aria-labelledby`,
 - formularz `data-form=create-ticket` zawiera input załączników i pliki są przesyłane po utworzeniu sprawy,
-- nagłówek produktu i Settings pokazują `1.6.1`,
+- nagłówek produktu i Settings pokazują `1.6.2`,
 - świeża instancja z językiem `en` pokazuje angielskie etykiety kolejki, ticketu, aktywności, załączników i ustawień.
 
 ## Integracje i testy środowiskowe
@@ -40,7 +40,7 @@ Po testach automatycznych wykonaj smoke test na docelowym środowisku dla:
 - TOTP i WebAuthn/FIDO2, jeżeli są używane,
 - inbound e-mail i odpowiedzi SMTP,
 - GitHub Issues → Service Desk,
-- backupu przed aktualizacją, aktualizacji 1.6.0 → 1.6.1 oraz rollbacku,
+- backupu przed aktualizacją, aktualizacji 1.6.0 → 1.6.2 oraz rollbacku,
 - Chromium oraz co najmniej jednego dodatkowego silnika przeglądarki używanego produkcyjnie.
 
 Testy jednostkowe/DOM nie zastępują testu prawdziwej przeglądarki ani testu aktualizacji z Dockerem.

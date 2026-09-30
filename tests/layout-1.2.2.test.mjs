@@ -16,8 +16,8 @@ test('1.5 design system covers every primary product surface',()=>{
   assert.match(css,/@media\(max-width:1380px\)/);assert.match(css,/@media\(max-width:1080px\)/);assert.match(css,/@media\(max-width:820px\)/);assert.match(css,/@media\(max-width:620px\)/);
 });
 
-test('1.6.1 cache boundary loads canonical presentation plus CSP-safe compatibility bootstrap',()=>{
-  assert.match(ui,/const VERSION='1\.5\.0'/);
-  assert.match(index,/app\.css\?v=1\.6\.1/);assert.match(index,/release-1\.1\.2\.css\?v=1\.6\.1/);assert.match(index,/agent-experience-1\.6\.css\?v=1\.6\.1/);assert.match(index,/release-1\.2\.0\.js\?v=1\.6\.1/);assert.match(index,/agent-experience-1\.6\.js\?v=1\.6\.1/);
+test('1.6.2 cache boundary loads canonical presentation plus CSP-safe compatibility bootstrap',()=>{
+  assert.match(ui,/const VERSION='1\.6\.2'/);
+  assert.match(index,/app\.css\?v=1\.6\.2/);assert.match(index,/release-1\.1\.2\.css\?v=1\.6\.2/);assert.match(index,/agent-experience-1\.6\.css\?v=1\.6\.2/);assert.match(index,/release-1\.2\.0\.js\?v=1\.6\.2/);assert.match(index,/agent-experience-1\.6\.js\?v=1\.6\.2/);
   assert.match(security,/queueRefreshGuard=VERSION/);assert.doesNotMatch(index,/<style\b/i);assert.doesNotMatch(index,/<script(?![^>]*\bsrc=)[^>]*>/i);assert.doesNotMatch(index,/data-sd143-customer-style|data-sd143-customer-ui/);
 });

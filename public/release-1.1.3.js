@@ -1,5 +1,5 @@
 (() => {
-  const VERSION='1.1.3';
+  const VERSION='1.6.2';
   const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
   let scheduled=false,lastHash='',queueSnapshot='';
   const route=()=>location.hash.split('?')[0];

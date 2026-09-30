@@ -8,9 +8,9 @@ const index=readFileSync(new URL('../public/index.html',import.meta.url),'utf8')
 const version=readFileSync(new URL('../lib/version.mjs',import.meta.url),'utf8');
 const security=readFileSync(new URL('../public/security.js',import.meta.url),'utf8');
 
-test('1.6.1 keeps the clean canonical presentation boundary with one scoped Agent Experience layer',()=>{
-  assert.match(css,/Service Desk 1\.5\.0 — Jira Service Management inspired workspace rebuild/);
-  assert.match(index,/\/app\.css\?v=1\.6\.1/);assert.match(index,/\/release-1\.1\.2\.css\?v=1\.6\.1/);assert.match(index,/\/agent-experience-1\.6\.css\?v=1\.6\.1/);
+test('1.6.2 keeps the clean canonical presentation boundary with one scoped Agent Experience layer',()=>{
+  assert.match(css,/Service Desk 1\.6\.2 — Jira Service Management inspired workspace rebuild/);
+  assert.match(index,/\/app\.css\?v=1\.6\.2/);assert.match(index,/\/release-1\.1\.2\.css\?v=1\.6\.2/);assert.match(index,/\/agent-experience-1\.6\.css\?v=1\.6\.2/);
   for(const retired of ['settings.css','release-1.1.4.css','release-1.1.4-layout.css','release-1.2.0.css','release-1.2.0-nav.css','settings-nav-complete.js'])assert.ok(!index.includes('/'+retired+'?v='),`legacy presentation asset must stay retired: ${retired}`);
 });
 
@@ -26,6 +26,6 @@ test('1.5 remains one forced light product theme',()=>{
   assert.match(ui,/function forceLightTheme\(\)/);assert.match(ui,/root\.dataset\.theme='light'/);assert.match(ui,/root\.style\.colorScheme='light'/);assert.match(css,/html\[data-theme="dark"\],html\[data-theme="system"\]/);assert.doesNotMatch(css,/@media\s*\(prefers-color-scheme:\s*dark\)/);
 });
 
-test('1.6.1 application version and browser cache markers are aligned',()=>{
-  assert.match(version,/VERSION='1\.6\.1'/);assert.match(ui,/const VERSION='1\.5\.0'/);assert.match(security,/VERSION='1\.6\.1'/);assert.match(index,/app\.js\?v=1\.6\.1/);assert.match(index,/release-1\.2\.0\.js\?v=1\.6\.1/);assert.match(index,/agent-experience-1\.6\.js\?v=1\.6\.1/);assert.doesNotMatch(index,/<script(?![^>]*\bsrc=)[^>]*>/i);
+test('1.6.2 application version and browser cache markers are aligned',()=>{
+  assert.match(version,/VERSION='1\.6\.2'/);assert.match(ui,/const VERSION='1\.6\.2'/);assert.match(security,/VERSION='1\.6\.2'/);assert.match(index,/app\.js\?v=1\.6\.2/);assert.match(index,/release-1\.2\.0\.js\?v=1\.6\.2/);assert.match(index,/agent-experience-1\.6\.js\?v=1\.6\.2/);assert.doesNotMatch(index,/<script(?![^>]*\bsrc=)[^>]*>/i);
 });

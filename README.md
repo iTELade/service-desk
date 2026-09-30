@@ -1,4 +1,4 @@
-# iTELade Service Desk 1.6.1
+# iTELade Service Desk 1.6.2
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
@@ -8,21 +8,21 @@ Service Desk is an independent iTELade project. It is not an Atlassian product a
 
 ## Current release
 
-**Service Desk 1.6.1**
+**Service Desk 1.6.2**
 
-Release: https://github.com/iTELade/service-desk/releases/tag/v1.6.1
+Release: https://github.com/iTELade/service-desk/releases/tag/v1.6.2
 
-Detailed notes: [RELEASE_NOTES_1.6.1.md](RELEASE_NOTES_1.6.1.md)
+Detailed notes: [RELEASE_NOTES_1.6.2.md](RELEASE_NOTES_1.6.2.md)
 
 Previous major Agent Experience release: [RELEASE_NOTES_1.6.0.md](RELEASE_NOTES_1.6.0.md)
 
 Validation checklist: [VALIDATION.md](VALIDATION.md)
 
-Database schema: **8**. Service Desk 1.6.1 does **not** require a database migration from 1.6.0.
+Database schema: **8**. Service Desk 1.6.2 does **not** require a database migration from 1.6.0.
 
-## What changed in 1.6.1
+## What changed in 1.6.2
 
-1.6.1 is a focused QA and production-readiness hotfix for the 1.6 Agent Experience release.
+1.6.2 is a focused QA and production-readiness hotfix for the 1.6 Agent Experience release.
 
 - removed dependency on CSP-blocked inline hotfix scripts and styles,
 - preserved non-destructive five-second queue refresh through same-origin external code,
@@ -35,9 +35,9 @@ Database schema: **8**. Service Desk 1.6.1 does **not** require a database migra
 - removed Settings version-chip mutation churn,
 - added proper keyboard and ARIA behavior to ticket activity tabs,
 - fixed attachment input handling in the create-ticket dialog,
-- aligned visible product/version markers to 1.6.1,
+- aligned visible product/version markers to 1.6.2,
 - completed English labels in the 1.6 Agent Experience surfaces,
-- replaced the obsolete validation document with a 1.6.1 smoke-test checklist.
+- replaced the obsolete validation document with a 1.6.2 smoke-test checklist.
 
 Schema remains **8** and no migration is required.
 
@@ -120,7 +120,7 @@ Queue capabilities include:
 - server-side permission filtering,
 - background refresh without replacing the workspace with a blocking loading screen.
 
-In 1.6.1 saved column preferences are restored after queue rerenders and column mapping tolerates localized English/Polish header labels.
+In 1.6.2 saved column preferences are restored after queue rerenders and column mapping tolerates localized English/Polish header labels.
 
 ## Attachments
 
@@ -179,7 +179,7 @@ Supported authentication and identity features include:
 - strict Content Security Policy,
 - encrypted application secrets.
 
-1.6.1 keeps the strict `script-src 'self'` / `style-src 'self'` model and no longer relies on inline bootstrap hotfix code.
+1.6.2 keeps the strict `script-src 'self'` / `style-src 'self'` model and no longer relies on inline bootstrap hotfix code.
 
 ## Architecture
 
@@ -231,7 +231,7 @@ Stable releases contain `desk-release.json` with the exact GHCR image digest and
 Current release image:
 
 ```text
-ghcr.io/itelade/service-desk:v1.6.1
+ghcr.io/itelade/service-desk:v1.6.2
 ```
 
 The updater shows live milestone progress, survives the temporary application restart, reconnects to an in-progress update job, reports rollback state and reloads the browser once after success or completed rollback.
@@ -259,7 +259,7 @@ bash -n scripts/upgrade.sh
 
 CI validates dependencies, syntax/static checks, the full test suite and upgrade-script syntax.
 
-1.6.1 adds regression coverage for the QA hotfixes around CSP, queue refresh/preferences, archive/delete attachment lifecycle, relationship lookup, stale mentions, Settings mutation stability, activity-tab accessibility, create-ticket attachments and release versioning.
+1.6.2 adds regression coverage for the QA hotfixes around CSP, queue refresh/preferences, archive/delete attachment lifecycle, relationship lookup, stale mentions, Settings mutation stability, activity-tab accessibility, create-ticket attachments and release versioning.
 
 Environment-level checks that CI cannot fully prove are documented in [VALIDATION.md](VALIDATION.md), including live LDAP/AD, OIDC/Keycloak, mail, GitHub integration, Docker updater/rollback, multiple browsers and physical WebAuthn devices.
 
@@ -276,7 +276,7 @@ Then complete the smoke checklist in [VALIDATION.md](VALIDATION.md).
 
 ## Documentation
 
-- [RELEASE_NOTES_1.6.1.md](RELEASE_NOTES_1.6.1.md) — current hotfix release notes,
+- [RELEASE_NOTES_1.6.2.md](RELEASE_NOTES_1.6.2.md) — current hotfix release notes,
 - [RELEASE_NOTES_1.6.0.md](RELEASE_NOTES_1.6.0.md) — Agent Experience release,
 - [VALIDATION.md](VALIDATION.md) — current validation and smoke-test checklist,
 - [UI_1.4.md](UI_1.4.md) — base visual/interaction contract,

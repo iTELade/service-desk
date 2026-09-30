@@ -4,13 +4,13 @@ import {readFileSync} from "node:fs";
 const r=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const i=r("public/index.html"),s=r("server.mjs"),u=r("public/release-1.2.0.js"),c=r("public/app.css"),security=r("public/security.js");
 
-test("1.6.1 canonical UI assets are wired",()=>{
-  for(const f of ["app.css","release-1.2.0.js"]){assert.ok(i.includes("/"+f+"?v=1.6.1"));assert.ok(s.includes("['/"+f));}
-  assert.ok(i.includes('/release-1.1.2.css?v=1.6.1'),'feature stylesheet is active');
-  assert.ok(i.includes('/release-1.1.2.js?v=1.6.1'),'feature module remains active');
-  assert.ok(i.includes('/agent-experience-1.6.css?v=1.6.1'),'agent experience stylesheet is active');
-  assert.ok(i.includes('/agent-experience-1.6.js?v=1.6.1'),'agent experience controller is active');
-  assert.ok(i.indexOf('/security.js?v=1.6.1')<i.indexOf('/app.js?v=1.6.1'),'non-destructive queue refresh guard loads before app');
+test("1.6.2 canonical UI assets are wired",()=>{
+  for(const f of ["app.css","release-1.2.0.js"]){assert.ok(i.includes("/"+f+"?v=1.6.2"));assert.ok(s.includes("['/"+f));}
+  assert.ok(i.includes('/release-1.1.2.css?v=1.6.2'),'feature stylesheet is active');
+  assert.ok(i.includes('/release-1.1.2.js?v=1.6.2'),'feature module remains active');
+  assert.ok(i.includes('/agent-experience-1.6.css?v=1.6.2'),'agent experience stylesheet is active');
+  assert.ok(i.includes('/agent-experience-1.6.js?v=1.6.2'),'agent experience controller is active');
+  assert.ok(i.indexOf('/security.js?v=1.6.2')<i.indexOf('/app.js?v=1.6.2'),'non-destructive queue refresh guard loads before app');
   assert.match(security,/queueRefreshGuard=VERSION/);
 });
 

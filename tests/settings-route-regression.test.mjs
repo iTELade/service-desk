@@ -21,8 +21,8 @@ test('1.5 grouped administration still exposes every required management area', 
 });
 
 test('1.5 controller owns Settings recovery and idempotent product version label', () => {
-  assert.match(center, /const SETTINGS_VERSION='1\.2\.1';/);
-  assert.match(ui, /const VERSION='1\.5\.0';/);
+  assert.match(center, /const SETTINGS_VERSION='1\.6\.2';/);
+  assert.match(ui, /const VERSION='1\.6\.2';/);
   assert.match(ui, /function recoverSettingsCenter\(\)/);
   assert.match(ui, /versionLabel='Wersja '\+VERSION/);
   assert.match(ui, /chip&&chip\.textContent!==versionLabel/);
