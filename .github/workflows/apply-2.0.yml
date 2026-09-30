@@ -10,6 +10,7 @@ on:
       - .github/postfix-2.0.mjs
       - .github/postfix-schema9.mjs
       - .github/finalize-2.0.mjs
+      - .github/lastfix-2.0.mjs
       - .github/workflows/apply-2.0.yml
   workflow_dispatch:
 
@@ -39,6 +40,8 @@ jobs:
         run: node .github/postfix-schema9.mjs
       - name: Finalize 2.0 validation boundary
         run: node .github/finalize-2.0.mjs
+      - name: Separate legacy snapshots from current 2.0 boundary
+        run: node .github/lastfix-2.0.mjs
       - name: Install dependencies
         run: npm ci
       - name: Syntax and static checks
