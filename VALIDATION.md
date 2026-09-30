@@ -52,4 +52,4 @@ Testy jednostkowe/DOM nie zastępują testu prawdziwej przeglądarki ani testu a
 - index.html must load design-system.css and product-shell.js with the current version;
 - active 1.2.x / 1.6.x visual decorator assets must not be loaded;
 - queue, ticket, Settings and portal shell primitives are covered by tests/ui-2.0.test.mjs;
-- production promotion additionally requires manual integration smoke tests listed in RELEASE_NOTES_2.0.0.md.
+- production promotion additionally requires manual integration smoke tests listed in RELEASE_NOTES_2.0.1.md.

@@ -6,8 +6,8 @@ const ui=read('public/release-1.2.0.js');
 const index=read('public/index.html');
 const version=read('lib/version.mjs');
 
-test('updater still shows live progress and survives service restart in 2.0.0',()=>{assert.match(ui,/updatePhaseMeta/);assert.match(ui,/role="progressbar"/);assert.match(ui,/backing_up:\{label:'Kopia danych',progress:48\}/);assert.match(ui,/cache:'no-store'/);assert.match(ui,/update-progress-offline/);});
+test('updater still shows live progress and survives service restart in 2.0.1',()=>{assert.match(ui,/updatePhaseMeta/);assert.match(ui,/role="progressbar"/);assert.match(ui,/backing_up:\{label:'Kopia danych',progress:48\}/);assert.match(ui,/cache:'no-store'/);assert.match(ui,/update-progress-offline/);});
 
 test('updater reloads exactly once after terminal success or rollback',()=>{assert.match(ui,/\['done','rolled_back'\]\.includes\(job\.phase\)/);assert.match(ui,/sessionStorage\.getItem\(marker\)===job\.id/);assert.match(ui,/setTimeout\(\(\)=>location\.reload\(\),1200\)/);});
 
-test('2.0.0 aligns updater release version and browser cache keys',()=>{assert.match(version,/VERSION='2\.0\.0'/);assert.match(index,/app\.js\?v=2\.0\.0/);assert.match(index,/product-shell\.js\?v=2\.0\.0/);assert.doesNotMatch(index,/release-1\.2\.0\.js\?v=/);assert.doesNotMatch(index,/agent-experience-1\.6\.js\?v=/);assert.doesNotMatch(index,/\?v=1\.4\.3/);});
+test('2.0.1 aligns updater release version and browser cache keys',()=>{assert.match(version,/VERSION='2\.0\.1'/);assert.match(index,/app\.js\?v=2\.0\.1/);assert.match(index,/product-shell\.js\?v=2\.0\.1/);assert.doesNotMatch(index,/release-1\.2\.0\.js\?v=/);assert.doesNotMatch(index,/agent-experience-1\.6\.js\?v=/);assert.doesNotMatch(index,/\?v=1\.4\.3/);});

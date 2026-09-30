@@ -1,8 +1,8 @@
 (() => {
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let sessionCache=null,searchTimer=null,pendingCreateFiles=null;
-  async function session(){if(sessionCache)return sessionCache;const r=await fetch('/api/me',{credentials:'same-origin'});if(!r.ok)throw new Error('Sesja wygasła.');sessionCache=await r.json();return sessionCache;}
-  async function call(path,{method='GET',data}={}){const s=await session();const r=await fetch('/api'+path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json',...(method==='GET'?{}:{'X-CSRF-Token':s.csrf})},...(data===undefined?{}:{body:JSON.stringify(data)})});let v;try{v=await r.json();}catch{throw new Error('Nieprawidłowa odpowiedź serwera.');}if(!r.ok)throw new Error(v.error||'Operacja nie powiodła się.');return v;}
+  let sessionCache=null,searchTimer=null,pendingCreateFiles=null,queueToolsPromise=null;
+  async function session(){if(sessionCache)return sessionCache;const r=await fetch('/api/me',{credentials:'same-origin'});if(r.status===401)return null;if(!r.ok)throw new Error('Nie udało się sprawdzić sesji.');sessionCache=await r.json();return sessionCache;}
+  async function call(path,{method='GET',data}={}){const s=await session();if(!s)throw new Error('Sesja wygasła.');const r=await fetch('/api'+path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json',...(method==='GET'?{}:{'X-CSRF-Token':s.csrf})},...(data===undefined?{}:{body:JSON.stringify(data)})});let v;try{v=await r.json();}catch{throw new Error('Nieprawidłowa odpowiedź serwera.');}if(!r.ok)throw new Error(v.error||'Operacja nie powiodła się.');return v;}
   const hashParts=()=>{const [route,query='']=location.hash.split('?');return {route,query:new URLSearchParams(query)};};
   function toast(message,bad=false){const host=document.querySelector('#notices');if(!host)return;const el=document.createElement('div');el.className='notice'+(bad?' bad':'');el.textContent=message;host.append(el);setTimeout(()=>el.remove(),6000);}
   function debounce(fn,ms=220){clearTimeout(searchTimer);searchTimer=setTimeout(fn,ms);}
@@ -44,7 +44,7 @@
     if(!pref.sort_secondary)return;const table=document.querySelector('#main table tbody');if(!table)return;const rows=[...table.rows];const map={updated:r=>r.cells[r.cells.length-1]?.textContent.trim()||'',priority:r=>r.textContent.includes('P1')?1:r.textContent.includes('P2')?2:r.textContent.includes('P3')?3:4,status:r=>r.cells[1]?.textContent.trim()||''};const getter=map[pref.sort_secondary.replace('_desc','').replace('_asc','')]||map.updated;rows.sort((a,b)=>String(getter(a)).localeCompare(String(getter(b)),window.DeskLocale?.locale==='en'?'en':'pl',{numeric:true}));for(const r of rows)table.append(r);
   }
   async function installQueueTools(){
-    const {route,query}=hashParts();if(route!=='#/queue')return;const current=(await session()).user||await session();if(current?.role==='customer')return;const anchor=document.querySelector('#main .tabs');if(!anchor||document.querySelector('[data-r112-queue-tools]'))return;
+    const {route,query}=hashParts();if(route!=='#/queue'||document.querySelector('.auth-layout'))return;const sess=await session();if(!sess)return;const current=sess.user||sess;if(current?.role==='customer')return;const anchor=document.querySelector('#main .tabs');if(!anchor||document.querySelector('[data-r112-queue-tools]'))return;
     const project=Number(query.get('project')||0),pref=await call('/desk/r112/queue-preferences?project='+project),views=await call('/desk/v8/views').catch(()=>[]);
     if(location.hash.split('?')[0]!=='#/queue'||!document.body.contains(anchor))return;
     const box=document.createElement('section');box.className='r112-queue-tools';box.dataset.r112QueueTools='1';
@@ -75,7 +75,7 @@
   async function decorate(){
     installGlobalSearch();installCreateAttachment();
     const {route}=hashParts();
-    if(route==='#/queue'&&!document.querySelector('[data-r112-queue-tools]'))installQueueTools().catch(e=>toast(e.message,true));
+    if(route==='#/queue'&&!document.querySelector('[data-r112-queue-tools]')&&!queueToolsPromise){queueToolsPromise=installQueueTools().catch(e=>{if(!document.querySelector('.auth-layout'))toast(e.message,true);}).finally(()=>queueToolsPromise=null);}
     installAttachments();
   }
   const observer=new MutationObserver(()=>decorate());observer.observe(document.documentElement,{subtree:true,childList:true});window.addEventListener('hashchange',()=>setTimeout(decorate,0));window.addEventListener('load',decorate);decorate();

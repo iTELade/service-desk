@@ -1,4 +1,4 @@
-# iTELade Service Desk 2.0.0
+# iTELade Service Desk 2.0.1
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
@@ -8,12 +8,12 @@ Service Desk is an independent iTELade project. It is not an Atlassian product a
 
 ## Current release
 
-**Service Desk 2.0.0**
+**Service Desk 2.0.1**
 
-- GitHub release: https://github.com/iTELade/service-desk/releases/tag/v2.0.0
-- Container image: `ghcr.io/itelade/service-desk:v2.0.0`
+- GitHub release: https://github.com/iTELade/service-desk/releases/tag/v2.0.1
+- Container image: `ghcr.io/itelade/service-desk:v2.0.1`
 - OCI digest: `sha256:061d8f3e9424e61d998ef829f944e15a8efd76bc8a0ea82e28d9b14ef97e2ead`
-- Release notes: [RELEASE_NOTES_2.0.0.md](RELEASE_NOTES_2.0.0.md)
+- Release notes: [RELEASE_NOTES_2.0.1.md](RELEASE_NOTES_2.0.1.md)
 - UI architecture: [UI_2.0.md](UI_2.0.md)
 - Upgrade notes: [MIGRATION_2.0.md](MIGRATION_2.0.md)
 - Validation checklist: [VALIDATION.md](VALIDATION.md)
@@ -283,7 +283,7 @@ Stable releases contain `desk-release.json` with the exact GHCR image digest and
 Current release image:
 
 ```text
-ghcr.io/itelade/service-desk:v2.0.0
+ghcr.io/itelade/service-desk:v2.0.1
 ```
 
 Current release digest:
@@ -350,7 +350,7 @@ Then complete the smoke checklist in [VALIDATION.md](VALIDATION.md).
 
 ## Documentation
 
-- [RELEASE_NOTES_2.0.0.md](RELEASE_NOTES_2.0.0.md) — Service Desk 2.0 release notes,
+- [RELEASE_NOTES_2.0.1.md](RELEASE_NOTES_2.0.1.md) — Service Desk 2.0 release notes,
 - [UI_2.0.md](UI_2.0.md) — Service Desk 2.0 UI architecture and presentation boundary,
 - [MIGRATION_2.0.md](MIGRATION_2.0.md) — schema-8 → schema-9 migration and rollback requirements,
 - [VALIDATION.md](VALIDATION.md) — current validation and smoke-test checklist,
