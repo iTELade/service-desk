@@ -6,6 +6,7 @@ on:
       - feature/service-desk-2.0
     paths:
       - .github/apply-2.0.mjs
+      - .github/fix-2.0.mjs
       - .github/workflows/apply-2.0.yml
   workflow_dispatch:
 
@@ -25,6 +26,8 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - name: Repair patch generator
+        run: node .github/fix-2.0.mjs
       - name: Apply 2.0 patch
         run: node .github/apply-2.0.mjs
       - name: Install dependencies
