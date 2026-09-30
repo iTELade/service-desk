@@ -23,8 +23,20 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - name: Neutralize workflow self-edit inside one-shot patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/apply-1.6.2.py')
+          s=p.read_text(encoding='utf-8')
+          start=s.index("p = '.github/workflows/publish-version.yml'")
+          end=s.index("for doc in ['README.md', 'VALIDATION.md']:", start)
+          p.write_text(s[:start]+s[end:],encoding='utf-8')
+          PY
       - name: Apply 1.6.2 fixes
-        run: python3 .github/apply-1.6.2.py
+        run: |
+          python3 .github/apply-1.6.2.py
+          git checkout HEAD -- .github/apply-1.6.2.py
       - name: Normalize active UI writers and version assertions
         run: |
           python3 -c "from pathlib import Path; p=Path('public/release-1.2.0.js'); s=p.read_text(); p.write_text(s.replace(\"const VERSION='1.5.0';\",\"const VERSION='1.6.2';\"))"
@@ -39,15 +51,12 @@ jobs:
           npm run check
           npm run test:ci
           bash -n scripts/upgrade.sh
-      - name: Remove one-shot files and regenerate checksum manifest
+      - name: Regenerate and verify checksum manifest
         shell: bash
         run: |
-          rm .github/workflows/apply-1.6.2.yml .github/apply-1.6.2.py
           : > MANIFEST.sha256.tmp
           while IFS= read -r -d '' rel; do
-            case "$rel" in
-              MANIFEST.sha256|.github/workflows/apply-1.6.2.yml|.github/apply-1.6.2.py) continue ;;
-            esac
+            if [[ "$rel" == "MANIFEST.sha256" ]]; then continue; fi
             if [[ -f "$rel" ]]; then
               digest="$(sha256sum "$rel" | cut -d' ' -f1)"
               printf '%s  ./%s\n' "$digest" "$rel" >> MANIFEST.sha256.tmp
