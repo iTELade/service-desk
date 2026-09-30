@@ -1,3 +1,11 @@
+## 2.0.1
+
+- Corrective UI/stability release for the 2.0 workspace.
+- Fixed unauthenticated session-notice storms and duplicate queue tools.
+- Rebuilt queue, board, users and Administration Center presentation.
+- Added project-scoped navigation and project workspace identity.
+- Schema remains 9.
+
 ## 2.0.0 - release candidate
 
 - Replaced active visual release overlays with the Service Desk 2.0 design system and shell.
