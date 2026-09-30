@@ -29,7 +29,9 @@ jobs:
         run: |
           python3 -c "from pathlib import Path; p=Path('public/release-1.2.0.js'); s=p.read_text(); p.write_text(s.replace(\"const VERSION='1.5.0';\",\"const VERSION='1.6.2';\"))"
           python3 -c "from pathlib import Path; p=Path('public/settings-center.js'); s=p.read_text(); p.write_text(s.replace(\"const SETTINGS_VERSION='1.2.1';\",\"const SETTINGS_VERSION='1.6.2';\"))"
+          python3 -c "from pathlib import Path; p=Path('public/app.css'); s=p.read_text(); p.write_text(s.replace('Service Desk 1.5.0 — Jira Service Management inspired workspace rebuild','Service Desk 1.6.2 — Jira Service Management inspired workspace rebuild'))"
           python3 -c "from pathlib import Path; files=list(Path('tests').glob('*.mjs')); [(p.write_text(p.read_text().replace(r'1\\.6\\.1',r'1\\.6\\.2').replace(r'1\\.5\\.0',r'1\\.6\\.2').replace(r\"SETTINGS_VERSION='1\\.2\\.1'\",r\"SETTINGS_VERSION='1\\.6\\.2'\"))) for p in files]"
+          python3 -c "from pathlib import Path; p=Path('tests/settings-center-race.test.mjs'); s=p.read_text(); p.write_text(s.replace(\"'1.5.0'\",\"'1.6.2'\"))"
           python3 -c "from pathlib import Path; p=Path('tests/hotfix-1.6.2.test.mjs'); s=p.read_text(); p.write_text(s.replace(\"  assert.doesNotMatch(v8,/sla_at_risk:0,recent/);\\n\",''))"
       - name: Install and verify
         run: |
