@@ -21,6 +21,7 @@ jobs:
       - name: Regenerate complete tracked checksum manifest
         shell: bash
         run: |
+          # Keep this release manifest deterministic over all tracked files except itself.
           git add -A
           : > MANIFEST.sha256.tmp
           while IFS= read -r -d '' rel; do
