@@ -3,9 +3,9 @@
 1a4a95988f472bff92171767e8c67e7f6cc68feb597f5f729ddad92ccb09fc64  ./.github/ISSUE_TEMPLATE/bug_report.yml
 1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb  ./.github/ISSUE_TEMPLATE/config.yml
 98464db95e7174b0e6a9061fc6f296d4fc807d3ebbe0db8aa6c7d538cf0d8ae7  ./.github/ISSUE_TEMPLATE/feature_request.yml
-711213f2f64d698d45f661873c42549b0c5b4b8446a763451f719b3b065e461a  ./.github/workflows/apply-1.6.2.yml
+b3a15958d050ef9bfae3d3da342e8d39f259422e93dafa7a5efd52153301fe2d  ./.github/workflows/apply-1.6.2.yml
 42c85b4291f66920fe427cc8be7fad4e07c84d69a2fb697516d718d31ef23714  ./.github/workflows/ci.yml
-73c43eaf2e07f01e45e25f0262029dcf75dd6353eef0d92efb169274b1e9824a  ./.github/workflows/publish-version.yml
+860b5de756bc25d7089c4dc8c1ab6df4192acb1b238b2bef5e0372422605560d  ./.github/workflows/publish-version.yml
 e32b7972a57071bdb118ea9058fe1a64b2a8fe7115fa7386deb94d1b8784893a  ./.github/workflows/release.yml
 c11bb6f194ddaa3e5b6b066b466a1179a39a3f2a9658d070596832f7cdd66e70  ./.gitignore
 60b75698e586ce4203faf4556be89c397f2cefa0dd45708ab220bd7d79aa56dc  ./API.md
