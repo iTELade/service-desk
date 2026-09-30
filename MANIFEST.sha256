@@ -3,8 +3,7 @@
 1a4a95988f472bff92171767e8c67e7f6cc68feb597f5f729ddad92ccb09fc64  ./.github/ISSUE_TEMPLATE/bug_report.yml
 1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb  ./.github/ISSUE_TEMPLATE/config.yml
 98464db95e7174b0e6a9061fc6f296d4fc807d3ebbe0db8aa6c7d538cf0d8ae7  ./.github/ISSUE_TEMPLATE/feature_request.yml
-efaaaa6faeeb485e84fc598cc827c6e4f9565724835729a600f1b63801167c59  ./.github/apply-1.6.2.py
-78446eb4d2a4bcaa32c2a70d757c872d40e1a12ca0799508d4809568ba30a384  ./.github/workflows/apply-1.6.2.yml
+6cf741e8373bd2ffcdc0f7c3b25bb9c31d8afe4a70e1d855f043413391173f82  ./.github/workflows/apply-1.6.2.yml
 42c85b4291f66920fe427cc8be7fad4e07c84d69a2fb697516d718d31ef23714  ./.github/workflows/ci.yml
 73c43eaf2e07f01e45e25f0262029dcf75dd6353eef0d92efb169274b1e9824a  ./.github/workflows/publish-version.yml
 e32b7972a57071bdb118ea9058fe1a64b2a8fe7115fa7386deb94d1b8784893a  ./.github/workflows/release.yml
@@ -50,6 +49,7 @@ b65943339e1a784ebe4e59e31ffeba90e44f68ed34717237d0929a4aa8e0c01d  ./RELEASE_NOTE
 c2cef6716916d72ce076d3cc5bf5064eedfa8494a4b0dd45ff3d2142fb37edfa  ./RELEASE_NOTES_1.5.1.md
 4b2fd5f3cd1616167bfedc84293692d0751cea87a368b33bff7904cd9289edc8  ./RELEASE_NOTES_1.6.0.md
 6736e365c5d82cac300d7c98521ecb661d50fd0724a94d43706b5486de183ba5  ./RELEASE_NOTES_1.6.1.md
+f0aea1544d194b56320a29a850fd187308bc304228393a175fd607d8dd17a724  ./RELEASE_NOTES_1.6.2.md
 2d06bd4a708552c58978fc79e730e4d6430341ee4f1e633cb2f7fc00641b8353  ./UI_1.4.md
 a0ded6eff6e334f988e123ede62474851ba715d7f904ac2b67f779d330b1f47e  ./UPDATES.md
 ef558e96f1e4a1092cc214de800eac0ceeb833d921babcdbb0db63ae605ef6ba  ./UPGRADE.md
@@ -143,6 +143,7 @@ cfc339102a637f5da8bf774bde14c5d1d25a09fc39e1f3665905339ee6ac9f77  ./tests/direct
 1f5281e112de5cbc84ab89d389c1a511971dd8e592801bcc8a925c40fce87563  ./tests/github-oauth.test.mjs
 ad3ea5cababce9f284d96753b89853a162bd7c452f91d78f3eac3218affe0512  ./tests/hotfix-1.5.1.test.mjs
 ce19f4609d604e111e17c57b9174ea4eaa35d6f1de7db15e12f494efab46e076  ./tests/hotfix-1.6.1.test.mjs
+6920c918096269361f3a2b9014d5f54d862c75de4c057ffeb74a47200de1cc04  ./tests/hotfix-1.6.2.test.mjs
 66732123ed63071e5ea2b90e65e2f87fa9b94ceec218617d87075afc67f11f2f  ./tests/integration.test.mjs
 1f6f3be39225e251f8c367719b7ec3fc96442fb5992873aede349b176d08d07c  ./tests/language.test.mjs
 6d661fba798bae7de45bee85eca115c547c6ba7ed4533d5fea0b81bfbaef24cf  ./tests/layout-1.2.2.test.mjs
@@ -156,6 +157,7 @@ b2d3ca6711c5961c53d55496fa1d1e578765270163218f8740126ac914ccc38e  ./tests/public
 eca1077a51f76b2db0732282740384060ba65d06a6233502eeb33d1e3a76e868  ./tests/release-1.1.2.test.mjs
 6998e81891510b5674ed0b5ef94c9c9822110c3d77733ed5abd954bf0d2b30a4  ./tests/release-1.1.3-ui.test.mjs
 c9bfee758190bc31918f1bb5aebbd39d50cc319a12cb134dde2a985d7f2d6cd0  ./tests/release-1.2.0-ui.test.mjs
+a2c80b8edc451f5394c163a22563eb2cc3c2525ffc7b44e0cae00ec46e581858  ./tests/release-trigger-1.6.2.test.mjs
 b6c36d5bafc9f3a52ceefe3e1b591342e355d1c18616ee6e976caa80d5008342  ./tests/reset.test.mjs
 e17d523d85bc34c5bdef07fcfb230aec54400792cef290acf1d04dd7eab6cf53  ./tests/settings-center-race.test.mjs
 94531923d376c3f8ab6d48ec4ee9889f320eeaf76e5870b774520c315f45da08  ./tests/settings-route-regression.test.mjs
