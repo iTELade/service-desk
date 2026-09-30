@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - MANIFEST.sha256
       - package.json
       - package-lock.json
       - Dockerfile
