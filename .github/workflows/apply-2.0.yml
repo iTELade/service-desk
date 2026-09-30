@@ -7,6 +7,7 @@ on:
     paths:
       - .github/apply-2.0.mjs
       - .github/fix-2.0.mjs
+      - .github/postfix-2.0.mjs
       - .github/workflows/apply-2.0.yml
   workflow_dispatch:
 
@@ -30,6 +31,8 @@ jobs:
         run: node .github/fix-2.0.mjs
       - name: Apply 2.0 patch
         run: node .github/apply-2.0.mjs
+      - name: Align 2.0 regression gates
+        run: node .github/postfix-2.0.mjs
       - name: Install dependencies
         run: npm ci
       - name: Syntax and static checks
