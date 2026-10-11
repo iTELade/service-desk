@@ -1,3 +1,7 @@
+## 2.0.4 — 2026-10-11 — Service Pack 2
+
+Przywrócono kompletne style centrum administracji w aktywnym arkuszu, usunięto białe powierzchnie i niski kontrast, poprawiono portal, projekty, formularze LDAP i mapę workflow. Nowa regresja wizualna sprawdza 43 trasy w ośmiu kombinacjach rozmiaru i motywu oraz formularze publiczne; jest bramką wszystkich ścieżek publikacji. Schemat pozostaje 9. Szczegóły: [RELEASE_NOTES_2.0.4.md](RELEASE_NOTES_2.0.4.md).
+
 ## 2.0.1
 
 ## 2.0.3 — 2026-10-11 — Service Pack 1

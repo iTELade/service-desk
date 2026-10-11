@@ -1,8 +1,8 @@
-# Walidacja Service Desk 2.0.3
+# Walidacja Service Desk 2.0.4
 
-Wersja aplikacji: **2.0.3**. Schemat SQLite: **9**. Aktywne zasoby: app.css, design-system.css, i18n.js, security.js, app.js, settings-center.js, release-1.1.2.js i product-shell.js, wszystkie z parametrem `v=2.0.3`.
+Wersja aplikacji: **2.0.4**. Schemat SQLite: **9**. Aktywne zasoby: app.css, design-system.css, i18n.js, security.js, app.js, settings-center.js, release-1.1.2.js i product-shell.js, wszystkie z parametrem `v=2.0.4`.
 
-Migrację ze schematu 8 do 9 sprawdzają testy zachowania zgłoszeń, komentarzy, sesji i konfiguracji. Po migracji użycie starszego kodu wymaga odtworzenia kopii schematu 8. Z 2.0.0/2.0.1 do 2.0.3 numer schematu nie zmienia się.
+Migrację ze schematu 8 do 9 sprawdzają testy zachowania zgłoszeń, komentarzy, sesji i konfiguracji. Po migracji użycie starszego kodu wymaga odtworzenia kopii schematu 8. Z 2.0.0/2.0.1/2.0.2/2.0.3 do 2.0.4 numer schematu nie zmienia się.
 
 ## Automatyczne bramki wydania
 
@@ -12,6 +12,7 @@ npm run check
 npm run test:ci
 npx playwright install --with-deps chromium
 npm run test:browser
+npm run test:visual
 npm audit
 bash -n scripts/upgrade.sh
 sha256sum -c MANIFEST.sha256
@@ -23,11 +24,17 @@ Testy obejmują: izolację projektów i klientów, transakcyjne wieloetapowe akc
 
 Chromium otwiera wszystkie aktywne trasy administracyjne, zgłoszenie, projekty, kolejkę, tablicę, portal i profil. Macierz 390/768/1280/1440 px × jasny/ciemny motyw obejmuje sześć głównych powierzchni. Weryfikuje brak przepełnienia strony, rozmiar awatarów, kontrast przycisków (minimum 4,5:1), klawiaturę zakładek, zachowanie szkicu przy odświeżeniu, markę, wyszukiwanie oraz działające menu mobilne. Ekrany publiczne są sprawdzane w osobnym kontekście bez sesji.
 
+## Rozszerzona regresja wizualna 2.0.4
+
+`test:visual` wykonuje 1431 kontroli: 43 trasy × 4 szerokości (390/768/1280/1440 px) × 2 rzeczywiście aktywne motywy, dodatkowe kontrole układu administracji i mapy workflow oraz formularzy publicznych. Mierzy kontrast tekstów, wartości pól i placeholderów względem dziedziczonych, także półprzezroczystych teł; wymaga 4,5:1 (3:1 dla dużych napisów). Nie mierzy treści rastrowych, tekstu na gradientach ani ikon. Etykiety SVG workflow mają osobne sprawdzenie koloru, strzałki — obecności stylu. Zrzuty wymagają dodatkowej oceny wzrokowej.
+
+`DESK_VISUAL_REPORT=/ścieżka/raport.json` zapisuje wynik, a `DESK_VISUAL_SCREENSHOTS=/ścieżka` zrzuty głównych widoków na telefonie i desktopie. Dane są syntetyczne, serwer i baza tymczasowe. Wszystkie trzy ścieżki CI/publikacji uruchamiają regresję funkcjonalną i wizualną przed budowaniem obrazu. Kontrola faktycznego kontenera sprawdza instalację i wersję.
+
 ## Produkcyjna kontrola po wdrożeniu
 
 | Obszar | Warunek odbioru |
 |---|---|
-| Kontener | Uruchomiony jako nieuprzywilejowany użytkownik; healthz: ok / 2.0.3 / 9 |
+| Kontener | Uruchomiony jako nieuprzywilejowany użytkownik; healthz: ok / 2.0.4 / 9 |
 | Instalacja | Pierwszy administrator powstaje raz; kod instalacji nie daje ponownej konfiguracji |
 | Tożsamość | Logowanie lokalne, LDAP i SSO zgodnie z rzeczywistą konfiguracją; MFA i wylogowanie |
 | Uprawnienia | Klient nie widzi obcych spraw/notatek; kierownik zarządza wyłącznie swoim projektem |

@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag opublikowanego wydania, np. v2.0.3"
+        description: "Tag opublikowanego wydania, np. v2.0.4"
         required: true
-        default: "v2.0.3"
+        default: "v2.0.4"
         type: string
 
 permissions:
@@ -87,6 +87,14 @@ jobs:
           npm ci
           npm run check
           npm test
+
+      - name: Instalacja Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Regresja funkcjonalna i wizualna
+        run: |
+          npm run test:browser
+          npm run test:visual
 
       - name: Nazwa obrazu
         id: metadata
