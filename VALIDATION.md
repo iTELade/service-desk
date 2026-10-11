@@ -33,3 +33,9 @@ Na izolowanym zbiorze 10 000 zgłoszeń: pierwsza i ostatnia strona po 25 rekord
 Sprawdź healthz (ok / 2.1.0 / 10), logowanie każdej używanej roli, widoczność projektów, tworzenie przez portal, odpowiedź publiczną i notatkę, chronione pliki, konflikty równoczesnego zapisu, CSAT i ewidencję pracy. Zweryfikuj reguły, rzeczywiste połączenia SMTP/IMAP/LDAP/SSO/GitHub/webhook oraz konfigurację adaptera monitoringu. Środowisko syntetyczne nie potwierdza konfiguracji dostawców produkcyjnych.
 
 Publikator buduje amd64/arm64, uruchamia obraz po digest bez roota, wykonuje świeżą instalację, tworzy zgłoszenie i kontroluje SQLite/master.key. Następnie publikuje stabilny tag i desk-release.json. Opublikowanie obrazu nie jest wdrożeniem na serwer użytkownika.
+# Kontrola gałęzi przygotowawczej 2.1.1
+
+2.1.1 pozostaje nieopublikowane. Lokalnie przeszło **260 testów aplikacji**, **521 kontroli workspace** w Chromium, **362 kontrole dotychczasowych funkcji** i **1431 kontroli wizualnych bez błędów**. Nowy zestaw domenowy obejmuje domyślne wyłączenie funkcji, uprawnienia, izolację klienta/projektu, archiwum/usuwanie, limit 2000 kandydatów, polskie znaki, konflikty wersji ustawień, zachowanie innych opcji projektu i brak notatek wewnętrznych w podsumowaniu. Zestaw przeglądarkowy weryfikuje włączenie opcji w UI, ręczne powiązanie, podgląd podsumowania, sygnały uwagi, podpowiedzi w formularzu, wybór bieżącego projektu i czyszczenie wyników przy zmianie projektu; obejmuje nową stronę ustawień w obu motywach i czterech szerokościach.
+
+CI PR dodatkowo wykonuje pełną regresję workspace w Chromium, Firefox i WebKit, dotychczasową regresję, kontrolę wizualną oraz obciążenie 10 000 zgłoszeń. Wynik tych bramek należy sprawdzić przed późniejszym wydaniem. Ta gałąź nie uruchamia publikacji na main. Schema pozostaje 10; nie dodano migracji ani portalu wiedzy.
+

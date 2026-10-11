@@ -1,4 +1,29 @@
 /* 2.1 workspace: shared tokens, responsive layouts, route-owned surfaces. */
+.w21-smart-create {
+  padding: 14px;
+  border: 1px solid var(--w21-border);
+  border-radius: 10px;
+  background: var(--w21-soft);
+  color: var(--w21-ink);
+}
+.w21-similar-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--w21-border);
+  overflow-wrap: anywhere;
+}
+.w21-similar-item small {
+  color: var(--w21-muted);
+}
+.w21-similar-item button {
+  justify-self: start;
+}
+.w21-attention {
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
 :root {
   --w21-surface: var(--surface, #fff);
   --w21-bg: var(--bg, #f6f8fc);

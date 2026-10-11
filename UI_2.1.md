@@ -22,3 +22,11 @@ Nowe ścieżki:
 | integrations | Ostatni stan kontroli połączeń |
 
 Portal wiedzy nie jest częścią tej architektury. Istniejący ekran administracyjny konfiguracji zewnętrznego adresu pozostaje zachowany.
+# Przygotowane usprawnienia 2.1.1
+
+`#/assist/:project_id` jest natywną stroną ustawień **Podpowiedzi i usprawnienia**, dostępną z ustawień projektu dla managera/admina. Oddzielne flagi sterują podobieństwem, sygnałami uwagi i podsumowaniem. Domyślnie wszystkie są wyłączone.
+
+Formularz tworzenia uruchamia lokalne podpowiedzi po 350 ms bez wpisywania; zmiana projektu czyści poprzedni wynik. Numer generacji chroni przed wyświetleniem opóźnionej odpowiedzi dla innego tematu/projektu. Odnośniki otwierają sprawę w osobnej karcie, zachowując formularz. Awaria podpowiedzi nie blokuje utworzenia zgłoszenia.
+
+Szczegóły zgłoszenia pokazują ocenę dopasowania i wspólne słowa. Powiązanie wymaga kliknięcia agenta i używa istniejących kontroli uprawnień. Sygnały uwagi i podsumowanie są dostępne wyłącznie zespołowi. Podsumowanie otwiera podgląd przed kopiowaniem; przy braku Clipboard API tekst jest zaznaczany do ręcznego kopiowania.
+

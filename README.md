@@ -1,5 +1,7 @@
 # iTELade Service Desk 2.1.0
 
+> Gałąź przygotowawcza **2.1.1**: opcjonalne podobne zgłoszenia, panel uwagi agenta i podsumowanie do przekazania. Wersja **nieopublikowana**; ostatni stabilny release pozostaje 2.1.0. Szczegóły: [RELEASE_NOTES_2.1.1.md](RELEASE_NOTES_2.1.1.md).
+
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
 Service Desk combines customer portals, internal and external projects, configurable workflows, SLA, automation, Assets / CMDB, LDAP / Active Directory, SSO/OIDC, inbound and outbound mail, API/webhooks, GitHub Issues intake, approvals, audit, saved queues, protected attachments and an extensible plugin foundation.

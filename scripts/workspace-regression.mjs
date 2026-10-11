@@ -239,6 +239,66 @@ try {
     (await page.locator('[data-command-results]').innerText()).includes(t.key),
   );
   await page.keyboard.press('Escape');
+  const similarTicket = await api('/tickets', {
+    project_id: p.id,
+    title: 'VPN connection failure',
+    description: 'A related VPN request',
+    priority: 'P3',
+    type: 'incident',
+  });
+  const otherProject = await api('/projects', {
+    key: 'SX',
+    name: 'Assistance disabled project',
+    project_type: 'external',
+    portal_access: 'authenticated',
+  });
+  await go('assist/' + p.id);
+  check('Assistance disabled by default', !(await page.locator('[name=similar]').isChecked()));
+  for (const name of ['similar', 'attention', 'handover'])
+    await page.locator('[data-assistance-settings] [name=' + name + ']').check();
+  await page.locator('[data-assistance-settings] [type=submit]').click();
+  await page.waitForTimeout(350);
+  const assistance = await api('/desk/v21/assistance/' + p.id);
+  check(
+    'Project assistance settings saved',
+    assistance.config.similar && assistance.config.handover && assistance.config.attention,
+  );
+  await go('ticket/' + t.key);
+  check(
+    'Similar ticket inspector shows actual accessible ticket',
+    (await page.locator('#main').innerText()).includes(similarTicket.key),
+  );
+  await page.locator('[data-smart-link="' + similarTicket.key + '"]').click();
+  await page.waitForTimeout(350);
+  check(
+    'Manual related link persisted',
+    (await api('/tickets/' + t.key)).ticket.links.some((l) => l.key === similarTicket.key),
+  );
+  await page.locator('[data-handover]').click();
+  check(
+    'Handover contains ticket and worklog',
+    (await page.locator('[data-handover-text]').inputValue()).includes(t.key) &&
+      (await page.locator('[data-handover-text]').inputValue()).includes('25 min'),
+  );
+  await page.locator('[data-close-handover]').click();
+  check(
+    'Attention shows unassigned ticket',
+    (await page.locator('.w21-attention').innerText()).includes('Brak opiekuna'),
+  );
+  await page.locator('.topbar [data-action=create]').click();
+  check(
+    'Create defaults to current ticket project',
+    (await page.locator('[data-form=create-ticket] [name=project_id]').inputValue()) === String(p.id),
+  );
+  await page.locator('[data-form=create-ticket] [name=title]').fill('VPN connection failure');
+  await page.waitForSelector('.w21-smart-create .w21-similar-item');
+  check(
+    'Create form shows similar existing tickets',
+    (await page.locator('.w21-smart-create').innerText()).includes(t.key),
+  );
+  await page.locator('[data-form=create-ticket] [name=project_id]').selectOption(String(otherProject.id));
+  check('Disabled project clears previous suggestions', await page.locator('.w21-smart-create').isHidden());
+  await page.keyboard.press('Escape');
   const { user } = await api('/users', {
     first_name: 'QA',
     last_name: 'Customer',
@@ -292,6 +352,7 @@ try {
     'service/' + service.id,
     'calendar',
     'workflow/' + p.id,
+    'assist/' + p.id,
     'replies/' + p.id,
     'integrations',
     'portal',

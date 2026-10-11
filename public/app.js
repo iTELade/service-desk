@@ -1,4 +1,4 @@
-import {createWorkspaceUI} from './workspace.js?v=2.1.0';
+import {createWorkspaceUI} from './workspace.js?v=2.1.1';
 const $ = (s, el = document) => el.querySelector(s);
 const app = $('#app'), modal = $('#modal');
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -61,7 +61,7 @@ function shell(route) {
       <button class="signout" data-action="logout">${icon('logout')}Wyloguj</button></div>
     </aside><div class="workspace-content"><header class="topbar"><label class="workspace-picker">Projekt<select data-workspace-project>${options(Object.fromEntries(S.meta.projects.filter(p=>p.can_work).map(p=>[p.id,p.name])),new URLSearchParams(location.hash.split('?')[1]||'').get('project'),'Wszystkie projekty')}</select></label><div>${isStaff()?'<button class="w21-command-trigger" data-command aria-label="Szukaj strony lub zgłoszenia">Szukaj / przejdź do… <kbd>Ctrl K</kbd></button>':''}${isStaff()?notificationBell():''}<button class="icon-button" data-action="refresh" title="Odśwież" aria-label="Odśwież">${icon('refresh')}</button><button class="primary" data-action="create">${icon('plus')}Utwórz zgłoszenie</button></div></header>
     <main id="main" tabindex="-1"><div class="loading">Wczytywanie…</div></main></div></div>`;
-  if(['queue','ticket','reports','cases','case','services','service','calendar','workflow','replies','integrations','portal','portal-home'].includes(route))$('#main').dataset.native21='1';
+  if(['queue','ticket','reports','cases','case','services','service','calendar','workflow','replies','assist','integrations','portal','portal-home'].includes(route))$('#main').dataset.native21='1';
 }
 function heading(kicker, title, extra = '') { return `<div class="page-heading"><div><div class="eyebrow">${e(kicker)}</div><h1>${e(title)}</h1></div>${extra}</div>`; }
 function portalShell(){
@@ -164,7 +164,7 @@ async function projectSettingsView(id,search=new URLSearchParams()){
     case 'audit':content=`<section class="panel detail-panel"><h2>Ostatnie 50 zmian konfiguracji</h2><ol class="activity">${data.audit.map(a=>`<li><strong>${e(auditLabel(a.action))}</strong><small>${e(a.actor_name||'System')} · ${date(a.created_at)}</small><details><summary>Szczegóły</summary><pre class="audit-json">${e(JSON.stringify(a.details,null,2))}</pre></details></li>`).join('')||'<li>Brak zmian.</li>'}</ol></section>`;break;
     default:content=empty('Nie znaleziono zakładki');
   }
-  return projectHeader(p,tab)+`<nav class="w21-tabs"><a href="#/workflow/${p.id}">Projektant obiegu</a><a href="#/replies/${p.id}">Gotowe odpowiedzi</a><a href="#/cases?kind=change&project=${p.id}">Zarządzanie zmianami</a><a href="#/services?project=${p.id}">Usługi projektu</a><a href="#/reports?project=${p.id}">Wyniki obsługi</a></nav>`+(tab==='workflow'?`<p><a class="button primary" href="#/workflow/${p.id}">Otwórz projektant obiegu 2.1 →</a></p>`:'')+content;
+  return projectHeader(p,tab)+`<nav class="w21-tabs"><a href="#/workflow/${p.id}">Projektant obiegu</a><a href="#/replies/${p.id}">Gotowe odpowiedzi</a><a href="#/assist/${p.id}">Podpowiedzi i usprawnienia</a><a href="#/cases?kind=change&project=${p.id}">Zarządzanie zmianami</a><a href="#/services?project=${p.id}">Usługi projektu</a><a href="#/reports?project=${p.id}">Wyniki obsługi</a></nav>`+(tab==='workflow'?`<p><a class="button primary" href="#/workflow/${p.id}">Otwórz projektant obiegu 2.1 →</a></p>`:'')+content;
 }
 function auditLabel(action){return ({'project.created':'Utworzono projekt','project.updated':'Zmieniono ustawienia projektu','membership.updated':'Zmieniono dostęp członka','form.created':'Utworzono formularz','form.updated':'Zmieniono formularz','workflow.updated':'Zmieniono mapę statusów i reguły'})[action]||action;}
 async function usersView(){
@@ -189,7 +189,7 @@ async function route(){
   if(!S.user){applyTheme();return loginView();}
   if(S.user.must_change)return forcePassword();
   if(!S.meta)return; // Boot renders the latest route after project metadata is ready.
-  if(!isStaff()&&['projects','project','board','reports','cases','case','services','service','calendar','workflow','replies'].includes(view)){location.hash='#/portal';return;}
+  if(!isStaff()&&['projects','project','board','reports','cases','case','services','service','calendar','workflow','replies','assist'].includes(view)){location.hash='#/portal';return;}
   if(['users','settings','directory','integrations'].includes(view)&&S.user.role!=='admin'){location.hash='#/queue';return;}
   S.portalMode=Boolean(portalPath)||!isStaff()||view==='portal';S.portal=null;
   document.body.dataset.density=S.uiPrefs?.density||'comfortable';applyTheme();shell(view);document.body.classList.remove('sd202-navigation-open');document.title=(view==='ticket'?key:brand())+' · Desk';
@@ -219,9 +219,10 @@ async function route(){
 async function createTicketModal(project,type,fromPortal=S.portalMode){
   const available=S.meta.projects.filter(p=>p.project_type!=='assets'&&!p.archived&&(fromPortal?p.can_request:p.can_work||p.can_request));
   if(!available.length)return notify('Nie masz dostępu do tworzenia zgłoszeń. Skontaktuj się z administratorem.',true);
-  const selected=available.find(p=>p.id===Number(project||S.portal?.id))||available[0];
+  const selected=available.find(p=>p.id===Number(project||S.portal?.id||$('#main')?.dataset.workspaceProject||$('[data-workspace-project]')?.value))||available[0];
   showModal(`<div class="eyebrow">${fromPortal?'PORTAL KLIENTA':'NOWE ZGŁOSZENIE'}</div><h2>Utwórz zgłoszenie</h2><form data-form="create-ticket" data-portal="${fromPortal}"><label>Projekt<select name="project_id" data-ticket-project required>${options(Object.fromEntries(available.map(p=>[p.id,p.name])),selected.id)}</select></label><div id="reporter-holder"></div><label>Rodzaj zgłoszenia<select name="request_type_id" data-ticket-form required></select></label><p class="hint" id="request-description"></p><div id="request-priority"></div>${input('Temat','title','','minlength="3" maxlength="200" required placeholder="Krótko opisz, czego dotyczy zgłoszenie"')}<label>Opis<textarea name="description" rows="4" minlength="3" maxlength="20000" required placeholder="Opisz swoją sprawę"></textarea></label><div id="request-fields" class="custom-fields"></div>${saveFooter('Utwórz zgłoszenie')}</form>`);
   await updateTicketTypes(type);
+  workspaceUI.mountCreate($('[data-form="create-ticket"]',modal));
 }
 async function updateTicketTypes(preferred){
   const form=$('[data-form="create-ticket"]',modal);if(!form)return;

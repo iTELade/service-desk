@@ -65,3 +65,12 @@ Authenticated namespace: `/api/desk/v21/`. The existing session/CSRF policy appl
 Monitoring ingress: `POST /api/monitoring/:connector`, authenticated by `Authorization: Bearer <secret>` independently of browser CSRF. Body: `{ "event_id": "unique-id", "state": "down", "summary": "Service unavailable" }`. `state=up` moves the incident into monitoring and does not close customer tickets. Same event_id and same payload is replayed; a different payload under the same ID returns 409. Disabled, archived or access-revoked connectors are rejected. Secrets must not appear in URLs.
 
 There is no native knowledge-portal API in 2.1.
+# Podpowiedzi zgłoszeń — przygotowane dla 2.1.1
+
+- `GET /api/desk/v21/assistance/:project_id` — konfiguracja i wersja projektu, tylko manager/admin.
+- `POST /api/desk/v21/assistance/:project_id` — `{version, config:{similar, attention, handover, threshold, stale_days}}`. Wszystkie flagi logiczne, próg 20–100, dni 1–30. Konflikt wersji: 409. Zachowuje pozostałe ustawienia projektu.
+- `POST /api/desk/v21/similar` — `{project_id, title, exclude_key?}`. Zwraca `{enabled, matches, examined, limit, definition}`; gdy wyłączone: `{enabled:false,matches:[]}`. Temat 3–200 znaków. Do 5 wyników z pola `title`, `key`, `status`, `workflow_status`, `updated_at`, `score`, `shared`, `exact`. Maksymalnie 2000 dostępnych kandydatów, po odfiltrowaniu archiwum/usuniętych. Brak opisów i komentarzy. ACL oceniane przed punktacją.
+- `GET /api/desk/v21/tickets/:key/insights` — tylko zespół mający dostęp do projektu; `{config, attention, handover, definition}`. Brak notatek wewnętrznych w podsumowaniu. Sygnały i podsumowanie nie zmieniają zgłoszenia.
+
+Wszystkie endpointy wymagają sesji; POST wymaga Origin i CSRF. Podobieństwo nie wykonuje żadnej mutacji; jego ręczne powiązanie używa dotychczasowego chronionego endpointu linkowania.
+
