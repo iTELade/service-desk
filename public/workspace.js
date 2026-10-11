@@ -83,7 +83,7 @@ export function createWorkspaceUI(ctx) {
   }
   function similarList(result, links = false) {
     if (!result.enabled) return '';
-    return `<p class="hint">Dopasowanie tematów — sugestia, nie potwierdzenie duplikatu.</p>${result.matches.map((t) => `<article class="w21-similar-item"><a href="#/ticket/${e(t.key)}"${links ? ' target="_blank" rel="noopener"' : ''}><strong>${e(t.key)}</strong> ${e(t.title)}</a><small>${t.score} / 100 · ${e(S.meta.statuses[t.status] || t.status)}<br>${t.exact ? 'Ten sam temat' : 'Wspólne słowa: ' + e(t.shared.join(', '))}</small>${!links && S.ticket?.can_work && !S.ticket.archived_at && S.ticket.status !== 'closed' ? `<button type="button" data-smart-link="${e(t.key)}"${S.ticket.links?.some((l) => l.key === t.key) ? ' disabled' : ''}>${S.ticket.links?.some((l) => l.key === t.key) ? 'Powiązane' : 'Powiąż sprawy'}</button>` : ''}</article>`).join('') || '<p>Brak podobnych zgłoszeń przy wybranym progu.</p>'}<small>${e(result.definition)} Sprawdzono ${result.examined}.</small>`;
+    return `<p class="hint">Dopasowanie tematów — sugestia, nie potwierdzenie duplikatu.</p>${result.matches.map((t) => `<article class="w21-similar-item"><a href="#/ticket/${e(t.key)}"${links ? ' target="_blank" rel="noopener"' : ''}><strong>${e(t.key)}</strong> ${e(t.title)}</a><small>${t.score} / 100 · ${e(S.meta.statuses[t.status] || t.status)}<br>${t.exact ? 'Ten sam temat' : 'Wspólne słowa: ' + e(t.shared.join(', '))}</small>${!links && !S.portalMode && S.ticket?.can_work && !S.ticket.project_archived && !S.ticket.archived_at && S.ticket.status !== 'closed' ? `<button type="button" data-smart-link="${e(t.key)}"${S.ticket.links?.some((l) => l.key === t.key) ? ' disabled' : ''}>${S.ticket.links?.some((l) => l.key === t.key) ? 'Powiązane' : 'Powiąż sprawy'}</button>` : ''}</article>`).join('') || '<p>Brak podobnych zgłoszeń przy wybranym progu.</p>'}<small>${e(result.definition)} Sprawdzono ${result.examined}.</small>`;
   }
   function mountCreate(form) {
     if (!form || form.dataset.smartMounted) return;
@@ -1863,7 +1863,8 @@ export function createWorkspaceUI(ctx) {
     if (
       view === 'ticket' &&
       main.isConnected &&
-      S.meta.projects.find((p) => p.id === S.ticket?.project_id)?.settings?.ticket_assistance?.similar
+      S.meta.projects.find((p) => p.id === S.ticket?.project_id && !p.archived)?.settings?.ticket_assistance
+        ?.similar
     ) {
       const t = S.ticket,
         similar = await call('similar', { project_id: t.project_id, title: t.title, exclude_key: t.key });

@@ -340,6 +340,25 @@ try {
   const denied = await clientContext.request.get(base + '/api/desk/v21/reports');
   check('Reports denied to customer', denied.status() === 403);
   await clientContext.close();
+  const archivedTicket = await api('/tickets', {
+    project_id: otherProject.id,
+    title: 'Archived assistance ticket',
+    description: 'Archive remains readable',
+    priority: 'P3',
+    type: 'incident',
+  });
+  const archivedConfig = await api('/desk/v21/assistance/' + otherProject.id, {
+    version: (await api('/desk/v21/assistance/' + otherProject.id)).version,
+    config: { similar: true, attention: true, handover: true, threshold: 35, stale_days: 3 },
+  });
+  await api('/projects/' + otherProject.id, { version: archivedConfig.version, archived: true }, 'PATCH');
+  await page.reload();
+  await go('ticket/' + archivedTicket.key);
+  check(
+    'Archived project ticket remains readable with assistance enabled',
+    (await page.locator('[data-handover]').isVisible()) &&
+      (await page.locator('[data-smart-link]').count()) === 0,
+  );
   const routes = [
     'queue?project=' + p.id,
     'ticket/' + t.key,
