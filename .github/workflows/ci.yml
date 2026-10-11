@@ -32,5 +32,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser regression
         run: npm run test:browser
+      - name: Visual regression — all views and themes
+        run: npm run test:visual
       - name: Upgrade script syntax
         run: bash -n scripts/upgrade.sh
