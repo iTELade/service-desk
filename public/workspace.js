@@ -120,6 +120,149 @@ export function createWorkspaceUI(ctx) {
     form.elements.project_id.addEventListener('change', update);
     update();
   }
+  function knowledgePanel(main, t, sidebar) {
+    const host = document.createElement('section');
+    host.className = 'w21-panel w21-knowledge';
+    host.innerHTML =
+      '<h2>Artykuły pomocne w tej sprawie</h2><p data-kb-state role="status">Szukam na podstawie tematu i opisu…</p><form data-kb-search><label>Szukaj w bazie wiedzy<input name="q" minlength="2" maxlength="240" placeholder="Temat lub słowa kluczowe" required></label><button type="submit">Szukaj</button></form><div data-kb-results></div><h3>Powiązane artykuły</h3><div data-kb-links></div>';
+    sidebar.append(host);
+    let generation = 0;
+    const kb = (path, data, method = 'POST') => api('/desk/knowledge/' + path, { method, data });
+    const active = () => main.isConnected && S.ticket === t;
+    const showArticle = guarded(async (id) => {
+      showModal(
+        '<h2>Artykuł bazy wiedzy</h2><p data-kb-loading>Wczytywanie…</p><button type=\"button\" data-kb-loading-close>Zamknij</button>',
+      );
+      const loading = $('[data-kb-loading]');
+      $('[data-kb-loading-close]').onclick = () => $('#modal').close();
+      const article = await kb('pages/' + encodeURIComponent(id), { project_id: t.project_id }).catch(
+        (err) => {
+          if (loading.isConnected) loading.textContent = err.message;
+          throw err;
+        },
+      );
+      if (!active() || !loading.isConnected || !$('#modal').open) return;
+      showModal(
+        `<h2>${e(article.title)}</h2><p>${e(article.summary)}</p><div class="w21-kb-content">${markdown(article.content)}</div><p><a href="${e(article.url)}" target="_blank" rel="noopener noreferrer">Otwórz w osobnej bazie wiedzy →</a></p><div class="button-row">${!t.archived_at && !t.project_archived && t.status !== 'closed' ? '<button type="button" data-kb-pin>Powiąż ze zgłoszeniem</button><button type="button" data-kb-insert>Wstaw odnośnik do szkicu</button>' : ''}<button type="button" data-kb-close>Zamknij</button></div><p data-kb-modal-status role="status"></p>`,
+      );
+      $('[data-kb-close]').onclick = () => $('#modal').close();
+      const pin = $('[data-kb-pin]');
+      if (pin)
+        pin.onclick = guarded(async () => {
+          pin.disabled = true;
+          try {
+            await kb('tickets/' + encodeURIComponent(t.key) + '/links', { page_id: id, version: t.version });
+            if (active()) {
+              $('#modal').close();
+              await refreshLinks();
+              notify('Powiązano artykuł.');
+            }
+          } finally {
+            if (pin.isConnected) pin.disabled = false;
+          }
+        });
+      const insert = $('[data-kb-insert]');
+      if (insert)
+        insert.onclick = guarded(async () => {
+          const composer = $('[data-w21-composer]', main),
+            field = $('[name=body]', composer),
+            internal = $('[name=internal]', composer)?.checked;
+          if (!composer || !field) throw Error('Edytor odpowiedzi nie jest dostępny.');
+          let selected = article;
+          if (!internal) {
+            try {
+              selected = await kb('pages/' + encodeURIComponent(id), {
+                project_id: t.project_id,
+                public_only: true,
+              });
+            } catch {
+              const status = $('[data-kb-modal-status]');
+              status.textContent =
+                'Ten artykuł nie jest dostępny publicznie. Wstaw go do notatki wewnętrznej lub wybierz publiczny artykuł.';
+              return;
+            }
+          }
+          if (!active()) return;
+          field.value += (field.value.trim() ? '\n\n' : '') + selected.title + '\n' + selected.url;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          $('#modal').close();
+          field.focus();
+          notify('Wstawiono odnośnik do szkicu. Odpowiedź nie została wysłana.');
+        });
+    });
+    const bindArticle = (box) =>
+      $$('[data-kb-open]', box).forEach(
+        (button) => (button.onclick = () => showArticle(button.dataset.kbOpen)),
+      );
+    const display = (results) => {
+      const box = $('[data-kb-results]', host);
+      box.innerHTML =
+        results
+          .map(
+            (r) =>
+              `<article class="w21-similar-item"><button type="button" data-kb-open="${e(r.id)}">${e(r.title)}</button><p>${e(r.summary)}</p><small>${e(r.language)} · ${e(r.visibility)}</small></article>`,
+          )
+          .join('') || '<p>Brak dopasowanych artykułów. Spróbuj innych słów.</p>';
+      bindArticle(box);
+    };
+    const refreshLinks = async () => {
+      try {
+        const result = await kb('tickets/' + encodeURIComponent(t.key) + '/links', undefined, 'GET');
+        if (!active()) return;
+        const box = $('[data-kb-links]', host);
+        box.innerHTML =
+          result.links
+            .map(
+              (l) =>
+                `<p>${l.unavailable ? 'Artykuł niedostępny lub poza aktualnym zakresem.' : `<button type="button" data-kb-open="${e(l.article.id)}">${e(l.article.title)}</button>`}${!t.archived_at && !t.project_archived && t.status !== 'closed' ? ` <button type="button" data-kb-unlink="${l.id}" aria-label="Odłącz artykuł">×</button>` : ''}</p>`,
+            )
+            .join('') || '<p>Brak powiązanych artykułów.</p>';
+        bindArticle(box);
+        $$('[data-kb-unlink]', box).forEach(
+          (b) =>
+            (b.onclick = guarded(async () => {
+              await kb(
+                'tickets/' + encodeURIComponent(t.key) + '/links',
+                { link_id: Number(b.dataset.kbUnlink), version: t.version },
+                'DELETE',
+              );
+              await refreshLinks();
+            })),
+        );
+      } catch {
+        if (active()) $('[data-kb-links]', host).textContent = 'Powiązane artykuły są chwilowo niedostępne.';
+      }
+    };
+    const search = async (q) => {
+      const token = ++generation,
+        state = $('[data-kb-state]', host);
+      state.textContent = 'Szukam artykułów…';
+      $('[data-kb-results]', host).replaceChildren();
+      try {
+        const result = await kb(
+          'search',
+          q === undefined ? { ticket_key: t.key, suggest: true } : { ticket_key: t.key, q },
+        );
+        if (!active() || token !== generation) return;
+        if (!result.enabled) {
+          host.remove();
+          return;
+        }
+        state.textContent =
+          result.automatic === false
+            ? 'Automatyczne podpowiedzi są wyłączone. Możesz wyszukać artykuł ręcznie.'
+            : 'Podpowiedzi z zewnętrznej bazy wiedzy. Sprawdź treść przed użyciem.';
+        display(result.results);
+      } catch (err) {
+        if (active() && token === generation)
+          state.textContent =
+            'Baza wiedzy jest chwilowo niedostępna. Możesz nadal obsługiwać zgłoszenie. ' + err.message;
+      }
+    };
+    bindForm($('[data-kb-search]', host), async (f) => search(f.q));
+    void search();
+    void refreshLinks();
+  }
   async function preference(update) {
     prefs = await call('preferences');
     prefs = await call('preferences', { version: prefs.version, config: { ...prefs.config, ...update } });
@@ -626,6 +769,8 @@ export function createWorkspaceUI(ctx) {
       t.can_work && !S.portalMode && !t.project_archived && !t.archived_at && t.status !== 'closed';
     if (t.can_work && !S.portalMode) {
       const sidebar = $('.ticket-sidebar', main) || host;
+      if (S.meta.projects.find((p) => p.id === t.project_id)?.knowledge_enabled)
+        knowledgePanel(main, t, sidebar);
       const insight = await call('tickets/' + encodeURIComponent(key) + '/insights');
       if (!main.isConnected || S.ticket !== t) return;
       if (insight.config.attention)

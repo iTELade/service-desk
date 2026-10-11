@@ -10,7 +10,7 @@ const agent=read('public/agent-experience-1.6.js');
 const version=read('lib/version.mjs');
 
 test('2.1.1 version, schema and cache boundary are aligned',()=>{
-  assert.match(version,/VERSION='2\.1\.1'/); assert.match(version,/SCHEMA_VERSION=10/);
+  assert.match(version,/VERSION='2\.1\.1'/); assert.match(version,/SCHEMA_VERSION=11/);
   for(const asset of ['app.css','design-system.css','i18n.js','security.js','app.js','settings-center.js','release-1.1.2.js','product-shell.js'])assert.ok(index.includes(asset+'?v=2.1.1'),`missing 2.1.1 cache key for ${asset}`);
 });
 

@@ -50,5 +50,5 @@ test('2.1.1 create dialog receives attachment control',()=>{
 });
 
 test('2.1.1 version and migration validation documentation are current',()=>{
-  assert.match(version,/VERSION='2\.1\.1'/); assert.match(version,/SCHEMA_VERSION=10/); assert.match(validation,/Service Desk 2.1/); assert.match(validation,/Migracja 9 → 10/);
+  assert.match(version,/VERSION='2\.1\.1'/); assert.match(version,/SCHEMA_VERSION=11/); assert.match(validation,/Service Desk 2.1/); assert.match(validation,/Migracja 9 → 10/);
 });

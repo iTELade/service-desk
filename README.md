@@ -1,6 +1,6 @@
 # iTELade Service Desk 2.1.0
 
-> Gałąź przygotowawcza **2.1.1**: opcjonalne podobne zgłoszenia, panel uwagi agenta i podsumowanie do przekazania. Wersja **nieopublikowana**; ostatni stabilny release pozostaje 2.1.0. Szczegóły: [RELEASE_NOTES_2.1.1.md](RELEASE_NOTES_2.1.1.md).
+> Gałąź przygotowawcza **2.1.1**: opcjonalne podobne zgłoszenia, panel uwagi agenta, podsumowanie do przekazania oraz rzeczywista integracja z `service-desk-knowledge-base` z podpowiedziami z tematu i opisu zgłoszenia (schemat 11). Wersja **nieopublikowana**; ostatni stabilny release pozostaje 2.1.0. Szczegóły: [RELEASE_NOTES_2.1.1.md](RELEASE_NOTES_2.1.1.md).
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 

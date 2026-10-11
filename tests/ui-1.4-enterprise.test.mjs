@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const index=read('public/index.html'),base=read('public/app.css'),legacy=read('public/release-1.2.0.js'),features=read('public/release-1.1.2.js'),shell=read('public/product-shell.js'),design=read('public/design-system.css'),version=read('lib/version.mjs');
-test('2.0 product boundary includes schema 9 migration',()=>{assert.match(version,/VERSION='2\.1\.1'/);assert.match(version,/SCHEMA_VERSION=10/);assert.match(index,/\?v=2\.1\.1/);});
+test('2.0 product boundary includes schema 9 migration',()=>{assert.match(version,/VERSION='2\.1\.1'/);assert.match(version,/SCHEMA_VERSION=11/);assert.match(index,/\?v=2\.1\.1/);});
 test('2.0 keeps required operational behavior while replacing the visual stack',()=>{for(const token of ['installGlobalSearch','installQueueTools','installAttachments','queue-preferences'])assert.match(features,new RegExp(token));assert.ok(index.includes('/release-1.1.2.js?v=2.1.1'));assert.ok(!index.includes('/release-1.1.2.css?v='));});
 test('2.0 service navigation and workspaces are represented by the product shell',()=>{for(const token of ['Zarządzanie usługami','Użytkownicy','Administracja','sd20-queue-workspace','sd20-ticket-workspace','sd20-project-settings','sd20-customer-portal'])assert.ok(shell.includes(token),token);});
 test('2.0 queue and ticket foundations retain 1.x functional rebuild paths',()=>{assert.match(legacy,/rebuildQueue/);assert.match(legacy,/rebuildTicket/);for(const token of ['.sd20-queue-table','.sd20-ticket-layout','.sd20-inspector'])assert.ok(design.includes(token),token);});

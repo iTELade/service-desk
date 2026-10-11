@@ -2,7 +2,7 @@
 
 - Per-project opt-in similar-ticket suggestions in creation forms and ticket details, with configurable threshold, access-controlled ranking and manual related links.
 - Optional agent attention signals and reviewable handover summaries without internal notes.
-- Local title matching; no external AI, automatic merge or native knowledge portal. Schema remains 10.
+- Local title matching; no external AI, automatic merge or native knowledge portal. External Knowledge Base API integration with title/body suggestions, encrypted token, live previews and stable article references; schema 10→11.
 
 ## 2.1.0 — 2026-10-11 — Agent workspace i ITSM
 

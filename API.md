@@ -74,3 +74,18 @@ There is no native knowledge-portal API in 2.1.
 
 Wszystkie endpointy wymagają sesji; POST wymaga Origin i CSRF. Podobieństwo nie wykonuje żadnej mutacji; jego ręczne powiązanie używa dotychczasowego chronionego endpointu linkowania.
 
+# Zewnętrzna baza wiedzy — przygotowane dla 2.1.1
+
+`/api/desk/knowledge` zastępuje dawny zapis samego kontraktu rzeczywistą integracją z `iTELade/service-desk-knowledge-base` 0.5.1. Sesja i CSRF/Origin są wymagane zgodnie z pozostałymi endpointami Desk.
+
+- `GET /api/desk/knowledge`: administrator; konfiguracja bez sekretu/ciphertext, `has_token`, `last_health`, `version`.
+- `POST /api/desk/knowledge`: administrator; `{version, enabled, base_url, public_url, token?, clear_token?, allow_private, auto_suggest, project_ids:[], space_ids:[]}`. Pusty token zachowuje dotychczasowy; zmiana adresu API bez nowego tokenu usuwa stary. Puste zakresy oznaczają wszystkie projekty/przestrzenie dopuszczone pozostałymi kontrolami. Publiczny adres w odnośnikach wymaga HTTPS. Zapis chroniony wersją; token szyfrowany przy użyciu `master.key`.
+- `POST /api/desk/knowledge/test`: administrator; sprawdza `health/search/read`, zwraca bezpieczny `{ok,message,checked_at,remote_version?}` i zapisuje ostatni wynik.
+- `POST /api/desk/knowledge/search`: zespół projektu; `{ticket_key, suggest:true}` wyprowadza słowa z tematu i opisu albo `{ticket_key,q}` / `{project_id,q}` wykonuje ręczne wyszukiwanie. Do 5 wyników z maksymalnie 50 zwróconych przez API KB, po ograniczeniu przestrzeni. Brak treści artykułu w wynikach.
+- `POST /api/desk/knowledge/pages/:page_id`: zespół projektu; `{project_id,public_only?:false}`. Treść Markdown z API KB, bez zdalnego HTML. `public_only:true` używa osobnego anonimowego odczytu strony; uwzględnia również dostęp do jej przestrzeni. Dla prywatnego API HTTP wymaga publicznego adresu HTTPS w odnośnikach.
+- `GET /api/desk/knowledge/tickets/:key/links`: zespół; metadane powiązań weryfikowane aktualnie w KB. Niedostępne artykuły mają tylko `{id,unavailable:true}`, bez starego tytułu.
+- `POST /api/desk/knowledge/tickets/:key/links`: `{page_id,version}`; zespół z prawem zmian, aktualna wersja zgłoszenia, do 10 powiązań. Przechowywany jest stabilny ID i tożsamość źródła, bez treści artykułu.
+- `DELETE /api/desk/knowledge/tickets/:key/links`: `{link_id,version}`; odłącza referencję należącą do tego zgłoszenia.
+
+Klienci nie otrzymują dostępu do uprzywilejowanego tokenu ani endpointów artykułów. Administrator udostępnia treści tokenu zespołom wybranych projektów; integracja nie mapuje indywidualnych kont i ról KB. Włączenie integracji nie tworzy natywnego portalu ani synchronizacji artykułów do SQLite. Sieci prywatne wymagają jawnego opt-in; loopback i adresy metadanych są blokowane, DNS sprawdzany i przypinany, przekierowania niedozwolone. Limit odpowiedzi: 2 MiB; timeout DNS/połączenia po 8 s. Awaria integracji nie blokuje zgłoszenia.
+

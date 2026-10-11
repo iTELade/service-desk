@@ -30,3 +30,11 @@ Formularz tworzenia uruchamia lokalne podpowiedzi po 350 ms bez wpisywania; zmia
 
 Szczegóły zgłoszenia pokazują ocenę dopasowania i wspólne słowa. Powiązanie wymaga kliknięcia agenta i używa istniejących kontroli uprawnień. Sygnały uwagi i podsumowanie są dostępne wyłącznie zespołowi. Podsumowanie otwiera podgląd przed kopiowaniem; przy braku Clipboard API tekst jest zaznaczany do ręcznego kopiowania.
 
+# Integracja KB dla agenta — 2.1.1, nieopublikowane
+
+Istniejący widok `#/admin/knowledge` ma rzeczywisty token API, adres API i adres w odnośnikach, zakres projektów/przestrzeni, przełącznik automatycznych podpowiedzi i test połączenia. Konfiguracja jest wyłącznie dla administratora; token nie wraca w odpowiedziach. Zapis odświeża metadane projektów bez konieczności ponownego logowania.
+
+W szczegółach zgłoszenia uprawniony agent otrzymuje panel **Artykuły pomocne w tej sprawie**. Pobieranie odbywa się niezależnie od renderowania zgłoszenia; błąd KB daje komunikat i nie usuwa edytora. Domyślne podpowiedzi pochodzą z tematu i opisu; ręczne wyszukiwanie czyści poprzednie wyniki i chroni przed opóźnionymi odpowiedziami.
+
+Podgląd artykułu pokazuje tekst bez osadzania zdalnego HTML. Można przypiąć stabilny ID lub wstawić odnośnik do szkicu. Publiczna odpowiedź wymaga ponownego anonimowego odczytu KB; prywatny artykuł można wstawić do osobnego szkicu notatki wewnętrznej. Żaden przycisk integracji nie wysyła komentarza automatycznie. Klienci nie widzą panelu ani metadanych powiązanych artykułów.
+

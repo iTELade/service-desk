@@ -22,4 +22,14 @@ Przeszukiwane jest do 2000 ostatnio aktualizowanych, dostępnych zgłoszeń tego
 
 ## Zgodność
 
-Schema SQLite pozostaje **10**. Aktualizacja z 2.1.0 nie wymaga nowej migracji. Nie dodano portalu wiedzy — pozostaje osobnym projektem. Zmiany są przygotowane do późniejszego wydania 2.1.1; samo istnienie tych notatek nie oznacza opublikowanego release'u.
+SQLite przechodzi ze schematu **10 do 11** w migracji transakcyjnej. Nowa tabela przechowuje wyłącznie identyfikatory powiązań zgłoszenie–artykuł, bez treści artykułów. Nie dodano natywnego portalu wiedzy — pozostaje osobnym projektem. Zmiany są przygotowane do późniejszego wydania 2.1.1; samo istnienie tych notatek nie oznacza opublikowanego release'u.
+
+## Integracja z service-desk-knowledge-base
+
+Istniejąca pozycja **Ustawienia → Integracje → Baza wiedzy** obsługuje teraz rzeczywiste API osobnej aplikacji: adres API, oddzielny adres HTTPS w odnośnikach, szyfrowany token z uprawnieniami `health/search/read`, zakres projektów i przestrzeni oraz test połączenia. Sieć prywatna Docker/VPN wymaga jawnego włączenia. Zmiana adresu API usuwa stary token, jeżeli nie podano nowego.
+
+Agent przy otwarciu zgłoszenia otrzymuje do pięciu propozycji z tematu i opisu. Do KB trafiają wybrane słowa kluczowe, bez notatek wewnętrznych, załączników, adresów e-mail i URL. Można wyszukiwać ręcznie, podglądać artykuł, przypinać stabilny identyfikator do zgłoszenia i wstawić odnośnik do szkicu odpowiedzi. Nic nie wysyła się automatycznie. Treść jest pobierana na żądanie z KB i wyświetlana bez osadzania zdalnego HTML.
+
+Integracja jest dostępna zespołom obsługującym wybrane projekty. Administrator udostępnia im treści dopuszczone przez dedykowany token KB i opcjonalną listę przestrzeni; nie jest to automatyczne przeniesienie indywidualnych uprawnień kont z KB. Klienci nie korzystają z tego tokenu. Publiczny odnośnik jest sprawdzany dodatkowo przez anonimowy endpoint KB, obejmujący także dostęp do przestrzeni. Niedostępne lub wycofane artykuły nie udostępniają starych tytułów z pamięci podręcznej. Awaria KB nie blokuje edytora zgłoszenia.
+
+Zgodność jest sprawdzana na osobnej aplikacji KB 0.5.1, commit `afefd4b98a0ed42ef704ad1452aa523923c28b62`, oraz na Chromium, Firefox i WebKit. Nie zmieniono ani nie wydano repozytorium KB.
