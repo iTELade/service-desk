@@ -182,6 +182,7 @@ async function route(){
   if(!S.user&&portalPath){S.portalMode=true;applyTheme();portalShell();try{const content=view==='ticket'&&key?await publicProjectTicketView(key):await publicProjectPortalView();if(id===S.routeId)$('#main').innerHTML=content;}catch(err){if(id===S.routeId)$('#main').innerHTML=`<div class="empty"><h1>Nie udało się wczytać publicznego portalu</h1><p>${e(err.message)}</p></div>`;}return;}
   if(!S.user){applyTheme();return loginView();}
   if(S.user.must_change)return forcePassword();
+  if(!S.meta)return; // Boot renders the latest route after project metadata is ready.
   if(!isStaff()&&['projects','project','board'].includes(view)){location.hash='#/portal';return;}
   if(['users','settings','directory'].includes(view)&&S.user.role!=='admin'){location.hash='#/queue';return;}
   S.portalMode=Boolean(portalPath)||!isStaff()||view==='portal';S.portal=null;
@@ -367,16 +368,16 @@ function automationHistory(data){
 function readWorkflow(){
   if($('[data-form="workflow"][data-central]'))return {...S.projectWorkflow,rules:readAutomationRules()};
   const form=$('[data-form="workflow"], [data-v6="template"]');
-  return {version:Number(form.dataset.version),initial:form.elements.initial.value,statuses:readWorkflowStatuses(),transitions:[...form.querySelectorAll('.transition-row')].map(row=>({from:$('[name="transition_from"]',row).value,to:$('[name="transition_to"]',row).value,actor:$('[name="transition_actor"]',row).value,name:$('[name="transition_name"]',row).value})),rules:readAutomationRules()};
+  return {version:Number(form.dataset.version),initial:form.querySelector('[name=initial]').value,statuses:readWorkflowStatuses(),transitions:[...form.querySelectorAll('.transition-row')].map(row=>({from:$('[name="transition_from"]',row).value,to:$('[name="transition_to"]',row).value,actor:$('[name="transition_actor"]',row).value,name:$('[name="transition_name"]',row).value})),rules:readAutomationRules()};
 }
 function workflowGraphLegacy(w,focus){
   const selected=w.statuses.find(s=>s.key===focus)||w.statuses.find(s=>s.key===w.initial)||w.statuses[0];
   return `<div class="workflow-lanes">${Object.entries(S.meta.statuses).map(([category,name])=>`<div class="workflow-lane"><h3>${e(name)}</h3>${w.statuses.filter(s=>s.category===category).map(s=>`<button type="button" class="workflow-node ${e(category)}${selected?.key===s.key?' focused':''}" data-action="focus-state" data-state="${e(s.key)}">${e(s.name||'Nowy status')}${w.initial===s.key?'<small>Początek</small>':''}<small>${w.transitions.filter(t=>t.from===s.key).length} przejść</small></button>`).join('')||'<span class="hint">—</span>'}</div>`).join('')}</div>${selected?`<div class="workflow-focus"><strong>${e(selected.name||'Nowy status')}</strong><span aria-hidden="true">→</span><div>${w.transitions.filter(t=>t.from===selected.key).map(t=>`<span class="transition-chip">${e(w.statuses.find(s=>s.key===t.to)?.name||'Usunięty status')}<small>${{team:'Zespół',customer:'Zgłaszający',both:'Zespół i zgłaszający'}[t.actor]}</small></span>`).join('')||'<span class="hint">Brak przejść wychodzących</span>'}</div></div>`:''}`;
 }
 function updateWorkflowPreview(sync=false){
-  if(!$('[data-form="workflow"], [data-v6="template"]'))return;
+  const form=$('[data-form="workflow"], [data-v6="template"]'),host=$('#workflow-graph');if(!form||!host||!form.querySelector('[name=initial]'))return;
   if(sync){const map=workflowStateMap();document.querySelectorAll('[data-state-select]').forEach(el=>{const v=el.value,values=el.hasAttribute('data-state-any')?{'*':'Dowolny status',...map}:map;el.innerHTML=options(values,v);if(!Object.hasOwn(values,v))el.value='';});}
-  const host=$('#workflow-graph');host.innerHTML=workflowGraph(readWorkflow(),host.dataset.focus);
+  host.innerHTML=workflowGraph(readWorkflow(),host.dataset.focus);
 }
 async function legacyWorkflowEditor(p){
   const [w,agents,forms,history,hooks]=await Promise.all([api('/projects/'+p.id+'/workflow'),api('/projects/'+p.id+'/agents'),api('/projects/'+p.id+'/request-types?surface=manage'),api('/projects/'+p.id+'/automation'),api('/desk/webhooks')]);
