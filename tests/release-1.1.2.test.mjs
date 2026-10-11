@@ -71,3 +71,24 @@ test('1.1.2 global search is permission aware and prioritizes exact ticket keys'
     assert.ok(Array.isArray(exact.knowledge));
   }finally{f.closeAll();}
 });
+
+
+test('2.0.3 attachments respect reply locks and lifecycle without hiding downloads',()=>{
+ const f=setup();try{
+  const body={ticket_id:f.ticket.id,filename:'sp1.txt',mime:'text/plain',data_base64:Buffer.from('sp1').toString('base64'),internal:false};
+  const existing=f.r.attachmentCreate(f.customer,body);
+  f.db.prepare('UPDATE tickets SET customer_reply_locked=1 WHERE id=?').run(f.ticket.id);
+  assert.throws(()=>f.r.attachmentCreate(f.customer,body),e=>e.status===409);
+  assert.ok(f.r.attachmentCreate(f.admin,body));
+  f.db.prepare("UPDATE tickets SET status='open',workflow_status='open',customer_reply_locked=0,archived_at=? WHERE id=?").run(new Date().toISOString(),f.ticket.id);
+  assert.throws(()=>f.r.attachmentCreate(f.admin,body),e=>e.status===409);
+  f.db.prepare('UPDATE tickets SET archived_at=NULL WHERE id=?').run(f.ticket.id);f.db.prepare('UPDATE projects SET archived=1 WHERE id=?').run(f.p.id);
+  assert.throws(()=>f.r.attachmentCreate(f.admin,body),e=>e.status===409);
+  assert.equal(f.r.attachmentContent(f.admin,existing.id).filename,'sp1.txt');
+  f.db.prepare('UPDATE projects SET archived=0 WHERE id=?').run(f.p.id);
+  f.db.prepare("UPDATE tickets SET status='closed',workflow_status='closed' WHERE id=?").run(f.ticket.id);
+  assert.throws(()=>f.r.attachmentCreate(f.admin,body),e=>e.status===409);
+  assert.equal(f.r.attachmentContent(f.customer,existing.id).filename,'sp1.txt');
+
+ }finally{f.closeAll();}
+});

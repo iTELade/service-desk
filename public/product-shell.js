@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const VERSION='2.0.2';
+const VERSION='2.0.3';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tr=v=>window.DeskLocale?.t?.(v)||v;
 const $=(selector,root=document)=>root.querySelector(selector);

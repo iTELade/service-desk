@@ -1,4 +1,4 @@
-# iTELade Service Desk 2.0.2
+# iTELade Service Desk 2.0.3
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
@@ -8,12 +8,12 @@ Service Desk is an independent iTELade project. It is not an Atlassian product a
 
 ## Current release
 
-**Service Desk 2.0.2**
+**Service Desk 2.0.3 — Service Pack 1 dla 2.0.2**
 
-- GitHub release: https://github.com/iTELade/service-desk/releases/tag/v2.0.2
-- Container image: `ghcr.io/itelade/service-desk:v2.0.2`
-- OCI digest: see `desk-release.json` attached to GitHub Release `v2.0.2`.
-- Release notes: [RELEASE_NOTES_2.0.2.md](RELEASE_NOTES_2.0.2.md)
+- GitHub release: https://github.com/iTELade/service-desk/releases/tag/v2.0.3
+- Container image: `ghcr.io/itelade/service-desk:v2.0.3`
+- OCI digest: see `desk-release.json` attached to GitHub Release `v2.0.3`.
+- Release notes: [RELEASE_NOTES_2.0.3.md](RELEASE_NOTES_2.0.3.md)
 - UI architecture: [UI_2.0.md](UI_2.0.md)
 - Upgrade notes: [MIGRATION_2.0.md](MIGRATION_2.0.md)
 - Validation checklist: [VALIDATION.md](VALIDATION.md)
@@ -283,13 +283,13 @@ Stable releases contain `desk-release.json` with the exact GHCR image digest and
 Current release image:
 
 ```text
-ghcr.io/itelade/service-desk:v2.0.2
+ghcr.io/itelade/service-desk:v2.0.3
 ```
 
 Current release digest:
 
 ```text
-See desk-release.json attached to v2.0.2 for the immutable digest.
+See desk-release.json attached to v2.0.3 for the immutable digest.
 ```
 
 The updater shows live milestone progress, survives the temporary application restart, reconnects to an in-progress update job, reports rollback state and reloads the browser once after success or completed rollback.
@@ -350,7 +350,7 @@ Then complete the smoke checklist in [VALIDATION.md](VALIDATION.md).
 
 ## Documentation
 
-- [RELEASE_NOTES_2.0.2.md](RELEASE_NOTES_2.0.2.md) — Service Desk 2.0 release notes,
+- [RELEASE_NOTES_2.0.3.md](RELEASE_NOTES_2.0.3.md) — Service Desk 2.0 release notes,
 - [UI_2.0.md](UI_2.0.md) — Service Desk 2.0 UI architecture and presentation boundary,
 - [MIGRATION_2.0.md](MIGRATION_2.0.md) — schema-8 → schema-9 migration and rollback requirements,
 - [VALIDATION.md](VALIDATION.md) — current validation and smoke-test checklist,

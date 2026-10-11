@@ -130,3 +130,24 @@ body.sd20 .sd20-sidebar{transform:none;height:100dvh}
 @media (min-width:821px){body.sd20 .sd202-menu{display:inline-flex;align-items:center}body.sd20.sd202-sidebar-collapsed{--sd20-sidebar-width:72px}body.sd20.sd202-sidebar-collapsed .brand span,body.sd20.sd202-sidebar-collapsed .sd20-nav-group,body.sd20.sd202-sidebar-collapsed .workspace-name,body.sd20.sd202-sidebar-collapsed .sd20-nav-link span,body.sd20.sd202-sidebar-collapsed .profile span,body.sd20.sd202-sidebar-collapsed .sd201-project-context{display:none}body.sd20.sd202-sidebar-collapsed .sd20-nav-link{justify-content:center}body.sd20.sd202-sidebar-collapsed .brand{justify-content:center;padding-inline:0}body.sd20.sd202-sidebar-collapsed .signout{font-size:0}body.sd20.sd202-sidebar-collapsed .signout .icon{width:20px;height:20px}}
 :root{--sd20-on-primary:#fff}:root[data-theme="dark"]{--sd20-on-primary:#112036;--j-blue-hover:#a2c9ff}
 body.sd20 button.primary,body.sd20 .button.primary{background:var(--sd20-accent);border-color:var(--sd20-accent);color:var(--sd20-on-primary)}
+
+/* 2.0.3 SP1: ticket attachments, SLA and notifications share theme surfaces. */
+body.sd20 .r112-attachments{background:var(--sd20-surface)!important;color:var(--sd20-text);border-color:var(--sd20-border)!important;border-radius:var(--sd20-radius)!important}
+body.sd20 .r112-attachments-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+body.sd20 .r112-attachments-head span{padding:2px 8px;border-radius:12px;background:var(--sd20-surface-subtle)}
+body.sd20 .r112-attachment-list{display:grid;gap:8px;margin:12px 0}
+body.sd20 .r112-attachment{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--sd20-border);border-radius:8px;padding:12px}
+body.sd20 .r112-attachment>div{min-width:0;overflow-wrap:anywhere}
+body.sd20 .r112-attachment strong,body.sd20 .r112-attachment small{display:block}
+body.sd20 .r112-attachment small{color:var(--sd20-muted);margin-top:4px}
+body.sd20 .r112-upload{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding-top:12px;border-top:1px solid var(--sd20-border)}
+body.sd20 .r112-file-picker{flex:1;min-width:0}
+body.sd20 .r112-file-picker input{width:100%;min-width:0;max-width:100%;padding:6px}
+body.sd20 .r112-upload label:has([type=checkbox]){display:flex;flex-direction:row;align-items:center;gap:8px;min-height:36px;margin:0}
+body.sd20 .r112-upload [type=checkbox]{width:18px;height:18px;min-height:18px;flex:none;accent-color:var(--sd20-accent)}
+body.sd20 .sla-block{display:grid;gap:6px;background:var(--sd20-surface-subtle);color:var(--sd20-text);border:1px solid var(--sd20-border);overflow-wrap:anywhere}
+body.sd20 .sla-block+.sla-block{margin-top:8px}
+body.sd20 .sla-block small{color:var(--sd20-muted)}
+body.sd20 .notice{background:var(--sd20-surface);color:var(--sd20-text);border-color:var(--sd20-border)}
+body.sd20 #notices{top:auto;bottom:18px;max-height:calc(100dvh - 36px);overflow:auto}
+@media(max-width:820px){body.sd20 .r112-upload{align-items:stretch}body.sd20 .r112-file-picker{flex-basis:100%}body.sd20 .r112-attachment{align-items:start;flex-direction:column}body.sd20 #notices{bottom:12px}}

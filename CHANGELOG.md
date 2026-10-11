@@ -1,5 +1,9 @@
 ## 2.0.1
 
+## 2.0.3 — 2026-10-11 — Service Pack 1
+
+Naprawa powielania załączników przy równoległych żądaniach i przełączaniu zgłoszeń, kontrolowane ponawianie po błędzie, zachowanie plików przy błędzie uploadu oraz poprawki ciemnego motywu załączników, SLA i powiadomień. Powiadomienia przeniesione poza nagłówek. Rozszerzona regresja Chromium odtwarza zgłoszone problemy. Schemat bazy pozostaje 9. Szczegóły: [RELEASE_NOTES_2.0.3.md](RELEASE_NOTES_2.0.3.md).
+
 ## 2.0.2 — 2026-10-11
 
 Naprawy bezpieczeństwa schematów akceptacji, transakcji decyzji, prywatności zapisanych widoków, SLA odpowiedzi i kontroli schematu aktualizacji. Działająca konfiguracja schematu 9, zapis układów kolejki, zakładki aktywności zgłoszenia, mobilne menu, ciemny motyw, wyszukiwanie i zachowanie marki. Zależności bez zgłoszonych podatności. Regresja Chromium jest obowiązkową bramką CI i publikacji. Szczegóły: [RELEASE_NOTES_2.0.2.md](RELEASE_NOTES_2.0.2.md).
