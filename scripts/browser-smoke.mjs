@@ -23,6 +23,11 @@ try{
  let activeTheme='';const page=await context.newPage();page.on('pageerror',e=>{errors.push(e.message);console.log('BROWSER ERROR '+page.url()+' '+e.stack);});page.on('dialog',d=>d.accept());
  const routes=['queue','board','portal','portal-home','projects','projects/new',`project/${p.id}`,`project/${p.id}?tab=workflow`,`project/${p.id}?tab=forms`,`project/${p.id}?tab=members`,`project/${p.id}?tab=settings`,'users',`ticket/${ticket.key}`,'settings','settings?section=general','settings?section=branding','settings?section=identity','directory','admin/sso','profile','settings?section=service','settings?section=approvals','settings?section=communication','admin/mail','admin/mail-templates','settings?section=integrations','settings?section=github','admin/webhooks','admin/api-tokens','settings?section=plugins','settings?section=assets','settings?section=audit','settings?section=system','admin/updates','admin/templates','admin/organizations','admin/assets','admin/knowledge','admin/sync'];
  async function go(route){await page.goto(base+'/#/'+route);await page.locator('#main').waitFor();await page.waitForTimeout(200);const text=await page.locator('#main').innerText();check('Render '+route,text.length>20&&!text.includes('Nie udało się wczytać'));}
+ // Route changes while boot is awaiting metadata must wait for a complete shell.
+ let metaStarted;const metaRequestStarted=new Promise(r=>metaStarted=r);
+ await page.route('**/api/meta',async route=>{metaStarted();await new Promise(r=>setTimeout(r,600));await route.continue();});
+ await page.goto(base+'/#/queue');await metaRequestStarted;await page.evaluate(()=>location.hash='#/board');await page.waitForTimeout(50);await page.evaluate(()=>location.hash='#/queue');await page.waitForSelector('.metrics');
+ check('Startup navigation waits for project metadata',errors.length===0);await page.unroute('**/api/meta');
  // Reproduce slow attachment fetches while unrelated DOM updates trigger decoration.
  await page.route('**/api/desk/r112/attachments?*',async route=>{await new Promise(r=>setTimeout(r,350));await route.continue();});
  await go('ticket/'+ticket.key);await page.waitForTimeout(1000);

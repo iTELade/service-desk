@@ -4,6 +4,8 @@ Service pack naprawia błędy odtworzone ze zgłoszonego zrzutu ekranu: powielan
 
 ## Poprawki
 
+- Szybka zmiana trasy podczas startu czeka na metadane projektów; zapobiega wyjątkowi JavaScript w kolejce. Poprawiono też odczyt statusu początkowego w podglądzie mapy obiegu.
+
 - Pobieranie załączników ma blokadę równoległych operacji dla konkretnego panelu. Opóźniona odpowiedź nie jest montowana po przejściu do innego zgłoszenia ani po odtworzeniu strony.
 - Błąd pobierania pokazuje kontrolowany komunikat i przycisk ponowienia; obserwator zmian nie generuje pętli żądań.
 - Nieudany lub przekraczający limit upload zachowuje plik i zaznaczenie widoczności; przycisk wraca do stanu aktywnego. Ponowienie nie wysyła ponownie plików, które już zapisano.
@@ -14,7 +16,7 @@ Service pack naprawia błędy odtworzone ze zgłoszonego zrzutu ekranu: powielan
 
 ## Regresja
 
-Rozszerzono rzeczywiste testy Chromium o wolne żądania, przełączanie zgłoszeń w trakcie pobierania, awarię i ponowienie, upload, błąd uploadu, limit pliku, pobieranie i kontrast załączników/SLA/powiadomień na telefonie i desktopie w obu motywach. W przygotowaniu wydania przeszło 241 testów aplikacji i 361 kontroli Chromium; npm audit nie zgłasza podatności. Macierz motywów sprawdza faktycznie aktywny motyw po ponownym wczytaniu aplikacji. Publikację nadal blokują testy aplikacji, regresja przeglądarki, sumy plików oraz test świeżej instalacji gotowego kontenera.
+Rozszerzono rzeczywiste testy Chromium o wolne żądania, przełączanie zgłoszeń w trakcie pobierania, awarię i ponowienie, upload, błąd uploadu, limit pliku, pobieranie i kontrast załączników/SLA/powiadomień na telefonie i desktopie w obu motywach. W przygotowaniu wydania przeszło 241 testów aplikacji i 362 kontrole Chromium; npm audit nie zgłasza podatności. Macierz motywów sprawdza faktycznie aktywny motyw po ponownym wczytaniu aplikacji. Publikację nadal blokują testy aplikacji, regresja przeglądarki, sumy plików oraz test świeżej instalacji gotowego kontenera.
 
 ## Aktualizacja
 
