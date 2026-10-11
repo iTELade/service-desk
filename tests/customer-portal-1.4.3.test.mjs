@@ -9,9 +9,9 @@ const ui=read('public/release-1.2.0.js');
 const version=read('lib/version.mjs');
 const release=read('RELEASE_NOTES_1.5.0.md');
 
-test('2.0.4 uses schema 9 and the unified application/cache boundary',()=>{
-  assert.match(version,/VERSION='2\.0\.4'/); assert.match(version,/SCHEMA_VERSION=9/);
-  for(const asset of ['app.css','design-system.css','i18n.js','security.js','app.js','settings-center.js','release-1.1.2.js','product-shell.js'])assert.ok(index.includes('/'+asset+'?v=2.0.4'),`missing 2.0.4 cache key for ${asset}`);
+test('2.1.0 uses schema 9 and the unified application/cache boundary',()=>{
+  assert.match(version,/VERSION='2\.1\.0'/); assert.match(version,/SCHEMA_VERSION=10/);
+  for(const asset of ['app.css','design-system.css','i18n.js','security.js','app.js','settings-center.js','release-1.1.2.js','product-shell.js'])assert.ok(index.includes('/'+asset+'?v=2.1.0'),`missing 2.1.0 cache key for ${asset}`);
   for(const retired of ['release-1.1.2.css','release-1.2.0.js','agent-experience-1.6.css','agent-experience-1.6.js'])assert.ok(!index.includes('/'+retired+'?v='),`retired active layer: ${retired}`);
 });
 

@@ -1,8 +1,12 @@
+import {createWorkspaceUI} from './workspace.js?v=2.1.0';
 const $ = (s, el = document) => el.querySelector(s);
 const app = $('#app'), modal = $('#modal');
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date = value => value ? new Intl.DateTimeFormat(window.DeskLocale?.locale==='pl'?'pl-PL':'en-GB', {dateStyle:'medium', timeStyle:'short'}).format(new Date(value)) : '—';
 const S = {user:null,csrf:'',meta:null,ticket:null,routeId:0,config:{brand_name:'Service Desk',registration_mode:'approval'},portal:null,portalMode:false,project:null,users:[],ldap:null,preview:null,settings:null};
+const workspaceUI=createWorkspaceUI({S,api,e,date,notify,route,showModal,refreshMeta});
+window.DeskNativeRefresh=()=>route();
+window.DeskSession=()=>S.user?{user:S.user,csrf:S.csrf}:null;
 const portalPath=location.pathname.match(/^\/portal\/([a-z0-9-]+)\/?$/)?.[1];
 const brand=()=>S.meta?.brand_name||S.config.brand_name||'Service Desk';
 const githubProvider=()=> (S.config.sso_providers||[]).find(p=>p.provider_type==='github');
@@ -46,8 +50,8 @@ function empty(message, action = false) { return `<div class="empty"><div class=
 function link(key, title) { return `<a class="issue-title" href="#/ticket/${e(key)}"><span class="key">${e(key)}</span><span>${e(title)}</span></a>`; }
 function shell(route) {
   if(S.portalMode)return portalShell();
-  const nav = isStaff() ? [['queue','Kolejki'],['board','Tablica'],['portal','Portal klienta'],['projects','Projekty']] : [['portal','Portal klienta'],['queue','Moje zgłoszenia']];
-  if (S.user.role === 'admin') nav.push(['users','Użytkownicy'],['settings','Ustawienia']);
+  const nav = isStaff() ? [['queue','Kolejki'],['board','Tablica'],['reports','Radar i raporty'],['cases','Incydenty i zmiany'],['services','Usługi'],['calendar','Kalendarz zmian'],['portal','Portal klienta'],['projects','Projekty']] : [['portal','Portal klienta'],['queue','Moje zgłoszenia']];
+  if (S.user.role === 'admin') nav.push(['users','Użytkownicy'],['integrations','Stan integracji'],['settings','Ustawienia']);
   app.innerHTML = `<div class="workspace" data-role="${e(S.user.role)}" data-managed-projects="${e(JSON.stringify(S.meta.projects.filter(p=>p.can_manage).map(p=>String(p.id))))}">
     <aside class="sidebar" aria-label="Menu główne">
       <a class="brand" href="#/${isStaff()?'queue':'portal'}"><img src="${e(S.config.logo_url||'/favicon.svg')}" alt="" width="32" height="32"><span>${e(brand())}</span></a>
@@ -55,8 +59,9 @@ function shell(route) {
       <nav>${nav.map(([k,n])=>`<a href="#/${k}"${route===k?' class="selected" aria-current="page"':''}>${icon(k)}<span>${n}</span></a>`).join('')}</nav>
       <div class="sidebar-bottom"><button class="profile" data-extra-action="profile-open"><img class="avatar" src="/api/avatars/${S.user.id}?v=${S.avatarVersion||S.user.version}" alt=""><span><strong>${e(S.user.name)}</strong><small>${roles[S.user.role]}</small></span></button>
       <button class="signout" data-action="logout">${icon('logout')}Wyloguj</button></div>
-    </aside><div class="workspace-content"><header class="topbar"><label class="workspace-picker">Projekt<select data-workspace-project>${options(Object.fromEntries(S.meta.projects.filter(p=>p.can_work).map(p=>[p.id,p.name])),new URLSearchParams(location.hash.split('?')[1]||'').get('project'),'Wszystkie projekty')}</select></label><div>${isStaff()?notificationBell():''}<button class="icon-button" data-action="refresh" title="Odśwież" aria-label="Odśwież">${icon('refresh')}</button><button class="primary" data-action="create">${icon('plus')}Utwórz zgłoszenie</button></div></header>
+    </aside><div class="workspace-content"><header class="topbar"><label class="workspace-picker">Projekt<select data-workspace-project>${options(Object.fromEntries(S.meta.projects.filter(p=>p.can_work).map(p=>[p.id,p.name])),new URLSearchParams(location.hash.split('?')[1]||'').get('project'),'Wszystkie projekty')}</select></label><div>${isStaff()?'<button class="w21-command-trigger" data-command aria-label="Szukaj strony lub zgłoszenia">Szukaj / przejdź do… <kbd>Ctrl K</kbd></button>':''}${isStaff()?notificationBell():''}<button class="icon-button" data-action="refresh" title="Odśwież" aria-label="Odśwież">${icon('refresh')}</button><button class="primary" data-action="create">${icon('plus')}Utwórz zgłoszenie</button></div></header>
     <main id="main" tabindex="-1"><div class="loading">Wczytywanie…</div></main></div></div>`;
+  if(['queue','ticket','reports','cases','case','services','service','calendar','workflow','replies','integrations','portal','portal-home'].includes(route))$('#main').dataset.native21='1';
 }
 function heading(kicker, title, extra = '') { return `<div class="page-heading"><div><div class="eyebrow">${e(kicker)}</div><h1>${e(title)}</h1></div>${extra}</div>`; }
 function portalShell(){
@@ -159,7 +164,7 @@ async function projectSettingsView(id,search=new URLSearchParams()){
     case 'audit':content=`<section class="panel detail-panel"><h2>Ostatnie 50 zmian konfiguracji</h2><ol class="activity">${data.audit.map(a=>`<li><strong>${e(auditLabel(a.action))}</strong><small>${e(a.actor_name||'System')} · ${date(a.created_at)}</small><details><summary>Szczegóły</summary><pre class="audit-json">${e(JSON.stringify(a.details,null,2))}</pre></details></li>`).join('')||'<li>Brak zmian.</li>'}</ol></section>`;break;
     default:content=empty('Nie znaleziono zakładki');
   }
-  return projectHeader(p,tab)+content;
+  return projectHeader(p,tab)+`<nav class="w21-tabs"><a href="#/workflow/${p.id}">Projektant obiegu</a><a href="#/replies/${p.id}">Gotowe odpowiedzi</a><a href="#/cases?kind=change&project=${p.id}">Zarządzanie zmianami</a><a href="#/services?project=${p.id}">Usługi projektu</a><a href="#/reports?project=${p.id}">Wyniki obsługi</a></nav>`+(tab==='workflow'?`<p><a class="button primary" href="#/workflow/${p.id}">Otwórz projektant obiegu 2.1 →</a></p>`:'')+content;
 }
 function auditLabel(action){return ({'project.created':'Utworzono projekt','project.updated':'Zmieniono ustawienia projektu','membership.updated':'Zmieniono dostęp członka','form.created':'Utworzono formularz','form.updated':'Zmieniono formularz','workflow.updated':'Zmieniono mapę statusów i reguły'})[action]||action;}
 async function usersView(){
@@ -173,6 +178,7 @@ async function directoryView(){
 }
 function previewHtml(p){return `<div class="metrics"><div><span>Nowe konta</span><strong>${p.created}</strong></div><div><span>Aktualizowane</span><strong>${p.updated}</strong></div><div><span>Wyłączenia</span><strong>${p.disabled}</strong></div><div><span>Bez zmian</span><strong>${p.unchanged}</strong></div></div>${p.conflicts.length?`<div class="banner danger"><strong>Konflikty blokują synchronizację</strong><ul>${p.conflicts.map(c=>`<li>${e(c)}</li>`).join('')}</ul></div>`:''}<p class="hint">Pobrano ${p.total} kont. Poniżej najwyżej 20 pierwszych. Podgląd jest ważny przez 5 minut, jeżeli konta i projekty nie zmienią się.</p><div class="table-scroll"><table><thead><tr><th>Nazwa</th><th>E-mail</th><th>Login</th><th>Rola</th><th>Stan LDAP</th></tr></thead><tbody>${p.sample.map(u=>`<tr><td>${e(u.name)}</td><td>${e(u.email)}</td><td>${e(u.login)}</td><td>${roles[u.role]}</td><td>${u.active?'Aktywne':'Wyłączone'}</td></tr>`).join('')}</tbody></table></div><form data-form="ldap-apply">${p.empty||p.large_disable?'<div class="banner danger"><strong>Wynik jest pusty lub przekracza próg wyłączeń</strong><label class="check"><input name="confirm_deactivation" type="checkbox" required>Rozumiem wynik i potwierdzam zastosowanie wyłączeń z podglądu.</label></div>':''}<div class="form-error" role="alert"></div><button type="submit" class="primary"${p.conflicts.length?' disabled':''}>Zastosuj pokazane zmiany</button></form>`;}
 async function route(){
+  workspaceUI.dispose();
   const id=++S.routeId,raw=location.hash.slice(2)||(portalPath?'portal-home':isStaff()?'queue':'portal');
   const [path,query='']=raw.split('?'),search=new URLSearchParams(query),[view,key,section,item]=path.split('/');
   if(S.config.setup_required)return setupView();
@@ -183,14 +189,14 @@ async function route(){
   if(!S.user){applyTheme();return loginView();}
   if(S.user.must_change)return forcePassword();
   if(!S.meta)return; // Boot renders the latest route after project metadata is ready.
-  if(!isStaff()&&['projects','project','board'].includes(view)){location.hash='#/portal';return;}
-  if(['users','settings','directory'].includes(view)&&S.user.role!=='admin'){location.hash='#/queue';return;}
+  if(!isStaff()&&['projects','project','board','reports','cases','case','services','service','calendar','workflow','replies'].includes(view)){location.hash='#/portal';return;}
+  if(['users','settings','directory','integrations'].includes(view)&&S.user.role!=='admin'){location.hash='#/queue';return;}
   S.portalMode=Boolean(portalPath)||!isStaff()||view==='portal';S.portal=null;
   document.body.dataset.density=S.uiPrefs?.density||'comfortable';applyTheme();shell(view);document.body.classList.remove('sd202-navigation-open');document.title=(view==='ticket'?key:brand())+' · Desk';
   try{
     if(portalPath)S.portal=await api('/portals/'+portalPath);
-    let content;
-    switch(view){
+    let content=await workspaceUI.render(view,key,search);
+    if(content===null)switch(view){
       case 'queue':content=await queueView(search);break;
       case 'portal':content=await portalView();break;
       case 'portal-home':content=await projectPortalView();break;
@@ -207,7 +213,7 @@ async function route(){
       case 'login':location.hash=portalPath?'#/portal-home':isStaff()?'#/queue':'#/portal';return;
       default:content=empty('Nie znaleziono widoku');
     }
-    if(id===S.routeId&&S.user){$('#main').innerHTML=content;updateKeyPreview();void refreshNotifications();}
+    if(id===S.routeId&&S.user){$('#main').innerHTML=content;$('#main').dataset.workspaceRoute=raw;await workspaceUI.mount($('#main'),view,key,search);if(id===S.routeId){$('#main').dataset.workspaceReady='1';updateKeyPreview();void refreshNotifications();}}
   }catch(err){if(id===S.routeId&&S.user)$('#main').innerHTML=`<div class="empty"><h1>Nie udało się wczytać widoku</h1><p>${e(err.message)}</p><button data-action="refresh">Spróbuj ponownie</button></div>`;}
 }
 async function createTicketModal(project,type,fromPortal=S.portalMode){
@@ -273,25 +279,29 @@ function customControl(f,value,preview=false){
     else control=`<input ${attrs} type="${['number','date','email','url'].includes(f.type)?f.type:'text'}" value="${e(value)}"${f.type==='number'?` step="any"${f.min!==undefined?` min="${f.min}"`:''}${f.max!==undefined?` max="${f.max}"`:''}`:f.type==='text'?` maxlength="${f.max_length||500}"`:''}>`;
     control=`<label>${label} ${internal}${control}</label>`;
   }
-  return `<div class="custom-field">${control}${f.help?`<p class="hint">${e(f.help)}</p>`:''}</div>`;
+  return `<div class="custom-field" data-custom-key="${e(f.key)}">${control}${f.help?`<p class="hint">${e(f.help)}</p>`:''}</div>`;
 }
-function customValues(form,defs){return Object.fromEntries(defs.map(f=>{const el=form.elements['cf_'+f.key];let value=el?.value??'';if(f.type==='checkbox')value=Boolean(el?.checked);else if(f.type==='number')value=value===''?null:Number(value);else if(f.type==='multiselect')value=[...el.selectedOptions].map(o=>o.value);return [f.key,value];}));}
+function customValues(form,defs){return Object.fromEntries(defs.filter(f=>!form.elements['cf_'+f.key]?.disabled).map(f=>{const el=form.elements['cf_'+f.key];let value=el?.value??'';if(f.type==='checkbox')value=Boolean(el?.checked);else if(f.type==='number')value=value===''?null:Number(value);else if(f.type==='multiselect')value=[...el.selectedOptions].map(o=>o.value);return [f.key,value];}));}
 function renderRequestFields(form){
   const f=form._catalog?.find(f=>f.id===Number(form.elements.request_type_id.value));
   $('#request-description',form).textContent=f?.description||'';$('#request-fields',form).innerHTML=f?f.fields.map(d=>customControl(d)).join(''):'';
   $('#request-priority',form).innerHTML=f&&(form.dataset.surface==='team'||f.portal_priority)?`<label>Priorytet<select name="priority">${options(S.meta.priorities,f.default_priority)}</select></label>`:'';
   for(const key of ['title','description']){const field=form.elements[key];if(field){const hidden=Boolean(f?.base_fields?.[key]?.hidden);field.closest('label').hidden=hidden;field.required=!hidden;if(hidden)field.value=f.base_fields[key].value;}}
   $('.form-error',form).textContent='';
+  if(f){prefillRequestFields(form,f.fields);installConditionalFields(form,f.fields);}
 }
+function prefillRequestFields(form,fields=form._catalog?.find(f=>f.id===Number(form.elements.request_type_id?.value))?.fields||[]){const id=Number(form.elements.reporter_id?.value||S.user.id),person=form._reporters?.find(u=>u.id===id)||(id===S.user.id?S.user:null);for(const def of fields){const el=form.elements['cf_'+def.key];if(el&&def.prefill&&(!el.value||el.value===el.dataset.prefilled)){el.value=(def.prefill==='reporter_email'?person?.email:person?.name)||'';el.dataset.prefilled=el.value;}}}
+function installConditionalFields(form,fields){const update=()=>{const values=customValues(form,fields);for(const f of fields){const el=form.elements['cf_'+f.key],host=el?.closest('.custom-field');if(!el||!host)continue;const visible=!f.show_when||values[f.show_when.field]===f.show_when.value;host.hidden=!visible;if(!visible)delete values[f.key];el.disabled=!visible;el.required=visible&&f.required;}};form.addEventListener('change',update);form.addEventListener('input',update);update();}
 function fieldEditorRow(f={}){
   f={key:freshKey('field'),type:'text',label:'',help:'',visibility:'portal',required:false,...f};
-  return `<fieldset class="field-editor" data-field-key="${e(f.key)}"><legend>Pole formularza</legend><div class="field-editor-heading"><strong data-field-heading>${e(f.label||'Nowe pole')}</strong><div class="button-row"><button type="button" data-action="field-up" aria-label="Przenieś pole wyżej">↑</button><button type="button" data-action="field-down" aria-label="Przenieś pole niżej">↓</button><button type="button" data-action="remove-field">Usuń pole</button></div></div><div class="form-row">${input('Etykieta pola','field_label',f.label,'required maxlength="120"')}<label>Rodzaj pola<select name="field_type" data-field-type>${options(customFieldNames,f.type)}</select></label></div><div class="form-row"><label>Widoczność<select name="field_visibility">${options({portal:'Klient i zespół',internal:'Tylko zespół'},f.visibility)}</select></label>${check('Wymagane','field_required',f.required)}</div>${input('Instrukcja pod polem','field_help',f.help,'maxlength="1000"')}<div class="field-options"${['select','multiselect'].includes(f.type)?'':' hidden'}><label>Opcje — każda w osobnym wierszu<textarea name="field_options" rows="4" maxlength="7000">${e((f.options||[]).join('\n'))}</textarea></label></div><div class="field-number form-row"${f.type==='number'?'':' hidden'}>${input('Minimum (opcjonalne)','field_min',f.min,'type="number" step="any"')}${input('Maksimum (opcjonalne)','field_max',f.max,'type="number" step="any"')}</div><div class="field-length"${['text','textarea'].includes(f.type)?'':' hidden'}>${input('Limit znaków','field_max_length',f.max_length??(f.type==='textarea'?5000:500),'type="number" min="1" max="10000"')}</div></fieldset>`;
+  return `<fieldset class="field-editor" data-field-key="${e(f.key)}"><legend>Pole formularza</legend><div class="field-editor-heading"><strong data-field-heading>${e(f.label||'Nowe pole')}</strong><div class="button-row"><button type="button" data-action="field-up" aria-label="Przenieś pole wyżej">↑</button><button type="button" data-action="field-down" aria-label="Przenieś pole niżej">↓</button><button type="button" data-action="remove-field">Usuń pole</button></div></div><div class="form-row">${input('Etykieta pola','field_label',f.label,'required maxlength="120"')}<label>Rodzaj pola<select name="field_type" data-field-type>${options(customFieldNames,f.type)}</select></label></div><div class="form-row"><label>Widoczność<select name="field_visibility">${options({portal:'Klient i zespół',internal:'Tylko zespół'},f.visibility)}</select></label>${check('Wymagane','field_required',f.required)}</div>${input('Instrukcja pod polem','field_help',f.help,'maxlength="1000"')}<details><summary>Warunek i wstępne wypełnienie</summary><p class="hint">Warunek odnosi się do identyfikatora wcześniejszego pola. Wartość: tekst, true/false dla checkboxa, liczba dla pola liczbowego.</p>${input('Identyfikator pola warunku','field_condition_key',f.show_when?.field,'maxlength="40"')}${input('Wymagana wartość','field_condition_value',f.show_when?.value,'maxlength="500"')}<label>Wypełnij danymi zgłaszającego<select name="field_prefill">${options({reporter_name:'Imię i nazwisko',reporter_email:'E-mail'},f.prefill,'Bez wypełnienia')}</select></label><small>Identyfikator tego pola: ${e(f.key)}</small></details><div class="field-options"${['select','multiselect'].includes(f.type)?'':' hidden'}><label>Opcje — każda w osobnym wierszu<textarea name="field_options" rows="4" maxlength="7000">${e((f.options||[]).join('\n'))}</textarea></label></div><div class="field-number form-row"${f.type==='number'?'':' hidden'}>${input('Minimum (opcjonalne)','field_min',f.min,'type="number" step="any"')}${input('Maksimum (opcjonalne)','field_max',f.max,'type="number" step="any"')}</div><div class="field-length"${['text','textarea'].includes(f.type)?'':' hidden'}>${input('Limit znaków','field_max_length',f.max_length??(f.type==='textarea'?5000:500),'type="number" min="1" max="10000"')}</div></fieldset>`;
 }
 function readFieldEditors(){return [...document.querySelectorAll('.field-editor')].map(row=>{
   const value=n=>$('[name="'+n+'"]',row).value,type=value('field_type'),f={key:row.dataset.fieldKey,label:value('field_label'),type,visibility:value('field_visibility'),required:$('[name="field_required"]',row).checked,help:value('field_help')};
   if(['select','multiselect'].includes(type))f.options=value('field_options').split('\n').map(x=>x.trim()).filter(Boolean);
   if(type==='number')for(const k of ['min','max'])if(value('field_'+k)!=='')f[k]=Number(value('field_'+k));
   if(['text','textarea'].includes(type))f.max_length=Number(value('field_max_length'));
+  const condition=value('field_condition_key');if(condition){const parent=[...document.querySelectorAll('.field-editor')].find(x=>x.dataset.fieldKey===condition)?.querySelector('[name=field_type]')?.value||'text',raw=value('field_condition_value');f.show_when={field:condition,value:parent==='checkbox'?raw==='true':parent==='number'?Number(raw):raw};}if(value('field_prefill'))f.prefill=value('field_prefill');
   return f;
 });}
 async function formEditorView(projectId,typeId){
@@ -309,7 +319,7 @@ function customDetails(t){
   const fields=t.request_form?.fields||[];if(!fields.length)return '';
   return `<section class="panel detail-panel"><div class="section-heading"><h2>${e(t.request_form.name)} · dane formularza</h2>${!t.project_archived&&t.status!=='closed'&&isStaff()&&!S.portalMode&&t.can_work?'<button data-action="edit-custom">Edytuj dane</button>':''}</div><dl class="custom-values">${fields.map(f=>{let value=t.custom_values[f.key];if(f.type==='checkbox'&&value!==undefined)value=value?'Tak':'Nie';if(Array.isArray(value))value=value.join(', ');return `<div><dt>${e(f.label)} ${f.visibility==='internal'?'<span class="private-label">Tylko zespół</span>':''}</dt><dd class="prose">${e(value??'—')}</dd></div>`;}).join('')}</dl></section>`;
 }
-function editCustomModal(){if(!isStaff()||S.portalMode||!S.ticket.can_work)throw new Error('Edycja jest dostępna tylko w panelu zespołu.');showModal(`<h2>Dane formularza · ${e(S.ticket.key)}</h2><form data-form="custom-values">${S.ticket.request_form.fields.map(f=>customControl(f,S.ticket.custom_values[f.key])).join('')}${saveFooter()}</form>`);}
+function editCustomModal(){if(!isStaff()||S.portalMode||!S.ticket.can_work)throw new Error('Edycja jest dostępna tylko w panelu zespołu.');showModal(`<h2>Dane formularza · ${e(S.ticket.key)}</h2><form data-form="custom-values">${S.ticket.request_form.fields.map(f=>customControl(f,S.ticket.custom_values[f.key])).join('')}${saveFooter()}</form>`);installConditionalFields($('[data-form=custom-values]'),S.ticket.request_form.fields);}
 function workflowStatusRow(s={key:freshKey('status'),name:'',category:'in_progress'}){
   return `<tr class="workflow-status-row" data-state-key="${e(s.key)}"><td><span class="status-drag-handle" draggable="true" role="button" tabindex="0" aria-label="Przeciągnij status; do klawiatury użyj przycisków strzałek" title="Przeciągnij, aby zmienić kolejność">⠿ Przeciągnij</span>${input('Nazwa statusu','state_name',s.name,'required maxlength="80"')}</td><td><label>Kategoria<select name="state_category">${options(S.meta.statuses,s.category)}</select></label></td><td><div class="button-row"><button type="button" data-v7-action="state-up" aria-label="Przesuń status wyżej">↑</button><button type="button" data-v7-action="state-down" aria-label="Przesuń status niżej">↓</button><button type="button" data-action="remove-state">Usuń</button></div></td></tr>`;
 }
@@ -494,7 +504,7 @@ document.addEventListener('change',async event=>{
   if(event.target.matches('[data-ticket-project]'))return updateTicketTypes();
   if(event.target.matches('[data-ticket-form]'))return renderRequestFields(event.target.form);
   if(event.target.matches('[data-filter-project]')){const target=$('[data-filter-state]',event.target.form);target.innerHTML=options(statusFilterMap(event.target.value),'','Wszystkie statusy');return;}
-  if(event.target.matches('[data-workspace-project]')){location.hash='#/queue'+(event.target.value?'?project='+event.target.value:'');return;}
+  if(event.target.matches('[data-workspace-project]')){const current=location.hash.slice(2).split('?')[0].split('/')[0],view=['queue','board','reports','cases','services','calendar'].includes(current)?current:'queue',query=new URLSearchParams(location.hash.split('?')[1]||'');query.delete('page');if(event.target.value)query.set('project',event.target.value);else query.delete('project');location.hash='#/'+view+(query.size?'?'+query:'');return;}
   if(event.target.matches('[data-field-type]')){const row=event.target.closest('.field-editor'),type=event.target.value;$('.field-options',row).hidden=!['select','multiselect'].includes(type);$('.field-number',row).hidden=type!=='number';$('.field-length',row).hidden=!['text','textarea'].includes(type);}
   if(event.target.closest('[data-form="request-type"]'))updateFormPreview();
   if(event.target.closest('[data-form="workflow"]'))updateWorkflowPreview(event.target.closest('.workflow-status-row')!==null);
@@ -560,7 +570,7 @@ function slaRuleEditor(r={},map){return `<fieldset class="sla-rule" data-id="${e
 async function extraProjectSettings(p,slaOnly=false){const cfg=p.settings||{},map=Object.fromEntries(p.workflow_statuses.map(s=>[s.key,s.name]));S.slaForms=Object.fromEntries((await api('/projects/'+p.id+'/request-types?surface=manage')).map(f=>[f.id,f.name]));const sla=cfg.sla||{timezone:'Europe/Warsaw',week:Object.fromEntries([1,2,3,4,5,6,7].map(d=>[d,[['00:00','24:00']]])),holidays:[],rules:[{id:'response',name:'Pierwsza odpowiedź',kind:'first_response',goals:Object.fromEntries(Object.keys(S.meta.priorities).map(k=>[k,p.sla_policy[k][0]]))},{id:'resolution',name:'Rozwiązanie',kind:'status',goals:Object.fromEntries(Object.keys(S.meta.priorities).map(k=>[k,p.sla_policy[k][1]])),stop:p.workflow_statuses.filter(s=>['resolved','closed'].includes(s.category)).map(s=>s.key)}]};
   return `<form data-extra="project-options" data-id="${p.id}" data-version="${p.version}" data-sla-only="${slaOnly}">${!slaOnly?`<section class="panel detail-panel"><h2>Zamykanie, powiadomienia i urządzenia</h2><p>Powiadomienia o nowej sprawie otrzymują osoby przypisane w zakładce Zespół jako agenci lub kierownicy. Wymagana jest działająca poczta SMTP.</p><a class="button" href="#/admin/mail-templates">Edytuj szablony i wyzwalacze e-mail</a>${multi('Pokaż okno rozwiązania przy statusach','resolution_statuses',map,cfg.resolution_statuses)}${check('Rozwiązanie jest wymagane','resolution_required',cfg.resolution_required)}<p class="hint">Status z kategorii „Zamknięte” zawsze wyświetla okno rozwiązania i jest ostateczny.</p>${check('Automatycznie obserwuj zgłoszenia po działaniach agenta','auto_watch',cfg.auto_watch??true)}${check('Powiadamiaj kierowników o nowej sprawie','notify_new_managers',cfg.notify_new_managers??false)}${check('Powiadamiaj zespół o nowej sprawie','notify_new_team',cfg.notify_new_team??false)}${check('Pokazuj czas w statusach i czas trwania sprawy','time_tracking',cfg.time_tracking??true)}${multi('Zezwalaj na urządzenia z katalogów','asset_projects',Object.fromEntries(S.meta.projects.filter(p=>(p.project_type==='assets'||p.module_type==='assets')&&p.can_work).map(p=>[p.id,p.name])),cfg.asset_projects)}</section><section class="panel detail-panel"><h2>Wygląd portalu</h2>${input('Dodatkowe powitanie','portal_welcome',cfg.portal?.welcome,'maxlength="3000"')}${input('Stopka','portal_footer',cfg.portal?.footer,'maxlength="1000"')}${pick('Układ formularzy','portal_layout',{cards:'Kafelki',list:'Lista'},cfg.portal?.layout||'cards')}${pick('Kolor przewodni','portal_accent',{blue:'Niebieski',teal:'Turkusowy',violet:'Fioletowy',orange:'Pomarańczowy'},cfg.portal?.accent||'blue')}${check('Pokazuj ostatnie zgłoszenia','portal_recent',cfg.portal?.show_recent??true)}${check('Pokazuj wyszukiwanie zgłoszeń','portal_search',cfg.portal?.show_search??true)}</section>`:`<section class="panel detail-panel"><h2>Kalendarz SLA</h2>${input('Strefa czasowa','sla_timezone',sla.timezone,'required placeholder="Europe/Warsaw"')}<div class="calendar-week">${['Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'].map((n,i)=>input(n,'day_'+(i+1),(sla.week[i+1]||[]).map(a=>a.join('–')).join(', '),'placeholder="09:00–17:00; puste = wolne"')).join('')}</div><p class="hint">Kilka przedziałów rozdziel przecinkami. Godziny lokalne wybranej strefy, z uwzględnieniem zmiany czasu.</p><label>Dni wolne (YYYY-MM-DD, po jednym wierszu)<textarea name="holidays" rows="4">${e((sla.holidays||[]).join('\n'))}</textarea></label></section><section class="panel detail-panel"><h2>Mierniki SLA</h2><div id="sla-rules">${sla.rules.map(r=>slaRuleEditor(r,map)).join('')}</div>${extraButton('add-sla','Dodaj miernik')}<p class="hint">Zmiana celów przelicza widok istniejących spraw. Historia sprzed aktualizacji pozostaje oznaczona jako niepełna.</p></section>`}${saveFooter('Zapisz ustawienia projektu')}</form>`;
 }
-async function reporterOptions(form,projectId,selectedId=S.user.id){const rows=await api('/desk/projects/'+projectId+'/reporters?q='+encodeURIComponent(form.elements.reporter_search?.value||''));const select=form.elements.reporter_id;if(select){select.innerHTML=options(Object.fromEntries(rows.map(u=>[u.id,u.name+' · '+u.email])),selectedId);if(!select.options.length)select.innerHTML='<option value="">Brak osób — zmień wyszukiwanie</option>';}}
+async function reporterOptions(form,projectId,selectedId=S.user.id){const rows=await api('/desk/projects/'+projectId+'/reporters?q='+encodeURIComponent(form.elements.reporter_search?.value||''));form._reporters=rows;const select=form.elements.reporter_id;if(select){select.innerHTML=options(Object.fromEntries(rows.map(u=>[u.id,u.name+' · '+u.email])),selectedId);if(!select.options.length)select.innerHTML='<option value="">Brak osób — zmień wyszukiwanie</option>';prefillRequestFields(form);}}
 async function organizationOptions(form,projectId){const rows=await api('/desk/organizations'),select=form.elements.organization_id;if(select)select.innerHTML=options(Object.fromEntries(rows.filter(o=>o.projects?.includes(Number(projectId))&&o.members?.includes(Number(form.elements.reporter_id?.value||S.user.id))).map(o=>[o.id,o.name])),null,'Tylko zgłaszający');}
 async function extraAction(action,button){const id=Number(button.dataset.id),section=button.dataset.section;
   if(action==='profile-open'){location.hash='#/profile';return;}
@@ -592,7 +602,7 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('change',event=>{const f=event.target.closest('form');if(!f)return;
   if(f.dataset.extra==='module'&&['project_id','target_project','source_project'].includes(event.target.name)){if(['mail','sync'].includes(f.dataset.section))void loadChannelForms().catch(err=>notify(err.message,true));if(f.dataset.section==='sync'){for(const el of f.querySelectorAll('.sync-map'))el.remove();}}
-  if(event.target.name==='reporter_id')void organizationOptions(f,Number(f.elements.project_id?.value||S.ticket.project_id)).catch(err=>notify(err.message,true));
+  if(event.target.name==='reporter_id'){prefillRequestFields(f);void organizationOptions(f,Number(f.elements.project_id?.value||S.ticket.project_id)).catch(err=>notify(err.message,true));}
 });
 async function extraSubmit(form){const f=Object.fromEntries(new FormData(form)),id=Number(form.dataset.id),kind=form.dataset.extra;let result;
   if(kind==='resolution'){await changeTicket({workflow_status:form.dataset.state,resolution_text:f.resolution_text});modal.close();return;}
@@ -802,7 +812,7 @@ async function refreshLiveView(){
  if(!/^#\/(ticket|queue|board)(\/|\?|$)/.test(hash))return;
  liveViewBusy=true;
  try{
-  const draft=[...document.querySelectorAll('#main input:not([type=hidden]),#main textarea')].some(el=>el.value!==el.defaultValue);
+  const draft=[...document.querySelectorAll('#main input:not([type=hidden]),#main textarea')].some(el=>el.value!==el.defaultValue)||Boolean(document.querySelector('[data-select-ticket]:checked'));
   if(hash.startsWith('#/ticket/')){
    const before=S.ticket;if(!before)return;const data=await api('/tickets/'+encodeURIComponent(before.key));
    if(location.hash!==hash||S.routeId!==routeId||modal.open||data.ticket.version===before.version)return;
@@ -810,7 +820,7 @@ async function refreshLiveView(){
     // Refresh the conversation without replacing a message being typed or its form.
     const temp=document.createElement('div');temp.innerHTML=(await detailViewV5(before.key,-1));
     if(location.hash!==hash||S.routeId!==routeId)return;
-    const current=$('.conversation'),next=$('.conversation',temp);if(current&&next){current.replaceChildren(...next.childNodes);document.dispatchEvent(new CustomEvent('desk:activity-refresh'));}
+    const current=$('.conversation'),next=$('.conversation',temp);if(current&&next){current.replaceChildren(...next.childNodes);document.dispatchEvent(new CustomEvent('desk:activity-refresh'));workspaceUI.refreshActivity?.();}
    }else{const y=window.scrollY;await route();window.scrollTo(0,y);}
   }else if(!draft&&!document.activeElement?.closest('#main form')){
    const query=hash.split('?')[1]||'',data=await api('/tickets?'+query),signature=JSON.stringify(data);
@@ -823,6 +833,6 @@ setInterval(()=>void refreshLiveView(),5000);
 window.addEventListener('focus',()=>void refreshLiveView());
 
 // Native approval actions keep the in-progress reply while refreshing their own status.
-document.addEventListener('click',async event=>{const button=event.target.closest('[data-ticket-decision]');if(!button)return;const comment=prompt('Komentarz do decyzji (opcjonalnie)');if(comment===null)return;const draft=$('form[data-form="comment"] textarea')?.value||'',internal=$('form[data-form="comment"] input[name="internal"]')?.checked||false;button.disabled=true;try{await api('/desk/v8/approvals/'+button.dataset.id,{method:'POST',data:{decision:button.dataset.ticketDecision,comment}});await route();const area=$('form[data-form="comment"] textarea');if(area)area.value=draft;const note=$('form[data-form="comment"] input[name="internal"]');if(note)note.checked=internal;notify('Zapisano decyzję.');}catch(err){notify(err.message,true);button.disabled=false;}});
+document.addEventListener('click',async event=>{const button=event.target.closest('[data-ticket-decision]');if(!button)return;const comment=prompt('Komentarz do decyzji (opcjonalnie)');if(comment===null)return;const draft=$('form[data-w21-composer] textarea[name="body"],form[data-form="comment"] textarea')?.value||'',internal=$('form[data-w21-composer] input[name="internal"],form[data-form="comment"] input[name="internal"]')?.checked||false;button.disabled=true;try{await api('/desk/v8/approvals/'+button.dataset.id,{method:'POST',data:{decision:button.dataset.ticketDecision,comment}});await route();const area=$('form[data-w21-composer] textarea[name="body"],form[data-form="comment"] textarea');if(area)area.value=draft;const note=$('form[data-w21-composer] input[name="internal"],form[data-form="comment"] input[name="internal"]');if(note&&note.checked!==internal){note.checked=internal;note.dispatchEvent(new Event('change',{bubbles:true}));}if(area){area.value=draft;area.dispatchEvent(new Event('input',{bubbles:true}));}notify('Zapisano decyzję.');}catch(err){notify(err.message,true);button.disabled=false;}});
 
 document.addEventListener('desk:sidebar-change',async event=>{try{S.uiPrefs=await api('/desk/v8/ui-preferences',{method:'POST',data:{sidebar_collapsed:event.detail.collapsed}});}catch(err){document.body.classList.toggle('sd202-sidebar-collapsed',Boolean(S.uiPrefs?.sidebar_collapsed));notify(err.message,true);}});

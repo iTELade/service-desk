@@ -1,28 +1,28 @@
-# Aktualizacja do Service Desk 2.0.4
+# Aktualizacja do Service Desk 2.1.0
 
-Wersja 2.0.4 używa schematu SQLite 9. Aktualizacja z 2.0.0/2.0.1/2.0.2/2.0.3 nie wymaga nowego numeru schematu. Przy uruchomieniu aplikacja uzupełnia brakującą konfigurację usług i katalogów nowych projektów.
+Wersja 2.1.0 migruje SQLite ze schematu 9 do 10. Migracja zachowuje zgłoszenia, komentarze, sesje, konfigurację i zewnętrzny adres bazy wiedzy. Dodaje dane stanowiska agenta i ITSM. Nie dodaje portalu wiedzy.
 
 ## Panel administracyjny
 
 1. Włącz kontener aktualizatora według [UPDATES.md](UPDATES.md).
-2. W Administracja → Diagnostyka i utrzymanie → Aktualizacje sprawdź wydanie `2.0.4`.
+2. W Administracja → Diagnostyka i utrzymanie → Aktualizacje sprawdź wydanie `2.1.0`.
 3. Zleć aktualizację. Aktualizator pobiera obraz przypięty do SHA256, zatrzymuje aplikację i wykonuje spójną kopię danych z kluczem szyfrowania.
-4. Nowy kontener musi zgłosić wersję `2.0.4` i schemat `9`. Niezgodność wywołuje przywrócenie poprzedniego obrazu i kopii danych.
+4. Nowy kontener musi zgłosić wersję `2.1.0` i schemat `10`. Niezgodność wywołuje przywrócenie poprzedniego obrazu i kopii danych.
 5. Po zakończeniu odśwież stronę i wykonaj produkcyjne kontrole opisane w [VALIDATION.md](VALIDATION.md).
 
-Aktualizator obsługuje minimalny schemat wskazany w `desk-release.json` (dla 2.0.4: 6). Starszą instalację aktualizuj ręcznie lub przez wydanie pośrednie.
+Aktualizator obsługuje minimalny schemat wskazany w `desk-release.json` (dla 2.1.0: 6). Starszą instalację aktualizuj ręcznie lub przez wydanie pośrednie.
 
 ## Aktualizacja ręczna
 
-Pobierz pełne źródła taga `v2.0.4`, rozpakuj do osobnego katalogu i uruchom jako root:
+Pobierz pełne źródła taga `v2.1.0`, rozpakuj do osobnego katalogu i uruchom jako root:
 
 ```bash
-bash /ścieżka/do/service-desk-2.0.4/scripts/upgrade.sh /opt/itelade-desk
+bash /ścieżka/do/service-desk-2.1.0/scripts/upgrade.sh /opt/itelade-desk
 ```
 
-Skrypt odczytuje wersję i schemat z `lib/version.mjs`, sprawdza `MANIFEST.sha256` i buduje obraz przed zatrzymaniem działającej aplikacji. Wymaga istniejącej instalacji Compose, pliku `.env` oraz nazwanego wolumenu `/app/data`. Obsługuje źródłowe schematy 4–9.
+Skrypt odczytuje wersję i schemat z `lib/version.mjs`, sprawdza `MANIFEST.sha256` i buduje obraz przed zatrzymaniem działającej aplikacji. Wymaga istniejącej instalacji Compose, pliku `.env` oraz nazwanego wolumenu `/app/data`. Obsługuje źródłowe schematy 4–10.
 
-Kopia w `backups/before-2.0.4-<czas>` obejmuje kod, identyfikator obrazu i wolumenu oraz dane wraz z `master.key`. Kontrola SQLite poprzedza migrację. Skrypt zachowuje `.env` i nazwy rzeczywistych kontenerów oraz wolumenów. Błąd aktualizacji uruchamia rollback.
+Kopia w `backups/before-2.1.0-<czas>` obejmuje kod, identyfikator obrazu i wolumenu oraz dane wraz z `master.key`. Kontrola SQLite poprzedza migrację. Skrypt zachowuje `.env` i nazwy rzeczywistych kontenerów oraz wolumenów. Błąd aktualizacji uruchamia rollback.
 
 Dla bind mount wykonaj własną spójną kopię przy zatrzymanej aplikacji i zachowaj poprzedni obraz. Nie kopiuj samego pliku SQLite z działającego katalogu WAL.
 
@@ -33,8 +33,12 @@ docker compose ps
 docker compose logs --tail=100 desk
 ```
 
-Sprawdź `/healthz`: `status=ok`, `version=2.0.4`, `schema=9`. Zweryfikuj logowanie, uprawnienia, zgłoszenie klienta, notatki, załączniki, akceptacje i rzeczywiste integracje. Jeżeli przed aktualizacją ręczną działał aktualizator, uruchom go ponownie dopiero po kontroli aplikacji:
+Sprawdź `/healthz`: `status=ok`, `version=2.1.0`, `schema=10`. Zweryfikuj logowanie, uprawnienia, zgłoszenie klienta, notatki, załączniki, akceptacje i rzeczywiste integracje. Jeżeli przed aktualizacją ręczną działał aktualizator, uruchom go ponownie dopiero po kontroli aplikacji:
 
 ```bash
 docker compose --profile updates up -d --build updater
 ```
+
+## Powrót do 2.0.x
+
+Migracja 10 jest jednokierunkowa. Zatrzymaj nowy kontener, przywróć pełną kopię danych wykonaną przed aktualizacją wraz z master.key i uruchom poprzedni obraz. Nie uruchamiaj kodu 2.0.x na bazie w schemacie 10. Po odtworzeniu sprawdź integrity_check, foreign_key_check i healthz.

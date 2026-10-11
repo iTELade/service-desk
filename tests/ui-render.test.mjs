@@ -11,7 +11,7 @@ function ui(){
   const elements=new Map(),events=new Map();
   const document={querySelector(id){if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',append(){}});return elements.get(id);},addEventListener(name,fn){events.set(name,fn);}};
   const context=vm.createContext({document,window:{addEventListener(){}},location:{hash:'',pathname:'/',origin:'https://help.itelade.pl'},URLSearchParams,crypto:webcrypto,Intl,Date,console,setTimeout,clearTimeout,setInterval:()=>0,clearInterval:()=>{}});
-  vm.runInContext(readFileSync(new URL('../public/app.js',import.meta.url),'utf8').replace(/void boot\(\);/,''),context);
+  vm.runInContext((readFileSync(new URL('../public/workspace.js',import.meta.url),'utf8').replace('export function createWorkspaceUI','function createWorkspaceUI')+'\n'+readFileSync(new URL('../public/app.js',import.meta.url),'utf8').replace(/^import .*workspace.*;\n/m,'')).replace(/void boot\(\);/,''),context);
   const state=vm.runInContext('S',context),w=defaultWorkflow();
   state.user={id:1,role:'admin',name:'Admin'};state.meta={statuses:categories,types:baseTypes,priorities:{P1:'Krytyczny',P2:'Wysoki',P3:'Normalny',P4:'Niski'},workflow_events:workflowEvents,assignees:[{id:2,name:'Agent'}],projects:[{id:1,name:'Wsparcie',key:'IT',project_type:'external',can_work:true,can_manage:true,can_request:true,portal_access:'authenticated',portal_slug:'it',portal_title:'Wsparcie',workflow_statuses:w.statuses},{id:2,name:'Rozwój <img onerror=alert(1)>',key:'DEV',project_type:'internal',can_work:true,can_manage:true,workflow_statuses:w.statuses}]};
   context.mock=async()=>{throw new Error('Nieoczekiwane API');};vm.runInContext('api=(...args)=>mock(...args)',context);

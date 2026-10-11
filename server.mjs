@@ -1,3 +1,5 @@
+import {migrateV10} from './lib/migration-v10.mjs';
+import {createV21} from './lib/v21.mjs';
 import {createReset,applyPendingReset} from './lib/reset.mjs';
 import {migrateV8} from './lib/migration-v8.mjs';
 import {migrateV9} from './lib/migration-v9.mjs';
@@ -140,6 +142,7 @@ if(db.prepare('PRAGMA user_version').get().user_version<6)migrateV6(db);
 migrateV7(db);
 if(db.prepare('PRAGMA user_version').get().user_version<8)migrateV8(db);
 if(db.prepare('PRAGMA user_version').get().user_version<9)migrateV9(db);
+if(db.prepare('PRAGMA user_version').get().user_version<10)migrateV10(db);
 // Fresh installations do not need the legacy built-in automation account.
 if(!schemaVersion&&!db.prepare('SELECT id FROM projects LIMIT 1').get())db.prepare("DELETE FROM users WHERE email='bot@desk.invalid' AND password='!service'").run();
 const mfa=createMfa(db,{dataDir});
@@ -154,6 +157,7 @@ const accounts = createAccounts(db,{origin,encodePassword,dataDir,env:resetBoots
 const desk=createDesk(db,projects,catalog,workflows),identity=createIdentity(db,projects,accounts,{origin,encodePassword}),sso=createSso(db,projects,{origin,dataDir});
 const reset=createReset(db,{dataDir,accounts,checkPassword,canReset:()=>!maintenance()&&!(process.env.CONTROL_DIR&&existsSync(join(process.env.CONTROL_DIR,'request.json'))),onReset:()=>{setTimeout(()=>process.exit(0),150).unref();}});
 const extensions=createExtensions(db,projects,catalog,workflows,desk,accounts,identity,sso,{origin,dataDir});
+const v21=createV21(db,{projects,desk,workflows,ticketView:(t,u)=>ticketWithSla(db.prepare(ticketSelect+' WHERE t.id=?').get(t.id),u),queryTickets});
 const v8=createV8(db,{projects,desk,workflows,catalog,accounts,directory,origin,dataDir});
 // Wyrównuje koszt sprawdzenia nieistniejącego konta. Nie jest hasłem żadnego użytkownika.
 const dummyPassword = await encodePassword(randomBytes(32).toString('hex'));
@@ -281,6 +285,8 @@ function queryTickets(search,user){
 
 const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/workspace.js', ['workspace.js', 'text/javascript; charset=utf-8']],
+  ['/workspace.css', ['workspace.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/product-shell.js', ['product-shell.js', 'text/javascript; charset=utf-8']],
   ['/app.css', ['app.css', 'text/css; charset=utf-8']],
@@ -315,6 +321,7 @@ const server = http.createServer(async (req,res)=>{
     if(asset&&['GET','HEAD'].includes(method)){const[file,type]=asset;res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store'});return res.end(method==='HEAD'?'':readFileSync(join(root,'public',file)));}
     if(method==='GET'&&pathname==='/api/sso/callback'){const stateCookie=prod?'__Host-desk_sso':'desk_sso',browser=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(stateCookie+'='))?.slice(stateCookie.length+1);const u=await sso.callback(new URL(req.url,origin),browser);if(mfa.status(u).enabled||securityKeys.hasKeys(u.id)){const challenge=mfa.challenge(u);res.setHeader('Set-Cookie',stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':''));res.writeHead(303,{Location:'/#/mfa/'+challenge});return res.end();}const token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',[cookie(token,12*3600),stateCookie+'=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'+(prod?'; Secure':'')]);res.writeHead(303,{Location:'/#/queue'});return res.end();}
     if(method==='GET'&&/^\/api\/sso\/[1-9][0-9]*\/start$/.test(pathname)){rateLimit('sso-start',200);const result=await sso.begin(Number(pathname.split('/')[3]));res.setHeader('Set-Cookie',(prod?'__Host-desk_sso':'desk_sso')+'='+result.browser+'; Path=/; HttpOnly; SameSite=Lax; Max-Age=600'+(prod?'; Secure':''));res.writeHead(303,{Location:result.url});return res.end();}
+    if(method==='POST'&&/^\/api\/monitoring\/[1-9][0-9]*$/.test(pathname)){rateLimit('monitoring',500);return json(res,200,v21.operations.incoming(pathname.split('/')[3],req.headers.authorization,await body(req)));}
     if(method==='POST'&&/^\/api\/hooks\/[1-9][0-9]*$/.test(pathname)){rateLimit('incoming-hook',500);const b=await body(req),result=extensions.webhooks.incoming(Number(pathname.split('/')[3]),req.headers.authorization,b);extensions.events();return json(res,200,result);}
     if(pathname.startsWith('/api/v1/')){rateLimit('public-api',2000);const b=method==='GET'?{}:await body(req),result=extensions.api.run(req.headers.authorization,method,pathname,searchParams,b,req.headers['idempotency-key']);extensions.events();return json(res,result.status,result.value);}
     if(!pathname.startsWith('/api/'))fail(404,'Nie znaleziono strony.');
@@ -387,6 +394,7 @@ const server = http.createServer(async (req,res)=>{
     if(method==='GET'&&/^\/api\/avatars\/[1-9][0-9]*$/.test(pathname)){const a=db.prepare('SELECT * FROM avatars WHERE user_id=?').get(Number(pathname.split('/')[3]));if(a){res.writeHead(200,{'Content-Type':a.mime,'Cache-Control':'no-store'});return res.end(Buffer.from(a.body));}res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(readFileSync(join(root,'public/favicon.svg')));}
     if(pathname.startsWith('/api/desk/updates')){const b=method==='GET'?{}:await readBody();return json(res,200,method==='GET'?updates.status(user):pathname.endsWith('/check')?await updates.check(user):pathname.endsWith('/install')?updates.request(b,user):updates.save(b,user));}
     if(pathname==='/api/desk/brand-logo'&&method==='POST')return json(res,200,installation.saveLogo(await readBody(),user));
+    const v21Result=await v21.handle(method,pathname,user,searchParams,readBody);if(v21Result){if(method!=='GET')extensions.events();return json(res,v21Result.status,v21Result.value);}
     const v8Result=await v8.handle(method,pathname,user,searchParams,readBody);if(v8Result)return json(res,v8Result.status,v8Result.value);
     const extensionResult=await extensions.handle(method,pathname,user,searchParams,readBody);if(extensionResult)return json(res,extensionResult.status,extensionResult.value);
     if(method==='GET'&&pathname==='/api/meta'){

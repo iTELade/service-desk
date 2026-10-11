@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const VERSION='2.0.4';
+const VERSION='2.1.0';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tr=v=>window.DeskLocale?.t?.(v)||v;
 const $=(selector,root=document)=>root.querySelector(selector);
@@ -14,16 +14,16 @@ const routeName=value=>{
   if(value.startsWith('#/portal'))return 'portal';
   return value.startsWith('#/')?(value.slice(2).split('/')[0]||'home'):'home';
 };
-const labels={queue:'Kolejki',board:'Tablica',projects:'Projekty',users:'Użytkownicy',settings:'Administracja',ticket:'Zgłoszenie',portal:'Portal klienta',reports:'Raporty'};
+const labels={queue:'Kolejki',board:'Tablica',projects:'Projekty',users:'Użytkownicy',settings:'Administracja',ticket:'Zgłoszenie',portal:'Portal klienta',reports:'Radar i raporty',cases:'Incydenty i zmiany',case:'Sprawa operacyjna',services:'Usługi',service:'Usługa',calendar:'Kalendarz zmian',workflow:'Projektant obiegu',replies:'Gotowe odpowiedzi'};
 function currentProject(){
   const r=route();
-  const m=r.match(/^#\/project\/(\d+)/);
-  const id=m?.[1]||query().get('project')||$('select[data-workspace-project]')?.value||'';
+  const m=r.match(/^#\/(?:project|workflow|replies)\/(\d+)/);
+  const id=m?.[1]||$('#main')?.dataset.workspaceProject||query().get('project')||$('select[data-workspace-project]')?.value||'';
   if(!id)return null;
   const select=$('select[data-workspace-project]');
   const option=select?[...select.options].find(o=>String(o.value)===String(id)):null;
   const breadcrumb=$('#main .breadcrumb');
-  const key=breadcrumb?.querySelector('span:last-child')?.textContent?.trim()||'';
+  const key=$('#main')?.dataset.workspaceProjectKey||breadcrumb?.querySelector('span:last-child')?.textContent?.trim()||'';
   return {id:String(id),name:option?.textContent?.trim()||$('h1')?.textContent?.replace(/^Tablica\s*·\s*/,'').trim()||'Project',key};
 }
 function navGroup(link){const href=link.getAttribute('href')||'';if(/queue|board/.test(href))return 'Praca';if(/projects|assets|knowledge|reports/.test(href))return 'Zarządzanie usługami';if(/users|organizations/.test(href))return 'Osoby';if(/settings|admin/.test(href))return 'Administracja';return 'Więcej';}
@@ -161,7 +161,8 @@ function decorateForms(){
 document.addEventListener('click',event=>{const target=event.target.closest('a[href],[data-settings-section],[data-settings-open]');if(!target||!$('form[data-dirty="1"]'))return;if(target.tagName==='A'&&target.getAttribute('href')?.startsWith('#main'))return;if(!confirm(tr('Opuścić widok i odrzucić niezapisane zmiany?'))){event.preventDefault();event.stopImmediatePropagation();}},true);
 addEventListener('beforeunload',event=>{if($('form[data-dirty="1"]')){event.preventDefault();event.returnValue='';}});
 let scheduled=false;
-function apply(){scheduled=false;observer.disconnect();try{normalizeNotices();decorateShell();decorateMain();cleanupQueueTools();decorateActivity();decoratePeople();decorateAccessibility();decorateForms();}finally{observer.observe(document.documentElement,{subtree:true,childList:true});}}
-function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(apply);}
+window.DeskProductMount={shell(){decorateShell();decorateAccessibility();}};
+function apply(){scheduled=false;if(document.querySelector("[data-native21]"))return;observer.disconnect();try{normalizeNotices();decorateShell();decorateMain();cleanupQueueTools();decorateActivity();decoratePeople();decorateAccessibility();decorateForms();}finally{observer.observe(document.documentElement,{subtree:true,childList:true});}}
+function schedule(){if(document.querySelector("[data-native21]"))return;if(scheduled)return;scheduled=true;requestAnimationFrame(apply);}
 addEventListener('hashchange',schedule);const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,childList:true});schedule();
 })();

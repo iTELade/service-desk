@@ -15,7 +15,7 @@ export function inspectTextContrast() {
   };
   const failures = [];
   for (const element of document.querySelectorAll('body *')) {
-    if (element.closest('svg,script,style,option,[hidden]') || element.matches(':disabled') || !element.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})) continue;
+    if (element.closest('svg,script,style,option,[hidden]') || element.matches(':disabled') || !(element.checkVisibility?element.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}):element.getBoundingClientRect().width>0&&element.getBoundingClientRect().height>0&&getComputedStyle(element).visibility!=='hidden')) continue;
     let text = [...element.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join('').trim();
     const field = element.matches('textarea,select,input:not([type]),input[type=text],input[type=email],input[type=password],input[type=search],input[type=url],input[type=tel],input[type=number]');
     const placeholder = field && !element.value && element.placeholder;
