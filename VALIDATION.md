@@ -21,7 +21,7 @@ sha256sum -c MANIFEST.sha256
 
 Testy obejmują: izolację projektów i klientów, transakcyjne wieloetapowe akceptacje, blokady decyzji po usunięciu/archiwizacji, prywatność widoków i załączników, konfigurację schematu 9, SLA, MFA, API i idempotencję, automatyzacje, integralność SQLite oraz rollback aktualizatora przy błędnym schemacie.
 
-Chromium otwiera wszystkie aktywne trasy administracyjne, zgłoszenie, projekty, kolejkę, tablicę, portal i profil. Macierz 390/768/1280/1440 px × jasny/ciemny motyw obejmuje sześć głównych powierzchni. Weryfikuje brak przepełnienia strony, rozmiar awatarów, klawiaturę zakładek, zachowanie szkicu przy odświeżeniu, markę, wyszukiwanie oraz działające menu mobilne. Ekrany publiczne są sprawdzane w osobnym kontekście bez sesji.
+Chromium otwiera wszystkie aktywne trasy administracyjne, zgłoszenie, projekty, kolejkę, tablicę, portal i profil. Macierz 390/768/1280/1440 px × jasny/ciemny motyw obejmuje sześć głównych powierzchni. Weryfikuje brak przepełnienia strony, rozmiar awatarów, kontrast przycisków (minimum 4,5:1), klawiaturę zakładek, zachowanie szkicu przy odświeżeniu, markę, wyszukiwanie oraz działające menu mobilne. Ekrany publiczne są sprawdzane w osobnym kontekście bez sesji.
 
 ## Produkcyjna kontrola po wdrożeniu
 

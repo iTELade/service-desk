@@ -37,7 +37,7 @@ Wydanie naprawia problemy wykryte podczas audytu 2.0.1 i rozszerza wspólny inte
 ## Wyniki regresji przed publikacją
 
 - 240 testów aplikacji: PASS, 0 pominiętych.
-- 215 kontroli w rzeczywistym Chromium: PASS.
+- 263 kontroli w rzeczywistym Chromium: PASS.
 - 77 dodatkowych kontroli HTTP/SQLite od instalacji do uprawnień, MFA i kopii: PASS.
 - Audyt npm: 0 podatności; składnia, YAML i sumy plików: PASS.
 - Budowa wieloplatformowego obrazu i test jego świeżej instalacji są ostatnimi bramkami publikacji w GitHub Actions.
