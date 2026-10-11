@@ -1,4 +1,4 @@
-# iTELade Service Desk 2.0.1
+# iTELade Service Desk 2.0.2
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
@@ -8,12 +8,12 @@ Service Desk is an independent iTELade project. It is not an Atlassian product a
 
 ## Current release
 
-**Service Desk 2.0.1**
+**Service Desk 2.0.2**
 
-- GitHub release: https://github.com/iTELade/service-desk/releases/tag/v2.0.1
-- Container image: `ghcr.io/itelade/service-desk:v2.0.1`
-- OCI digest: `sha256:061d8f3e9424e61d998ef829f944e15a8efd76bc8a0ea82e28d9b14ef97e2ead`
-- Release notes: [RELEASE_NOTES_2.0.1.md](RELEASE_NOTES_2.0.1.md)
+- GitHub release: https://github.com/iTELade/service-desk/releases/tag/v2.0.2
+- Container image: `ghcr.io/itelade/service-desk:v2.0.2`
+- OCI digest: see `desk-release.json` attached to GitHub Release `v2.0.2`.
+- Release notes: [RELEASE_NOTES_2.0.2.md](RELEASE_NOTES_2.0.2.md)
 - UI architecture: [UI_2.0.md](UI_2.0.md)
 - Upgrade notes: [MIGRATION_2.0.md](MIGRATION_2.0.md)
 - Validation checklist: [VALIDATION.md](VALIDATION.md)
@@ -33,7 +33,7 @@ Service Desk 2.0.0 performs a **forward-only schema 8 → 9 migration**. Back up
 - database schema 9,
 - project service settings and service catalog metadata,
 - persisted workspace preferences,
-- integration-health metadata,
+- integration health results with timestamps,
 - saved queue views extended with columns, sort order and density,
 - unified 2.0 version/cache boundary,
 - preserved 1.x functional compatibility paths where still required by the application,
@@ -283,13 +283,13 @@ Stable releases contain `desk-release.json` with the exact GHCR image digest and
 Current release image:
 
 ```text
-ghcr.io/itelade/service-desk:v2.0.1
+ghcr.io/itelade/service-desk:v2.0.2
 ```
 
 Current release digest:
 
 ```text
-sha256:061d8f3e9424e61d998ef829f944e15a8efd76bc8a0ea82e28d9b14ef97e2ead
+See desk-release.json attached to v2.0.2 for the immutable digest.
 ```
 
 The updater shows live milestone progress, survives the temporary application restart, reconnects to an in-progress update job, reports rollback state and reloads the browser once after success or completed rollback.
@@ -350,7 +350,7 @@ Then complete the smoke checklist in [VALIDATION.md](VALIDATION.md).
 
 ## Documentation
 
-- [RELEASE_NOTES_2.0.1.md](RELEASE_NOTES_2.0.1.md) — Service Desk 2.0 release notes,
+- [RELEASE_NOTES_2.0.2.md](RELEASE_NOTES_2.0.2.md) — Service Desk 2.0 release notes,
 - [UI_2.0.md](UI_2.0.md) — Service Desk 2.0 UI architecture and presentation boundary,
 - [MIGRATION_2.0.md](MIGRATION_2.0.md) — schema-8 → schema-9 migration and rollback requirements,
 - [VALIDATION.md](VALIDATION.md) — current validation and smoke-test checklist,

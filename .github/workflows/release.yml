@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag opublikowanego wydania, np. v0.8.0"
+        description: "Tag opublikowanego wydania, np. v2.0.2"
         required: true
-        default: "v0.8.0"
+        default: "v2.0.2"
         type: string
 
 permissions:

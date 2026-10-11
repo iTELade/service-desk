@@ -67,6 +67,10 @@ jobs:
           npm run test:ci
           bash -n scripts/upgrade.sh
           sha256sum -c MANIFEST.sha256
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser regression
+        run: npm run test:browser
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -84,6 +88,23 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.version.outputs.tag }}
+      - name: Verify published container
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}@${DIGEST}"
+          docker pull "$IMAGE"
+          trap 'docker rm -f desk-release-smoke >/dev/null 2>&1 || true' EXIT
+          docker run -d --name desk-release-smoke -e APP_URL=https://desk-smoke.example "$IMAGE"
+          healthy=0
+          for attempt in $(seq 1 45); do
+            if [[ "$(docker inspect --format '{{.State.Health.Status}}' desk-release-smoke)" == healthy ]]; then healthy=1; break; fi
+            sleep 2
+          done
+          [[ "$healthy" == 1 ]]
+          docker exec -e "DESK_EXPECTED_VERSION=${TAG#v}" desk-release-smoke node scripts/container-smoke.mjs
       - name: Publish release manifest
         env:
           TAG: ${{ steps.version.outputs.tag }}
