@@ -1,4 +1,4 @@
-# iTELade Service Desk 2.0.4
+# iTELade Service Desk 2.1.0
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
@@ -8,19 +8,33 @@ Service Desk is an independent iTELade project. It is not an Atlassian product a
 
 ## Current release
 
-**Service Desk 2.0.4 — Service Pack 2 dla 2.0.2/2.0.3**
+**Service Desk 2.1.0 — Agent workspace and ITSM operations**
 
-- GitHub release: https://github.com/iTELade/service-desk/releases/tag/v2.0.4
-- Container image: `ghcr.io/itelade/service-desk:v2.0.4`
-- OCI digest: see `desk-release.json` attached to GitHub Release `v2.0.4`.
-- Release notes: [RELEASE_NOTES_2.0.4.md](RELEASE_NOTES_2.0.4.md)
-- UI architecture: [UI_2.0.md](UI_2.0.md)
+- GitHub release: https://github.com/iTELade/service-desk/releases/tag/v2.1.0
+- Container image: `ghcr.io/itelade/service-desk:v2.1.0`
+- OCI digest: see `desk-release.json` attached to GitHub Release `v2.1.0`.
+- Release notes: [RELEASE_NOTES_2.1.0.md](RELEASE_NOTES_2.1.0.md)
+- UI architecture: [UI_2.1.md](UI_2.1.md)
 - Upgrade notes: [MIGRATION_2.0.md](MIGRATION_2.0.md)
 - Validation checklist: [VALIDATION.md](VALIDATION.md)
 
-Database schema: **9**.
+Database schema: **10**.
 
-Service Desk 2.0.0 performs a **forward-only schema 8 → 9 migration**. Back up the data directory before production deployment. Downgrading to a schema-8 release requires restoring a schema-8 backup.
+Service Desk 2.1.0 performs a **forward-only schema 9 → 10 migration** after the existing migrations. Restore the complete pre-upgrade backup, including master.key, before downgrading to 2.0.x. The knowledge portal remains an independent GitHub project; this release adds no native articles or knowledge editor.
+
+## What changed in 2.1.0
+
+- route-owned agent queues with favorite views, live counts, split preview, inline status/owner/priority and per-item bulk outcomes,
+- persistent public/internal reply drafts, safe Markdown preview, response templates, send-and-transition, image paste and file drop,
+- worklogs, estimates, checklist runbooks, presence indicators and reporter-only CSAT,
+- incident/problem/change workspaces, linked-ticket communication and post-mortems,
+- managed services, dependency/impact maps, asset and ticket links,
+- manager approval and freeze windows for changes, collision-aware calendar,
+- authenticated, deduplicated monitoring adapter with manual incident recovery review,
+- workflow draft canvas, keyboard editing, minimap and validated publication,
+- automation dry-run, calendar-aware SLA preview, operational reports and SLA radar,
+- dedicated integration health and project response-template pages,
+- schema 10 and synthetic 10,000-ticket regression coverage.
 
 ## What changed in 2.0.0
 
@@ -283,13 +297,13 @@ Stable releases contain `desk-release.json` with the exact GHCR image digest and
 Current release image:
 
 ```text
-ghcr.io/itelade/service-desk:v2.0.4
+ghcr.io/itelade/service-desk:v2.1.0
 ```
 
 Current release digest:
 
 ```text
-See desk-release.json attached to v2.0.4 for the immutable digest.
+See desk-release.json attached to v2.1.0 for the immutable digest.
 ```
 
 The updater shows live milestone progress, survives the temporary application restart, reconnects to an in-progress update job, reports rollback state and reloads the browser once after success or completed rollback.
@@ -350,8 +364,8 @@ Then complete the smoke checklist in [VALIDATION.md](VALIDATION.md).
 
 ## Documentation
 
-- [RELEASE_NOTES_2.0.4.md](RELEASE_NOTES_2.0.4.md) — Service Desk 2.0 release notes,
-- [UI_2.0.md](UI_2.0.md) — Service Desk 2.0 UI architecture and presentation boundary,
+- [RELEASE_NOTES_2.1.0.md](RELEASE_NOTES_2.1.0.md) — Service Desk 2.0 release notes,
+- [UI_2.1.md](UI_2.1.md) — Service Desk 2.0 UI architecture and presentation boundary,
 - [MIGRATION_2.0.md](MIGRATION_2.0.md) — schema-8 → schema-9 migration and rollback requirements,
 - [VALIDATION.md](VALIDATION.md) — current validation and smoke-test checklist,
 - [CHANGELOG.md](CHANGELOG.md) — release history,

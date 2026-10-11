@@ -68,9 +68,15 @@ jobs:
           bash -n scripts/upgrade.sh
           sha256sum -c MANIFEST.sha256
       - name: Install browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
       - name: Browser regression
         run: npm run test:browser
+      - name: Workspace 2.1 regression — Chromium, Firefox, WebKit
+        run: |
+          npm run test:load
+          for engine in chromium firefox webkit; do
+            DESK_SCREENSHOTS="artifacts/workspace/$engine" DESK_BROWSER_ENGINE="$engine" npm run test:workspace
+          done
       - name: Visual regression — all views and themes
         run: npm run test:visual
       - uses: docker/setup-qemu-action@v3

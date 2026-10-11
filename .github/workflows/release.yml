@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag opublikowanego wydania, np. v2.0.4"
+        description: "Tag opublikowanego wydania, np. v2.1.0"
         required: true
-        default: "v2.0.4"
+        default: "v2.1.0"
         type: string
 
 permissions:
@@ -89,12 +89,16 @@ jobs:
           npm test
 
       - name: Instalacja Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Regresja funkcjonalna i wizualna
         run: |
           npm run test:browser
           npm run test:visual
+          npm run test:load
+          for engine in chromium firefox webkit; do
+            DESK_SCREENSHOTS="artifacts/workspace/$engine" DESK_BROWSER_ENGINE="$engine" npm run test:workspace
+          done
 
       - name: Nazwa obrazu
         id: metadata

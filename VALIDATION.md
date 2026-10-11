@@ -1,54 +1,35 @@
-# Walidacja Service Desk 2.0.4
+# Walidacja Service Desk 2.1.0
 
-Wersja aplikacji: **2.0.4**. Schemat SQLite: **9**. Aktywne zasoby: app.css, design-system.css, i18n.js, security.js, app.js, settings-center.js, release-1.1.2.js i product-shell.js, wszystkie z parametrem `v=2.0.4`.
+Wersja **2.1.0**, SQLite **10**. Migracja 9 → 10 zachowuje istniejące zgłoszenia i konfigurację, bez dodawania portalu wiedzy. Powrót do 2.0.x wymaga pełnej kopii danych sprzed migracji, wraz z master.key.
 
-Migrację ze schematu 8 do 9 sprawdzają testy zachowania zgłoszeń, komentarzy, sesji i konfiguracji. Po migracji użycie starszego kodu wymaga odtworzenia kopii schematu 8. Z 2.0.0/2.0.1/2.0.2/2.0.3 do 2.0.4 numer schematu nie zmienia się.
-
-## Automatyczne bramki wydania
+## Bramki
 
 ```bash
 npm ci
 npm run check
 npm run test:ci
-npx playwright install --with-deps chromium
+npx playwright install --with-deps chromium firefox webkit
 npm run test:browser
 npm run test:visual
+npm run test:load
+for engine in chromium firefox webkit; do
+  DESK_BROWSER_ENGINE="$engine" npm run test:workspace
+done
 npm audit
 bash -n scripts/upgrade.sh
 sha256sum -c MANIFEST.sha256
 ```
 
-`test:browser` uruchamia świeżą instalację w tymczasowym katalogu, używa danych syntetycznych i zamyka serwer po teście. Opcjonalny `DESK_SCREENSHOTS=/ścieżka` zapisuje zrzuty kontrolne. `DESK_BROWSER_EXECUTABLE` pozwala użyć lokalnego Chromium.
+Lokalna walidacja obejmuje 255 testów aplikacji, 362 kontrole dotychczasowych ekranów i 1431 kontroli wizualnych. Nowy zestaw workspace-regression sprawdza rzeczywiste działania w przeglądarce oraz wszystkie nowe ekrany przy szerokościach 390/768/1280/1440, w jasnym i ciemnym motywie, z kontrolą kontrastu i przepełnienia. Testy Chromium/Firefox/WebKit oraz uruchomienie publikowanego kontenera są bramkami CI wydania. Wynik konkretnego wydania należy sprawdzić w jego workflow — dokumentacja nie potwierdza wykonania jeszcze trwającego przebiegu.
 
-Testy obejmują: izolację projektów i klientów, transakcyjne wieloetapowe akceptacje, blokady decyzji po usunięciu/archiwizacji, prywatność widoków i załączników, konfigurację schematu 9, SLA, MFA, API i idempotencję, automatyzacje, integralność SQLite oraz rollback aktualizatora przy błędnym schemacie.
+Testy domenowe 2.1 obejmują migrację, ACL, idempotencję odpowiedzi/broadcastów/worklogów, atomową zmianę statusu, konflikty wersji, częściowe błędy bulk, CSAT, cykle zależności, manager approval, rollback/freeze, monitoring i szkic workflow. Zachowano wcześniejsze testy integracji, instalacji, katalogu, workflow, automatyzacji i bezpieczeństwa.
 
-Chromium otwiera wszystkie aktywne trasy administracyjne, zgłoszenie, projekty, kolejkę, tablicę, portal i profil. Macierz 390/768/1280/1440 px × jasny/ciemny motyw obejmuje sześć głównych powierzchni. Weryfikuje brak przepełnienia strony, rozmiar awatarów, kontrast przycisków (minimum 4,5:1), klawiaturę zakładek, zachowanie szkicu przy odświeżeniu, markę, wyszukiwanie oraz działające menu mobilne. Ekrany publiczne są sprawdzane w osobnym kontekście bez sesji.
+Na izolowanym zbiorze 10 000 zgłoszeń: pierwsza i ostatnia strona po 25 rekordów, brak nakładania wyników, pusta strona po końcu, raport z ograniczeniem 500 kandydatów SLA oraz operacja zbiorcza 50 spraw i jej bezpieczne ponowienie. Jeden lokalny pomiar: 67/75 ms dla stron, 311 ms dla raportu, 1391 ms dla bulk. To wynik syntetyczny, nie gwarancja dla instalacji produkcyjnej.
 
-## Rozszerzona regresja wizualna 2.0.4
+`npm audit`: 0 znanych podatności w lokalnym sprawdzeniu zależności wydania.
 
-`test:visual` wykonuje 1431 kontroli: 43 trasy × 4 szerokości (390/768/1280/1440 px) × 2 rzeczywiście aktywne motywy, dodatkowe kontrole układu administracji i mapy workflow oraz formularzy publicznych. Mierzy kontrast tekstów, wartości pól i placeholderów względem dziedziczonych, także półprzezroczystych teł; wymaga 4,5:1 (3:1 dla dużych napisów). Nie mierzy treści rastrowych, tekstu na gradientach ani ikon. Etykiety SVG workflow mają osobne sprawdzenie koloru, strzałki — obecności stylu. Zrzuty wymagają dodatkowej oceny wzrokowej.
+## Po wdrożeniu
 
-`DESK_VISUAL_REPORT=/ścieżka/raport.json` zapisuje wynik, a `DESK_VISUAL_SCREENSHOTS=/ścieżka` zrzuty głównych widoków na telefonie i desktopie. Dane są syntetyczne, serwer i baza tymczasowe. Wszystkie trzy ścieżki CI/publikacji uruchamiają regresję funkcjonalną i wizualną przed budowaniem obrazu. Kontrola faktycznego kontenera sprawdza instalację i wersję.
+Sprawdź healthz (ok / 2.1.0 / 10), logowanie każdej używanej roli, widoczność projektów, tworzenie przez portal, odpowiedź publiczną i notatkę, chronione pliki, konflikty równoczesnego zapisu, CSAT i ewidencję pracy. Zweryfikuj reguły, rzeczywiste połączenia SMTP/IMAP/LDAP/SSO/GitHub/webhook oraz konfigurację adaptera monitoringu. Środowisko syntetyczne nie potwierdza konfiguracji dostawców produkcyjnych.
 
-## Produkcyjna kontrola po wdrożeniu
-
-| Obszar | Warunek odbioru |
-|---|---|
-| Kontener | Uruchomiony jako nieuprzywilejowany użytkownik; healthz: ok / 2.0.4 / 9 |
-| Instalacja | Pierwszy administrator powstaje raz; kod instalacji nie daje ponownej konfiguracji |
-| Tożsamość | Logowanie lokalne, LDAP i SSO zgodnie z rzeczywistą konfiguracją; MFA i wylogowanie |
-| Uprawnienia | Klient nie widzi obcych spraw/notatek; kierownik zarządza wyłącznie swoim projektem |
-| Zgłoszenia | Tworzenie, przypisanie, odpowiedź, notatka, przejście, rozwiązanie i ostateczne zamknięcie |
-| Akceptacje | Decyzja tylko właściwego akceptującego; wszystkie etapy; brak decyzji w archiwum/usuniętej sprawie |
-| Kolejka i tablica | Łączone filtry, zapis/odtworzenie widoku, sortowanie i kolumny; dozwolone przejścia |
-| UI | Wszystkie główne ekrany, oba motywy, telefon i desktop; fokus klawiatury, marka i język |
-| Integracje | Faktyczny test LDAP/SMTP/SSO/GitHub; poprawny stan i czas wyniku; ponowienie po błędzie |
-| Powiadomienia | Odpowiednia osoba dostaje publiczne powiadomienie; klient nie dostaje notatki wewnętrznej |
-| Załączniki | Upload/download, limit 2 MB, widoczność publiczna/wewnętrzna, blokada aktywnej zawartości |
-| Dane i aktualizacje | Spójna kopia SQLite i master.key, kontrola integralności, ćwiczenie rollback na kopii instalacji |
-
-Automatyczne testy transportów używają podstawionych usług. Nie zastępują kontroli rzeczywistych serwerów klienta. GitHub Actions po zbudowaniu obrazu OCI uruchamia go, kontroluje healthcheck, tworzy administratora, projekt, zgłoszenie i notatkę oraz sprawdza SQLite, master.key i użytkownika bez uprawnień root; lokalne środowisko audytu nie ma demona Docker.
-
-## Service Pack 1 — regresja zgłoszonego ekranu
-
-Powolne pobieranie załączników i zmiany DOM muszą pozostawić jeden panel. Opóźniona odpowiedź po zmianie zgłoszenia nie może trafić do nowej sprawy. Błąd pobierania nie może generować pętli żądań; ponowienie jest jawne. Test wysyła plik wewnętrzny, sprawdza awarię uploadu i zachowanie wyboru, limit 2 MB, zawartość pobrania i nazwę pliku w przeglądarce. Załączniki, SLA i powiadomienia są sprawdzane przy 390/1440 px w obu motywach: kontrast tekstu co najmniej 4,5:1, brak białych powierzchni w ciemnym motywie, brak przepełnienia i zasłaniania nawigacji przez powiadomienie.
+Publikator buduje amd64/arm64, uruchamia obraz po digest bez roota, wykonuje świeżą instalację, tworzy zgłoszenie i kontroluje SQLite/master.key. Następnie publikuje stabilny tag i desk-release.json. Opublikowanie obrazu nie jest wdrożeniem na serwer użytkownika.

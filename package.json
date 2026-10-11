@@ -1,6 +1,6 @@
 {
   "name": "service-desk",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,7 +12,9 @@
     "test": "node ./scripts/run-tests.mjs",
     "test:ci": "node ./scripts/run-tests.mjs",
     "test:browser": "node scripts/browser-smoke.mjs",
-    "test:visual": "node scripts/visual-regression.mjs"
+    "test:visual": "node scripts/visual-regression.mjs",
+    "test:workspace": "node scripts/workspace-regression.mjs",
+    "test:load": "node scripts/workspace-load.mjs"
   },
   "dependencies": {
     "imapflow": "2.0.2",
