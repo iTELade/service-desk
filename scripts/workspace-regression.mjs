@@ -412,6 +412,14 @@ try {
         const contrast = await page.evaluate(inspectTextContrast);
         if (contrast.length) console.log('CONTRAST ' + JSON.stringify(contrast.slice(0, 12)));
         check('2.1 text contrast ' + width + ' ' + theme + ' ' + route, contrast.length === 0);
+        if (width === 1440 && route.startsWith('queue?')) {
+          await page.locator('.topbar [data-action=create]').hover();
+          await page.waitForTimeout(180);
+          const hoverContrast = await page.evaluate(inspectTextContrast);
+          if(hoverContrast.length) console.log('HOVER CONTRAST '+JSON.stringify(hoverContrast.slice(0,12)));
+          check('Topbar create hover contrast ' + theme, hoverContrast.length === 0);
+          await page.mouse.move(0,0);
+        }
         if (width === 1440 && process.env.DESK_SCREENSHOTS) {
           mkdirSync(join(process.env.DESK_SCREENSHOTS, theme), { recursive: true });
           await page.screenshot({

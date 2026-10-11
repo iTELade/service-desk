@@ -69,6 +69,11 @@ body.sd20 .topbar {
   border-bottom: 1px solid var(--w21-border);
   background: var(--w21-surface);
 }
+body.sd20 .topbar button.primary:hover {
+  background: var(--j-blue-hover);
+  border-color: var(--j-blue-hover);
+  color: var(--sd20-on-primary);
+}
 .w21-command-trigger {
   display: flex;
   gap: 32px;

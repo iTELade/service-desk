@@ -12,6 +12,8 @@ W ustawieniach projektu → **Podpowiedzi i usprawnienia** administrator lub man
 
 Wszystkie opcje są domyślnie wyłączone, również dla istniejących projektów. Zapis chroni przed nadpisaniem równoczesnej zmiany ustawień i zachowuje inne opcje projektu.
 
+Formularz tworzenia wybiera bieżący projekt. Zmiana projektu czyści poprzednie podpowiedzi. Historyczne zgłoszenia w archiwalnym projekcie pozostają dostępne. Poprawiono także kontrast przycisku „Utwórz zgłoszenie” po najechaniu w obu motywach.
+
 ## Jak działa dopasowanie
 
 Porównywane są słowa w tematach zgłoszeń, z normalizacją wielkości liter i polskich znaków oraz pomijaniem częstych słów. Rzadsze słowa mają większą wagę. Zwykle wymagane są co najmniej dwa wspólne słowa; identyczny znormalizowany temat może mieć jedno. Wynik jest oceną dopasowania tekstu, nie prawdopodobieństwem duplikatu. Nie jest to wyszukiwanie semantyczne AI.
