@@ -1,6 +1,8 @@
 (()=>{
 'use strict';
-const VERSION='2.0.1';
+const VERSION='2.0.2';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tr=v=>window.DeskLocale?.t?.(v)||v;
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const route=()=>location.hash.split('?')[0]||'#/';
@@ -12,7 +14,7 @@ const routeName=value=>{
   if(value.startsWith('#/portal'))return 'portal';
   return value.startsWith('#/')?(value.slice(2).split('/')[0]||'home'):'home';
 };
-const labels={queue:'Queues',board:'Board',projects:'Projects',users:'Customers & people',settings:'Administration',ticket:'Request',portal:'Help center',reports:'Reports'};
+const labels={queue:'Kolejki',board:'Tablica',projects:'Projekty',users:'Użytkownicy',settings:'Administracja',ticket:'Zgłoszenie',portal:'Portal klienta',reports:'Raporty'};
 function currentProject(){
   const r=route();
   const m=r.match(/^#\/project\/(\d+)/);
@@ -24,7 +26,7 @@ function currentProject(){
   const key=breadcrumb?.querySelector('span:last-child')?.textContent?.trim()||'';
   return {id:String(id),name:option?.textContent?.trim()||$('h1')?.textContent?.replace(/^Tablica\s*·\s*/,'').trim()||'Project',key};
 }
-function navGroup(link){const href=link.getAttribute('href')||'';if(/queue|board/.test(href))return 'Work';if(/projects|assets|knowledge|reports/.test(href))return 'Service management';if(/users|organizations/.test(href))return 'People';if(/settings|admin/.test(href))return 'Administration';return 'More';}
+function navGroup(link){const href=link.getAttribute('href')||'';if(/queue|board/.test(href))return 'Praca';if(/projects|assets|knowledge|reports/.test(href))return 'Zarządzanie usługami';if(/users|organizations/.test(href))return 'Osoby';if(/settings|admin/.test(href))return 'Administracja';return 'Więcej';}
 function normalizeNotices(){
   const host=$('#notices');if(!host)return;
   const seen=new Set();
@@ -42,7 +44,7 @@ function cleanupQueueTools(){
   box.classList.add('sd201-queue-tools');
   if(!$('.sd201-layout-details',box)){
     const columns=$('.r112-columns',box),toggles=$('.r112-column-toggles',box);
-    if(columns||toggles){const details=document.createElement('details');details.className='sd201-layout-details';details.innerHTML='<summary>Columns and layout</summary><div class="sd201-layout-body"></div>';const body=$('.sd201-layout-body',details);if(columns)body.append(columns);if(toggles)body.append(toggles);box.append(details);}
+    if(columns||toggles){const details=document.createElement('details');details.className='sd201-layout-details';details.innerHTML='<summary>'+esc(tr('Kolumny i układ'))+'</summary><div class="sd201-layout-body"></div>';const body=$('.sd201-layout-body',details);if(columns)body.append(columns);if(toggles)body.append(toggles);box.append(details);}
   }
 }
 function projectAccent(id){let n=0;for(const c of String(id))n=(n*31+c.charCodeAt(0))%360;return n;}
@@ -50,10 +52,12 @@ function decorateNavigation(){
   const nav=$('.workspace .sidebar nav');if(!nav)return;
   nav.classList.add('sd20-nav');
   const project=currentProject();
+  const signature=JSON.stringify([project?.id,[...nav.querySelectorAll(':scope > a:not([data-sd201-project-settings])')].map(a=>a.textContent),window.DeskLocale?.locale]);
+  if(nav.dataset.signature===signature)return;nav.dataset.signature=signature;
   for(const old of $$('.sd20-nav-group',nav))old.remove();
   for(const link of $$(':scope > a',nav)){
     const href=link.getAttribute('href')||'';
-    link.classList.add('sd20-nav-link');
+    link.classList.add('sd20-nav-link');if(!link.hasAttribute('aria-label'))link.setAttribute('aria-label',link.textContent.trim());
     if(project){
       if(/^#\/queue/.test(href)||/\/#\/queue/.test(href))link.setAttribute('href',`#/queue?project=${project.id}`);
       if(/^#\/board/.test(href)||/\/#\/board/.test(href))link.setAttribute('href',`#/board?project=${project.id}`);
@@ -61,11 +65,11 @@ function decorateNavigation(){
   }
   const seen=new Set();
   for(const link of $$(':scope > a',nav)){
-    const group=navGroup(link);if(!seen.has(group)){const title=document.createElement('div');title.className='sd20-nav-group';title.textContent=group;nav.insertBefore(title,link);seen.add(group);}
+    const group=navGroup(link);if(!seen.has(group)){const title=document.createElement('div');title.className='sd20-nav-group';title.textContent=tr(group);nav.insertBefore(title,link);seen.add(group);}
   }
   const oldSettings=$('[data-sd201-project-settings]',nav);if(oldSettings)oldSettings.remove();
-  if(project&&/Administrator/i.test($('.sidebar-bottom .profile small')?.textContent||'')){
-    const link=document.createElement('a');link.href=`#/project/${project.id}`;link.dataset.sd201ProjectSettings='1';link.className='sd20-nav-link';link.innerHTML='<span class="sd201-dot" aria-hidden="true"></span><span>Project settings</span>';nav.append(link);
+  if(project&&($('.workspace')?.dataset.role==='admin'||JSON.parse($('.workspace')?.dataset.managedProjects||'[]').includes(project.id))){
+    const link=document.createElement('a');link.href=`#/project/${project.id}`;link.dataset.sd201ProjectSettings='1';link.className='sd20-nav-link';link.innerHTML='<span class="sd201-dot" aria-hidden="true"></span><span>Ustawienia projektu</span>';nav.append(link);
   }
 }
 function projectContext(workspace){
@@ -74,21 +78,21 @@ function projectContext(workspace){
   if(!project){existing?.remove();document.body.classList.remove('sd201-project-mode');document.body.style.removeProperty('--sd201-project-hue');return;}
   document.body.classList.add('sd201-project-mode');document.body.style.setProperty('--sd201-project-hue',String(projectAccent(project.id)));
   let card=existing;if(!card&&sidebar){card=document.createElement('section');card.dataset.sd201ProjectContext='1';card.className='sd201-project-context';const nav=$('nav',sidebar);sidebar.insertBefore(card,nav);}
-  if(card)card.innerHTML=`<span class="sd201-project-avatar">${(project.key||project.name.slice(0,2)).slice(0,3)}</span><span><small>PROJECT</small><strong>${project.name}</strong></span><a href="#/projects" title="Change project" aria-label="Change project">↔</a>`;
-  const context=$('.sd20-context',topbar||document);if(context){context.innerHTML=`<span>${project.key?`Project ${project.key}`:'Project workspace'}</span><strong>${project.name}</strong>`;}
+  if(card&&card.dataset.context!==JSON.stringify(project)){card.dataset.context=JSON.stringify(project);card.innerHTML=`<span class="sd201-project-avatar">${esc((project.key||project.name.slice(0,2)).slice(0,3))}</span><span><small>${esc(tr('Projekt'))}</small><strong>${esc(project.name)}</strong></span><a href="#/projects" title="Zmień projekt" aria-label="Zmień projekt">↔</a>`;}
+  const context=$('.sd20-context',topbar||document);if(context&&context.dataset.context!==JSON.stringify(project)){context.dataset.context=JSON.stringify(project);context.innerHTML=`<span>${project.key?esc(tr('Projekt')+' '+project.key):esc(tr('Obszar projektu'))}</span><strong>${esc(project.name)}</strong>`;}
 }
 function decorateShell(){
   const workspace=$('.workspace');if(!workspace)return;
   workspace.classList.add('sd20-shell');workspace.dataset.productVersion=VERSION;
   const sidebar=$('.sidebar',workspace);if(sidebar)sidebar.classList.add('sd20-sidebar');
-  const brand=$('.brand span',workspace);if(brand)brand.textContent='iTELade Service Management';
+
   const content=$('.workspace-content',workspace);if(content)content.classList.add('sd20-workspace');
-  const topbar=$('.topbar',workspace);if(topbar){topbar.classList.add('sd20-topbar');if(!$('.sd20-context',topbar)){const context=document.createElement('div');context.className='sd20-context';const name=routeName(route());context.innerHTML='<span>Service Management</span><strong>'+String(labels[name]||name||'Workspace')+'</strong>';topbar.prepend(context);}const picker=$('.workspace-picker',topbar);picker?.classList.add('sd201-project-picker');}
+  const topbar=$('.topbar',workspace);if(topbar){topbar.classList.add('sd20-topbar');if(!$('.sd20-context',topbar)){const context=document.createElement('div');context.className='sd20-context';const name=routeName(route());context.innerHTML='<span>Service Desk</span><strong>'+esc(tr(labels[name]||name||'Obszar pracy'))+'</strong>';topbar.prepend(context);}const picker=$('.workspace-picker',topbar);picker?.classList.add('sd201-project-picker');}
   projectContext(workspace);decorateNavigation();
 }
 function wrapBoardFilters(main){
   const filters=$('.filters',main);if(!filters||filters.closest('.sd201-board-filter-details'))return;
-  const details=document.createElement('details');details.className='sd201-board-filter-details';details.innerHTML='<summary>Filters</summary>';filters.before(details);details.append(filters);
+  const details=document.createElement('details');details.className='sd201-board-filter-details';details.innerHTML='<summary>'+esc(tr('Filtry'))+'</summary>';filters.before(details);details.append(filters);
 }
 function decorateProjects(main){
   main.classList.add('sd201-projects');const panel=$('.panel',main);panel?.classList.add('sd201-project-directory');
@@ -119,12 +123,45 @@ function decorateMain(){
 function decorateSettings(main){
   const center=$('.settings-center',main);if(!center)return;
   center.classList.add('sd20-settings-center','sd201-settings-center');
-  const nav=$('.settings-nav',center);if(nav){nav.classList.add('sd20-settings-nav');if(!$('.sd20-settings-search',nav)){const wrap=document.createElement('label');wrap.className='sd20-settings-search';wrap.innerHTML='<span>Search settings</span><input type="search" placeholder="Search settings…" autocomplete="off">';nav.prepend(wrap);const input=$('input',wrap);input.addEventListener('input',()=>{const needle=input.value.trim().toLowerCase();$$('.settings-nav-link',nav).forEach(el=>el.hidden=Boolean(needle)&&!el.textContent.toLowerCase().includes(needle));});}}
+  const nav=$('.settings-nav',center);if(nav){nav.classList.add('sd20-settings-nav');if(!$('.sd20-settings-search',nav)){const wrap=document.createElement('label');wrap.className='sd20-settings-search';wrap.innerHTML='<span>Szukaj ustawień</span><input type="search" placeholder="Szukaj ustawień…" autocomplete="off">';nav.prepend(wrap);const input=$('input',wrap);input.addEventListener('input',()=>{const needle=input.value.trim().toLowerCase();$$('.settings-nav-link,[data-settings-section]',nav).forEach(el=>el.hidden=Boolean(needle)&&!el.textContent.toLowerCase().includes(needle));});}}
   const content=$('.settings-content',center);if(content){content.classList.add('sd20-settings-content','sd201-settings-content');$$(':scope > section,:scope > .panel',content).forEach(el=>el.classList.add('sd201-settings-card'));}
   $('.version-chip',main)?.classList.add('sd20-version-chip');
 }
+function decorateActivity(){
+  const tabs=$('[data-ticket-tabs]');if(!tabs||tabs.dataset.ready)return;tabs.dataset.ready='1';
+  const buttons=$$('[role="tab"]',tabs),panel=$('[data-ticket-activity]'),history=$('[data-ticket-history]'),files=$('[data-ticket-files]');
+  function choose(button){const value=button.dataset.activityTab;for(const b of buttons){b.setAttribute('aria-selected',String(b===button));b.tabIndex=b===button?0:-1;}if(panel){panel.hidden=['history','files'].includes(value);panel.setAttribute('aria-labelledby',button.id);$$('.comment',panel).forEach(c=>c.hidden=value==='notes'?!c.classList.contains('internal'):c.classList.contains('internal'));}if(history)history.hidden=value!=='history';if(files)files.hidden=value!=='files';}
+  for(const button of buttons)button.addEventListener('click',()=>choose(button));
+  tabs.addEventListener('keydown',event=>{const current=buttons.indexOf(document.activeElement);let next;if(event.key==='ArrowRight')next=(current+1)%buttons.length;else if(event.key==='ArrowLeft')next=(current+buttons.length-1)%buttons.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;event.preventDefault();buttons[next].focus();choose(buttons[next]);});
+  document.addEventListener('desk:activity-refresh',()=>{if(tabs.isConnected)choose(buttons.find(b=>b.getAttribute('aria-selected')==='true')||buttons[0]);});
+  choose(buttons[0]);
+}
+function decoratePeople(){
+  const table=$('.sd201-users table');if(!table||$('[data-people-filter]'))return;
+  const label=document.createElement('label');label.className='people-filter';label.innerHTML='<span>Szukaj użytkownika</span><input type="search" data-people-filter placeholder="Imię, login lub e-mail"><small role="status" data-people-count></small>';table.closest('.table-scroll').before(label);
+  const rows=$$('tbody tr',table),input=$('input',label),count=$('small',label);function filter(){const q=input.value.toLowerCase().trim();let visible=0;rows.forEach(r=>{r.hidden=!r.textContent.toLowerCase().includes(q);if(!r.hidden)visible++;});count.textContent=visible+' / '+rows.length;}input.addEventListener('input',filter);filter();
+}
+function decorateAccessibility(){
+  const workspace=$('.workspace');if(!workspace)return;
+  const main=$('#main');if(main){main.tabIndex=-1;}
+  const inspector=$('[data-ticket-inspector]');if(inspector&&!inspector.dataset.ready){inspector.dataset.ready='1';if(window.matchMedia?.('(max-width:820px)').matches)inspector.open=false;}
+  if(!$('.sd202-skip',workspace)){const skip=document.createElement('a');skip.className='sd202-skip';skip.href='#main';skip.textContent=tr('Przejdź do treści');skip.addEventListener('click',e=>{e.preventDefault();$('#main')?.focus();});workspace.prepend(skip);}
+  const sidebar=$('.sidebar');if(sidebar&&!sidebar.id)sidebar.id='workspace-navigation';
+  const top=$('.topbar');if(top&&!$('[data-navigation-toggle]',top)){const b=document.createElement('button');b.type='button';b.dataset.navigationToggle='1';b.className='sd202-menu';b.textContent=tr('Menu');b.setAttribute('aria-controls','workspace-navigation');b.setAttribute('aria-expanded',String(!window.matchMedia?.('(max-width:820px)').matches&&!document.body.classList.contains('sd202-sidebar-collapsed')));b.addEventListener('click',()=>{if(window.matchMedia?.('(max-width:820px)').matches){const open=document.body.classList.toggle('sd202-navigation-open');b.setAttribute('aria-expanded',String(open));}else{const collapsed=document.body.classList.toggle('sd202-sidebar-collapsed');b.setAttribute('aria-expanded',String(!collapsed));document.dispatchEvent(new CustomEvent('desk:sidebar-change',{detail:{collapsed}}));}});top.prepend(b);}
+}
+function decorateForms(){
+  for(const form of $$('form[data-settings-center-form],form[data-form="project"],form[data-form="project-settings"],form[data-form="ldap"]')){
+    if(form.dataset.uiReady)return;form.dataset.uiReady='1';
+    const actions=$('.form-actions',form);if(!actions)continue;
+    const status=document.createElement('span');status.dataset.unsaved='1';status.hidden=true;status.setAttribute('role','status');status.textContent=tr('Niezapisane zmiany');actions.append(status);
+    const cancel=document.createElement('button');cancel.type='reset';cancel.textContent=tr('Anuluj');actions.append(cancel);
+    form.addEventListener('input',()=>{form.dataset.dirty='1';status.hidden=false;});form.addEventListener('change',()=>{form.dataset.dirty='1';status.hidden=false;});form.addEventListener('reset',()=>{delete form.dataset.dirty;status.hidden=true;});
+  }
+}
+document.addEventListener('click',event=>{const target=event.target.closest('a[href],[data-settings-section],[data-settings-open]');if(!target||!$('form[data-dirty="1"]'))return;if(target.tagName==='A'&&target.getAttribute('href')?.startsWith('#main'))return;if(!confirm(tr('Opuścić widok i odrzucić niezapisane zmiany?'))){event.preventDefault();event.stopImmediatePropagation();}},true);
+addEventListener('beforeunload',event=>{if($('form[data-dirty="1"]')){event.preventDefault();event.returnValue='';}});
 let scheduled=false;
-function apply(){scheduled=false;normalizeNotices();decorateShell();decorateMain();cleanupQueueTools();}
+function apply(){scheduled=false;observer.disconnect();try{normalizeNotices();decorateShell();decorateMain();cleanupQueueTools();decorateActivity();decoratePeople();decorateAccessibility();decorateForms();}finally{observer.observe(document.documentElement,{subtree:true,childList:true});}}
 function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(apply);}
-addEventListener('hashchange',schedule);new MutationObserver(schedule).observe(document.documentElement,{subtree:true,childList:true});schedule();
+addEventListener('hashchange',schedule);const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,childList:true});schedule();
 })();

@@ -9,7 +9,7 @@ import {createUpdates} from './lib/updates.mjs';
 import {maintenance} from './lib/maintenance.mjs';
 import http from 'node:http';
 import {createInstallation} from './lib/installation.mjs';
-import {VERSION} from './lib/version.mjs';
+import {VERSION,SCHEMA_VERSION} from './lib/version.mjs';
 import {createDesk} from './lib/desk.mjs';
 import {createIdentity} from './lib/identity.mjs';
 import {createSso} from './lib/sso.mjs';
@@ -42,7 +42,7 @@ const resetBootstrap = applyPendingReset(dataDir);
 const db = new DatabaseSync(join(dataDir, 'desk.sqlite'));
 db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
 const schemaVersion = db.prepare('PRAGMA user_version').get().user_version;
-if (schemaVersion > 9) throw new Error('Baza wymaga nowszej wersji aplikacji.');
+if (schemaVersion > SCHEMA_VERSION) throw new Error('Baza wymaga nowszej wersji aplikacji.');
 if (!schemaVersion) {
   db.exec(`BEGIN IMMEDIATE;
     CREATE TABLE users (
@@ -259,8 +259,11 @@ function ticketFilters(search, user) {
 }
 function queryTickets(search,user){
   const {clause,values}=ticketFilters(search,user);
-  const sort=choice(search.get('sort')||'updated_desc',{updated_desc:1,created_desc:1,created_asc:1,priority:1},'sortowanie');
-  const order={updated_desc:'t.updated_at DESC,t.id DESC',created_desc:'t.created_at DESC,t.id DESC',created_asc:'t.created_at,t.id',priority:'t.priority,t.updated_at DESC,t.id DESC'}[sort];
+  const sort=choice(search.get('sort')||'updated_desc',{updated_desc:1,updated_asc:1,created_desc:1,created_asc:1,priority:1,priority_desc:1},'sortowanie');
+  const secondary=choice(search.get('sort_secondary')||'',{'':1,updated:1,priority:1,status:1},'sortowanie dodatkowe');
+  const primary={updated_desc:'t.updated_at DESC',updated_asc:'t.updated_at',priority_desc:'t.priority DESC',created_desc:'t.created_at DESC',created_asc:'t.created_at',priority:'t.priority'}[sort];
+  const extra=secondary?{updated:'t.updated_at DESC',priority:'t.priority',status:'t.workflow_status'}[secondary]:sort.startsWith('priority')?'t.updated_at DESC':'';
+  const order=primary+(extra?','+extra:'')+',t.id DESC';
   const size = Math.min(100, Math.max(1, Number(search.get('limit')) || 25));
   const page = Math.max(1, Math.floor(Number(search.get('page')) || 1));
   if (!Number.isSafeInteger(page) || !Number.isSafeInteger(size) || (page - 1) * size > 10000000) fail(400, 'Nieprawidłowa strona.');
@@ -306,7 +309,7 @@ const server = http.createServer(async (req,res)=>{
   securityHeaders(res);
   try {
     const {pathname,searchParams}=new URL(req.url,origin),method=req.method;
-    if(method==='GET'&&pathname==='/healthz'){db.prepare('SELECT 1').get();return json(res,200,{status:'ok',version:VERSION,schema:8});}
+    if(method==='GET'&&pathname==='/healthz'){db.prepare('SELECT 1').get();return json(res,200,{status:'ok',version:VERSION,schema:db.prepare('PRAGMA user_version').get().user_version});}
     if((reset.pending()||maintenance())&&pathname.startsWith('/api/')&&!(method==='GET'&&['/api/me','/api/meta','/api/public-config','/api/brand/logo','/api/desk/updates'].includes(pathname)))fail(503,'Trwa aktualizacja systemu. Spróbuj ponownie za chwilę.');
     const asset=assets.get(pathname)||(/^\/portal\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/.test(pathname)?assets.get('/'):null);
     if(asset&&['GET','HEAD'].includes(method)){const[file,type]=asset;res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store'});return res.end(method==='HEAD'?'':readFileSync(join(root,'public',file)));}
@@ -491,7 +494,7 @@ const server = http.createServer(async (req,res)=>{
           const stamp=now();db.prepare('INSERT INTO comments(ticket_id,author_id,body,internal,created_at) VALUES(?,?,?,?,?)').run(t.id,user.id,content,b.internal?1:0,stamp);
           const response=canWork&&!b.internal&&user.id!==t.reporter_id&&!t.first_response_at?stamp:t.first_response_at;
           db.prepare("UPDATE tickets SET first_response_at=?,updated_at=?,version=version+1,change_source='web' WHERE id=?").run(response,stamp,t.id);
-          workflows.run(t,b.internal?'internal_note':canWork?'agent_reply':'customer_reply',user);
+          workflows.run(t,b.internal?'internal_note':canWork&&user.id!==t.reporter_id?'agent_reply':'customer_reply',user);
         });extensions.events();return json(res,201,{ok:true});
       }
       if(method==='PATCH'&&!ticketRoute[2]){

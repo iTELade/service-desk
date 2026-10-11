@@ -1,5 +1,10 @@
 ## 2.0.1
 
+## 2.0.2 — 2026-10-11
+
+Naprawy bezpieczeństwa schematów akceptacji, transakcji decyzji, prywatności zapisanych widoków, SLA odpowiedzi i kontroli schematu aktualizacji. Działająca konfiguracja schematu 9, zapis układów kolejki, zakładki aktywności zgłoszenia, mobilne menu, ciemny motyw, wyszukiwanie i zachowanie marki. Zależności bez zgłoszonych podatności. Regresja Chromium jest obowiązkową bramką CI i publikacji. Szczegóły: [RELEASE_NOTES_2.0.2.md](RELEASE_NOTES_2.0.2.md).
+
+
 - Corrective UI/stability release for the 2.0 workspace.
 - Fixed unauthenticated session-notice storms and duplicate queue tools.
 - Rebuilt queue, board, users and Administration Center presentation.

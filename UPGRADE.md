@@ -1,35 +1,40 @@
-# Aktualizacja istniejącej instalacji do 0.8.0
+# Aktualizacja do Service Desk 2.0.2
 
-Wydanie 0.8.0 jest pełną paczką aplikacji. Obsługuje aktualizację istniejącej instalacji ze schematów 4, 5, 6 i 7 do schematu 8.
+Wersja 2.0.2 używa schematu SQLite 9. Aktualizacja z 2.0.0/2.0.1 nie wymaga nowego numeru schematu. Przy uruchomieniu aplikacja uzupełnia brakującą konfigurację usług i katalogów nowych projektów.
+
+## Panel administracyjny
+
+1. Włącz kontener aktualizatora według [UPDATES.md](UPDATES.md).
+2. W Administracja → Diagnostyka i utrzymanie → Aktualizacje sprawdź wydanie `2.0.2`.
+3. Zleć aktualizację. Aktualizator pobiera obraz przypięty do SHA256, zatrzymuje aplikację i wykonuje spójną kopię danych z kluczem szyfrowania.
+4. Nowy kontener musi zgłosić wersję `2.0.2` i schemat `9`. Niezgodność wywołuje przywrócenie poprzedniego obrazu i kopii danych.
+5. Po zakończeniu odśwież stronę i wykonaj produkcyjne kontrole opisane w [VALIDATION.md](VALIDATION.md).
+
+Aktualizator obsługuje minimalny schemat wskazany w `desk-release.json` (dla 2.0.2: 6). Starszą instalację aktualizuj ręcznie lub przez wydanie pośrednie.
 
 ## Aktualizacja ręczna
 
-1. Pobierz pełne źródła wydania `0.8.0` i rozpakuj je do osobnego katalogu.
-2. Nie nadpisuj ręcznie działającego katalogu przed wykonaniem kopii.
-3. Uruchom jako `root`:
+Pobierz pełne źródła taga `v2.0.2`, rozpakuj do osobnego katalogu i uruchom jako root:
 
 ```bash
-bash /ścieżka/do/service-desk-0.8.0/scripts/upgrade.sh /opt/itelade-desk
+bash /ścieżka/do/service-desk-2.0.2/scripts/upgrade.sh /opt/itelade-desk
 ```
 
-Skrypt:
-- sprawdza `MANIFEST.sha256`,
-- buduje obraz `service-desk:0.8.0` przed zatrzymaniem aplikacji,
-- zachowuje kod i dane bieżącej instalacji,
-- wykonuje kontrolę integralności SQLite i `master.key`,
-- nakłada pełne pliki 0.8.0,
-- uruchamia migracje do schematu 8,
-- sprawdza `/healthz` dla wersji `0.8.0` i schematu `8`,
-- w razie błędu przywraca poprzedni obraz, kod i dane.
+Skrypt odczytuje wersję i schemat z `lib/version.mjs`, sprawdza `MANIFEST.sha256` i buduje obraz przed zatrzymaniem działającej aplikacji. Wymaga istniejącej instalacji Compose, pliku `.env` oraz nazwanego wolumenu `/app/data`. Obsługuje źródłowe schematy 4–9.
 
-Kopie są tworzone w `backups/before-0.8.0-<czas>/`. Nie usuwaj ich przed potwierdzeniem poprawnego działania systemu.
+Kopia w `backups/before-2.0.2-<czas>` obejmuje kod, identyfikator obrazu i wolumenu oraz dane wraz z `master.key`. Kontrola SQLite poprzedza migrację. Skrypt zachowuje `.env` i nazwy rzeczywistych kontenerów oraz wolumenów. Błąd aktualizacji uruchamia rollback.
 
-## Aktualizacja z poziomu Service Desk
+Dla bind mount wykonaj własną spójną kopię przy zatrzymanej aplikacji i zachowaj poprzedni obraz. Nie kopiuj samego pliku SQLite z działającego katalogu WAL.
 
-Po opublikowaniu stabilnego wydania GitHub `v0.8.0` workflow dołącza `desk-release.json`. Wbudowany aktualizator może następnie pobrać obraz z GHCR i przeprowadzić aktualizację zgodnie z manifestem wydania.
+## Po aktualizacji
 
-## Ważne przy 0.8.0
+```bash
+docker compose ps
+docker compose logs --tail=100 desk
+```
 
-- Baza po migracji ma `PRAGMA user_version = 8`. Starszego obrazu nie uruchamiaj na zmigrowanej bazie; rollback wymaga przywrócenia kopii danych.
-- WebAuthn/FIDO2 wymaga poprawnego publicznego `APP_URL`; w produkcji używaj HTTPS.
-- Przed wdrożeniem sprawdź `npm run check` oraz `npm test`.
+Sprawdź `/healthz`: `status=ok`, `version=2.0.2`, `schema=9`. Zweryfikuj logowanie, uprawnienia, zgłoszenie klienta, notatki, załączniki, akceptacje i rzeczywiste integracje. Jeżeli przed aktualizacją ręczną działał aktualizator, uruchom go ponownie dopiero po kontroli aplikacji:
+
+```bash
+docker compose --profile updates up -d --build updater
+```

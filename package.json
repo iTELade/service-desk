@@ -1,6 +1,6 @@
 {
   "name": "service-desk",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -10,17 +10,19 @@
     "start": "node server.mjs",
     "check": "node scripts/check.mjs",
     "test": "node ./scripts/run-tests.mjs",
-    "test:ci": "node ./scripts/run-tests.mjs"
+    "test:ci": "node ./scripts/run-tests.mjs",
+    "test:browser": "node scripts/browser-smoke.mjs"
   },
   "dependencies": {
     "imapflow": "2.0.2",
     "ldapts": "9.0.0",
     "luxon": "3.7.2",
-    "mailparser": "3.9.25",
-    "nodemailer": "10.0.6",
+    "mailparser": "3.9.38",
+    "nodemailer": "10.0.9",
     "openid-client": "6.8.8"
   },
   "devDependencies": {
-    "jsdom": "30.0.1"
+    "jsdom": "30.0.1",
+    "playwright": "1.64.0"
   }
 }
