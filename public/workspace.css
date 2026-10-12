@@ -123,6 +123,7 @@ body.sd20 .topbar button.primary:hover {
 }
 .w21-main {
   color: var(--w21-ink);
+  background: var(--w21-bg);
   --panel-radius: 12px;
 }
 .w21-main h1 {
@@ -1041,6 +1042,7 @@ body.sd20 .kanban-card {
   }
 }
 body.sd20 .sd20-topbar {
+  background: var(--w21-surface);
   flex-wrap: wrap;
   min-width: 0;
 }

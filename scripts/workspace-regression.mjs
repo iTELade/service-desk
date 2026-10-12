@@ -410,6 +410,10 @@ try {
         check('2.1 no page overflow ' + width + ' ' + theme + ' ' + route, !overflow);
         check('No stuck loading state', (await page.locator('#main .loading').count()) === 0);
         const contrast = await page.evaluate(inspectTextContrast);
+        if (contrast.length) console.log('THEME SURFACES ' + JSON.stringify(await page.evaluate(() => {
+          const selectors = ['html', 'body', '.workspace', '.workspace-content', '.topbar', '#main', '.w21-queue-nav'];
+          return selectors.map(selector => { const el = document.querySelector(selector); if (!el) return {selector}; const s = getComputedStyle(el); return {selector, classes: el.className, background: s.backgroundColor, surface: s.getPropertyValue('--w21-surface'), bg: s.getPropertyValue('--sd20-bg')}; });
+        })));
         if (contrast.length) console.log('CONTRAST ' + JSON.stringify(contrast.slice(0, 12)));
         check('2.1 text contrast ' + width + ' ' + theme + ' ' + route, contrast.length === 0);
         if (width === 1440 && route.startsWith('queue?')) {

@@ -101,3 +101,19 @@ test('real WebAuthn cryptographic verification accepts synchronized passkey and 
     p.grant(u, u.token); p.remove(u, p.list(u)[0].id); const revoked = await assertion(); await assert.rejects(() => p.verify(revoked), status(401));
   } finally { f.close(); }
 });
+
+test('period reports isolate project access and count team responsibility, reopen events and median', async () => {
+  const f = fixture(); try {
+    const p = f.project('REP'), other = f.project('HIDDEN'), a = f.ticket(p), b = f.ticket(p); f.ticket(other);
+    const team = f.v.processes.saveTeam(null, { project_id: p.id, name: 'Support', members: [f.admin.id], version: 0 }, f.admin)[0];
+    f.v.processes.metadata(a.id, { version: 0, team_id: team.id }, f.admin);
+    f.db.prepare('UPDATE tickets SET first_response_at=? WHERE id=?').run('2026-09-14T09:10:00.000Z', a.id);
+    f.db.prepare('UPDATE tickets SET first_response_at=? WHERE id=?').run('2026-09-14T09:20:00.000Z', b.id);
+    f.advance(3600000); f.state(a.id, 'resolved', f.admin, { resolution: 'Fixed' }); f.advance(60000); f.state(a.id, 'open');
+    const report = (await f.v.handle('GET', '/api/desk/v22/reports', f.admin, new URLSearchParams({ project: String(p.id), from: '2026-09-14', to: '2026-09-14' }))).value;
+    assert.equal(report.total, 2); assert.equal(report.response.median_minutes, 15); assert.equal(report.response.p90_minutes, 20); assert.equal(report.reopened.tickets, 1); assert.equal(report.reopened.events, 1); assert.equal(report.reopened.rate, .5);
+    assert.equal(report.by_team.find(t => t.id === team.id).reopened_tickets, 1);
+    await assert.rejects(() => f.v.handle('GET', '/api/desk/v22/reports', f.admin, new URLSearchParams({ from: '2026-02-30' })), status(400));
+    const customer = f.user('report-customer@x.test'); await assert.rejects(() => f.v.handle('GET', '/api/desk/v22/reports', customer, new URLSearchParams()), status(403));
+  } finally { f.close(); }
+});
