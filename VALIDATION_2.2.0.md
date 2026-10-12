@@ -3,10 +3,11 @@
 ## Observed evidence
 
 - Local syntax checks pass for the implementation candidate.
-- Local application suite: 279 tests passed before the final metadata/documentation changes; rerun required after the final edits.
+- Local application suite: 283 tests passed after event subscriptions, condition proofs and route-owned settings changes. Final CI rerun remains required.
 - New platform tests cover migration/idempotence, blueprint preview/activation, approvals, dependencies, participants, recycle/restore, query grammar, bulk rollback, connector revocation and passkeys.
 - Real WebAuthn signature verification is exercised with synthetic credential data, including synced zero-counter passkeys, replay, origin and user-verification rejection.
 - Synthetic 10,000-ticket scenario passed locally. This is not a concurrent-production benchmark.
+- CI on acc690343619e2efcfe4f9d96ced8951a63b8546 passed existing workspace regression in Chromium, Firefox and WebKit, as well as all Desk–KB matrix jobs. It found a settings-section loading race and a platform test fixture using a missing ticket ID; fixes are pending the next CI run.
 - Local browser installation failed because downloads returned invalid/truncated archives. Browser tests must run in GitHub Actions; no local browser result is claimed.
 
 ## Required before stable publication
@@ -25,6 +26,6 @@
 
 ## Candidate limitations
 
-The branch contains substantial implementation, not the complete accepted 2.2.0 scope. External connector jobs are implemented, but full executable UI/workflow/event hooks are still pending. Template export currently excludes external identity-bound automation and generalizes form-specific SLA rules; full mapping is pending. Recycle handles tickets, not every configuration resource. Notification preferences cover application events/quiet hours; full email scheduling/digests are pending. Customer layout configuration is stored but its complete rendering contract and PDF/image previews are pending. Report quantiles/aging are present; team/reopen metrics and concurrent benchmarks are pending.
+The branch contains substantial implementation, not the complete accepted 2.2.0 scope. External connector jobs, event subscriptions and workflow condition proofs are implemented; full UI/automation hooks and migration runners are still pending. Template export currently excludes external identity-bound automation and generalizes form-specific SLA rules; full mapping is pending. Recycle handles tickets, not every configuration resource. Notification preferences cover application events/quiet hours; full email scheduling/digests are pending. Project customer section order is applied when configured, while per-request-type field ordering remains pending. Isolated PDF/image preview and shared storage quotas are implemented; browser acceptance remains pending. Report quantiles/aging, team groups and reopen counts are implemented; comparable concurrent benchmarks are pending.
 
 These are known uncompleted acceptance requirements. Do not publish this branch as a fully delivered stable 2.2.0 or mark the roadmap checklist complete.

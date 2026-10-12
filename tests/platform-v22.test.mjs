@@ -117,3 +117,25 @@ test('period reports isolate project access and count team responsibility, reope
     const customer = f.user('report-customer@x.test'); await assert.rejects(() => f.v.handle('GET', '/api/desk/v22/reports', customer, new URLSearchParams()), status(403));
   } finally { f.close(); }
 });
+
+test('plugin subscriptions preserve business actor and durable deduplication; workflow proofs expire on change', async () => {
+ const f=fixture();try{
+  const p=f.project('HOOK'),t=f.ticket(p),id='neutral.hooks';
+  f.ext.plugins.install({id,name:'Neutral hooks',version:'1.0.0',capabilities:['scheduled.job','event.listener','workflow.condition'],permissions:['scheduled.job','event.listener','ticket.read','workflow.condition'],subscriptions:['ticket_created','comment_added']},f.admin);
+  f.ext.plugins.setEnabled(id,true,f.admin);
+  const deliveries=[],r=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async(...args)=>deliveries.push(args)});
+  r.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:['scheduled.job','event.listener','ticket.read','workflow.condition']},f.admin);
+  const event=f.db.prepare("SELECT * FROM desk_events WHERE ticket_id=? AND event='ticket_created'").get(t.id);
+  r.receiveEvent(event);r.receiveEvent(event);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM platform_jobs').get().n,1);
+  const privateComment=f.comment(t,f.admin,'Private note',1);r.receiveEvent({id:1000,ticket_id:t.id,event:'comment_added',payload:JSON.stringify({comment_id:privateComment})});assert.equal(f.db.prepare('SELECT COUNT(*) n FROM platform_jobs').get().n,1);
+  const current=f.projects.project(p.id);f.v.governance.settings(p.id,{version:current.version,transition_conditions:{},plugin_conditions:{in_progress:[{plugin_id:id,action:'check'}]}},f.admin);
+  const target=f.workflows.get(p.id).statuses.find(s=>s.key==='in_progress');
+  assert.throws(()=>f.workflows.checkGuard(t,target,f.admin),status(409));
+  const job=r.enqueue(id,{ticket_id:t.id,action:'check',request_key:'condition-proof-0001'},f.admin);await r.flush();assert.equal(deliveries.length,2);
+  const eventDelivery=deliveries.map(d=>JSON.parse(d[1])).find(d=>d.event_id===event.id);assert.equal(eventDelivery.business_actor_id,f.admin.id);assert.equal(eventDelivery.actor_id,f.admin.id);
+  f.db.prepare('UPDATE platform_jobs SET result=? WHERE id=?').run(JSON.stringify({business_result:'completed',condition:true}),job.id);
+  assert.doesNotThrow(()=>f.workflows.checkGuard(t,target,f.admin));
+  f.db.prepare('UPDATE tickets SET title=?,version=version+1 WHERE id=?').run('Changed request',t.id);assert.throws(()=>f.workflows.checkGuard(f.desk.ticket(t.id),target,f.admin),status(409));
+  f.ext.plugins.install({id,name:'Neutral hooks',version:'1.1.0',capabilities:['scheduled.job'],permissions:['ticket.read','scheduled.job']},f.admin);assert.equal(f.ext.plugins.list(f.admin)[0].enabled,false);
+ }finally{f.close();}
+});

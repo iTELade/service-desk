@@ -44,9 +44,17 @@ Only completed/failed are accepted. Duplicate identical results are harmless; co
 - POST /api/plugins/PLUGIN_ID/tickets/TICKET_ID/comments requires ticket.comment, an authorized job_id, current ticket version and Idempotency-Key. Public replies only; no direct DB access or impersonation of arbitrary users.
 - Connector permissions are rechecked against both manifest and administrative grants, as well as current project/account state.
 
-## Current capability boundary
+## Event subscriptions and workflow conditions
 
-This candidate implements the external connector/job/ticket contract. The registry can describe other capabilities, but declarative ticket panels, custom UI, executable workflow conditions, migration runners and arbitrary event listeners are **not yet implemented runtime hooks**. Do not advertise them as available merely because their manifest capability is accepted. This limitation is a release blocker if the full roadmap requires those hooks.
+API 1 manifests may declare `subscriptions` containing ticket_created, ticket_updated, status_changed and comment_added. Subscriptions require event.listener and scheduled.job capabilities, plus explicit event.listener, scheduled.job and ticket.read grants. Private comments are excluded. Connector configuration selects an execution_user_id (default: the configuring administrator); the account must have current work access to every scoped project. Each delivery retains both the technical actor and business_actor_id/event_id. Event receipts and job request keys prevent duplicate enqueue on retries; the connector must still deduplicate external execution.
+
+A manifest may declare workflow.condition and request its permission. Project process settings bind a target status to `{plugin_id,action}`. A scheduled check for the current ticket version must return `{"status":"completed","condition":true,"message":"Verified"}` through the authenticated result endpoint. A false/missing/failed/stale proof blocks the transition. Ticket changes, connector changes, manifest updates or permission revocation invalidate proof use. Core performs no synchronous network call inside a ticket transaction.
+
+Manifests may declare dependencies as `[{"id":"base.plugin","minimum":"1.0.0"}]` and apiVersion:1. Enable and execution validate dependency availability/version. Updating a manifest disables it and pauses pending jobs for explicit review; changed permissions never grant themselves automatically.
+
+## Remaining capability boundary
+
+This candidate implements external connector jobs, event subscriptions, scoped ticket access and asynchronous workflow conditions. Arbitrary uploaded UI/code, declarative panels, migration runners and other automation/UI hooks remain unimplemented. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
 
 ## Lifecycle
 

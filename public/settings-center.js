@@ -59,9 +59,27 @@ async function renderSystem(){const [sys,updates,events]=await Promise.all([api(
 async function renderAudit(){const rows=await api('/desk/v8/audit');return sectionHead('Audyt','Historia zmian administracyjnych i zdarzeń bezpieczeństwa.','<button type="button" data-settings-audit-export>Eksportuj CSV</button>')+`<section class="panel settings-block"><div class="table-scroll"><table><thead><tr><th>Czas</th><th>Użytkownik</th><th>Projekt</th><th>Akcja</th><th>Szczegóły</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${fmt(r.created_at)}</td><td>${esc(r.actor_name||'System')}</td><td>${esc(r.project_key||'—')}</td><td>${esc(r.action)}</td><td><details><summary>Pokaż</summary><pre class="audit-json">${esc(JSON.stringify(r.details,null,2))}</pre></details></td></tr>`).join('')||'<tr><td colspan="5">Brak wpisów.</td></tr>'}</tbody></table></div></section>`;}
 
 const renderers={overview:renderOverview,general:renderGeneral,branding:renderBranding,identity:renderIdentity,service:renderService,approvals:renderApprovals,organizations:renderOrganizations,communication:renderCommunication,integrations:renderIntegrations,github:renderGithub,plugins:renderPlugins,assets:renderAssets,system:renderSystem,audit:renderAudit};
-async function renderContent(section){const host=$('#settings-content');if(!host)return;state.section=renderers[section]?section:'overview';host.innerHTML='<div class="loading">Wczytywanie…</div>';try{host.innerHTML=await renderers[state.section]();if(state.section==='approvals')await loadApprovalTypes();}catch(err){host.innerHTML=`<div class="empty"><h2>Nie udało się wczytać ustawień</h2><p>${esc(err.message)}</p><button type="button" data-settings-retry>Spróbuj ponownie</button></div>`;}}
-async function render(){if(!isSettings()||state.rendering)return;const main=$('#main');if(!main)return;state.rendering=true;try{await ensureContext();state.section=currentSection();main.dataset.settingsCenterVersion=SETTINGS_VERSION;main.innerHTML=shell();await renderContent(state.section);}catch(err){main.innerHTML=`<div class="empty"><h1>Nie udało się otworzyć ustawień</h1><p>${esc(err.message)}</p></div>`;}finally{state.rendering=false;}}
-function schedule(){if(!isSettings()||state.scheduled)return;state.scheduled=true;queueMicrotask(()=>{state.scheduled=false;const main=$('#main');if(!main)return;if(main.dataset.settingsCenterVersion!==SETTINGS_VERSION)void render();});}
+async function renderContent(section){
+  const host=$('#settings-content'),requested=location.hash;
+  if(!host)return;
+  const selected=renderers[section]?section:'overview';state.section=selected;
+  host.innerHTML='<div class="loading">Wczytywanie…</div>';
+  try{
+    const content=await renderers[selected]();if(!host.isConnected||location.hash!==requested)return;
+    host.innerHTML=content;if(selected==='approvals')await loadApprovalTypes();
+  }catch(err){if(host.isConnected&&location.hash===requested)host.innerHTML=`<div class="empty"><h2>Nie udało się wczytać ustawień</h2><p>${esc(err.message)}</p><button type="button" data-settings-retry>Spróbuj ponownie</button></div>`;}
+}
+async function render(main=$('#main')){
+  if(!isSettings()||!main)return;
+  const requested=location.hash;state.rendering=true;
+  try{
+    await ensureContext();if(!main.isConnected||location.hash!==requested)return;
+    state.section=currentSection();main.dataset.settingsCenterVersion=SETTINGS_VERSION;
+    main.innerHTML=shell();await renderContent(state.section);
+  }catch(err){if(main.isConnected&&location.hash===requested)main.innerHTML=`<div class="empty"><h1>Nie udało się otworzyć ustawień</h1><p>${esc(err.message)}</p></div>`;
+  }finally{state.rendering=false;}
+}
+export async function mountSettings(main){state.ready=false;document.body.classList.add('settings-route');await render(main);}
 
 async function fileBase64(file){if(!file)return'';if(file.size>2*1024*1024)throw new Error('Logo może mieć maksymalnie 2 MB.');const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(binary);}
 async function loadApprovalTypes(){const project=$('[data-approval-project]'),target=$('[data-approval-request]');if(!project||!target)return;const rows=await api('/projects/'+project.value+'/request-types?surface=manage');target.innerHTML='<option value="">Wszystkie typy</option>'+rows.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');}
@@ -91,8 +109,3 @@ document.addEventListener('submit',async event=>{if(!isSettings())return;const f
  else if(kind==='github'){const id=Number(form.dataset.id||0);await api('/desk/v8/github'+(id?'/'+id:''),{method:'POST',data:{name:form.name.value,owner:form.owner.value,repo:form.repo.value,project_id:Number(form.project_id.value),request_type_id:Number(form.request_type_id.value),reporter_id:Number(form.reporter_id.value),token:form.token.value,label_priority:parseGithubMapping(form.label_priority.value),comment_template:form.comment_template.value,poll_minutes:Number(form.poll_minutes.value),enabled:form.enabled.checked}});state.githubEditingId=0;notify(id?'Zapisano integrację GitHub.':'Dodano integrację GitHub.');await renderContent('github');}
  else if(kind==='plugin'){let manifest;try{manifest=JSON.parse(form.manifest.value);}catch{throw new Error('Manifest wtyczki musi być poprawnym JSON-em.');}await api('/desk/plugins',{method:'POST',data:manifest});notify('Zainstalowano lub zaktualizowano wtyczkę.');await renderContent('plugins');}
 }catch(err){let error=form.querySelector('.form-error');if(!error){error=document.createElement('p');error.className='form-error';error.setAttribute('role','alert');form.prepend(error);}error.textContent=err.message;error.tabIndex=-1;error.focus();notify(err.message,true);}finally{delete form.dataset.busy;if(submit)submit.disabled=false;}});
-
-const observer=new MutationObserver(()=>schedule());
-window.addEventListener('hashchange',()=>{if(isSettings()){document.body.classList.add('settings-route');schedule();}else document.body.classList.remove('settings-route');});
-window.addEventListener('DOMContentLoaded',()=>{observer.observe(document.body,{childList:true,subtree:true});if(isSettings()){document.body.classList.add('settings-route');schedule();}});
-if(document.readyState!=='loading'){observer.observe(document.body,{childList:true,subtree:true});if(isSettings()){document.body.classList.add('settings-route');schedule();}}

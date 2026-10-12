@@ -5,15 +5,15 @@ Status: **work in progress, not a published stable release**. PR #79 contains th
 ## Implemented foundation
 
 - Editable project blueprint API, built-in HR/IT/accounts/Facilities packages, saved project drafts, preview and atomic activation, portable import/export and configuration capture.
-- Separately deployed plugin connectors with manifest registration, scoped permissions, encrypted connection secrets, durable idempotent jobs, pause/cancel/retry and explicit delivery/business-result separation. No business plugin is bundled.
+- Separately deployed plugin connectors with manifest registration, scoped permissions, encrypted connection secrets, durable idempotent jobs, pause/cancel/retry and explicit delivery/business-result separation, event subscriptions and version-bound workflow condition proofs. No business plugin is bundled.
 - Responsible teams, affected person, handover acknowledgement, responsibility rules and local department/location metadata.
 - Sequential approval stages with parallel all/any decisions, delegation, rejection reasons and invalidation after material ticket changes.
 - Required subtask/dependency blockers, cycle detection, optional versioned processes and explicit migration preview.
 - Participants distinct from watchers, same-project duplicate merge, aliases, recycle/restore without automatic job resumption.
 - Extended parameterized filters with AND/OR/IN/date comparisons/currentUser, bulk preview and per-item outcomes.
 - Configuration revisions, restore validation, configuration consistency checks, read-only transition/SLA/automation diagnostics.
-- Next step and permission-aware public customer history, personal reminders, notification event preferences and quiet hours.
-- Period reports, quantiles, aging, protected attachment policy per project and FTS search candidates.
+- Configured customer section order and route-owned settings navigation; next step and permission-aware public customer history, personal reminders, notification event preferences and quiet hours.
+- Period reports with team/reopen metrics and quantiles, aging, protected attachment policy and storage quotas, isolated raster/PDF previews and FTS search candidates.
 - Passwordless discoverable passkeys for local accounts, mandatory user verification and fresh reauthentication for key changes; existing hardware FIDO2 remains supported.
 - Integration and assistance prepared in PR #78 are included in this branch; no separate 2.1.1 release is published.
 

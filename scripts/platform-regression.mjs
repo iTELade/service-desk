@@ -56,7 +56,7 @@ try {
   check('Configured customer section order', true); check('Customer has no process administration', await customerPage.locator('[data-p22=approval-start]').count() === 0);
   await customerContext.close();
   const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=';
-  const uploaded = await api('/desk/r112/attachments', { ticket_id: t.id, filename: 'preview.png', mime: 'image/png', data_base64: png });
+  const uploaded = await api('/desk/r112/attachments', { ticket_key: t.key, filename: 'preview.png', mime: 'image/png', data_base64: png });
   await page.goto(base + '/#/ticket/' + t.key); await page.locator('#activity-files').click();
   await page.locator('[data-r112-preview="' + uploaded.id + '"]').click();
   await page.waitForFunction(() => { const img = document.querySelector('.attachment-preview-image'); return img?.complete && img.naturalWidth === 1; });

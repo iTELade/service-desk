@@ -31,3 +31,13 @@ test('plugin management requires global administrator and rejects unknown capabi
     assert.throws(()=>plugins.install({id:'future.plugin',name:'Future Plugin',version:'1.0.0',serviceDesk:'>=9.0.0'},admin),/not compatible/);
   }finally{db.close();}
 });
+
+test('plugin API versions and dependency versions are checked before enabling',()=>{
+ const {db,plugins}=setup();try{
+  assert.throws(()=>plugins.install({id:'future.api',version:'1.0.0',apiVersion:2},admin),e=>e.status===409);
+  plugins.install({id:'dependent.plugin',version:'1.0.0',dependencies:[{id:'base.plugin',minimum:'2.0.0'}]},admin);
+  assert.throws(()=>plugins.setEnabled('dependent.plugin',true,admin),e=>e.status===409);
+  plugins.install({id:'base.plugin',version:'1.0.0'},admin);plugins.setEnabled('base.plugin',true,admin);assert.throws(()=>plugins.setEnabled('dependent.plugin',true,admin),e=>e.status===409);
+  plugins.install({id:'base.plugin',version:'2.0.0'},admin);assert.equal(plugins.list(admin).find(p=>p.id==='base.plugin').enabled,false);plugins.setEnabled('base.plugin',true,admin);assert.equal(plugins.setEnabled('dependent.plugin',true,admin).enabled,true);
+ }finally{db.close();}
+});

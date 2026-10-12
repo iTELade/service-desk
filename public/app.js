@@ -1,3 +1,4 @@
+import {mountSettings} from './settings-center.js?v=2.2.0';
 import {attachmentPreview} from './attachment-preview.js?v=2.2.0';
 import {createPlatformUI} from './platform.js?v=2.2.0';
 import {installPasskeyUI} from './passkeys.js?v=2.2.0';
@@ -200,7 +201,7 @@ async function route(){
   if(!isStaff()&&['projects','project','board','reports','cases','case','services','service','calendar','workflow','replies','assist'].includes(view)){location.hash='#/portal';return;}
   if(['users','settings','directory','integrations','blueprints22','plugins22','recycle22'].includes(view)&&S.user.role!=='admin'){location.hash='#/queue';return;}
   S.portalMode=Boolean(portalPath)||!isStaff()||view==='portal';S.portal=null;
-  document.body.dataset.density=S.uiPrefs?.density||'comfortable';applyTheme();shell(view);document.body.classList.remove('sd202-navigation-open');document.title=(view==='ticket'?key:brand())+' · Desk';
+  document.body.classList.toggle('settings-route',view==='settings');document.body.dataset.density=S.uiPrefs?.density||'comfortable';applyTheme();shell(view);document.body.classList.remove('sd202-navigation-open');document.title=(view==='ticket'?key:brand())+' · Desk';
   try{
     if(portalPath)S.portal=await api('/portals/'+portalPath);
     let content=await platformUI.render(view,key,search);
@@ -222,7 +223,7 @@ async function route(){
       case 'login':location.hash=portalPath?'#/portal-home':isStaff()?'#/queue':'#/portal';return;
       default:content=empty('Nie znaleziono widoku');
     }
-    if(id===S.routeId&&S.user){$('#main').innerHTML=content;$('#main').dataset.workspaceRoute=raw;await workspaceUI.mount($('#main'),view,key,search);if(id===S.routeId)await platformUI.mount($('#main'),view,key,search);if(id===S.routeId){$('#main').dataset.workspaceReady='1';updateKeyPreview();void refreshNotifications();}}
+    if(id===S.routeId&&S.user){$('#main').innerHTML=content;$('#main').dataset.workspaceRoute=raw;if(view==='settings')await mountSettings($('#main'));if(id!==S.routeId)return;await workspaceUI.mount($('#main'),view,key,search);if(id===S.routeId)await platformUI.mount($('#main'),view,key,search);if(id===S.routeId){$('#main').dataset.workspaceReady='1';updateKeyPreview();void refreshNotifications();}}
   }catch(err){if(id===S.routeId&&S.user)$('#main').innerHTML=`<div class="empty"><h1>Nie udało się wczytać widoku</h1><p>${e(err.message)}</p><button data-action="refresh">Spróbuj ponownie</button></div>`;}
 }
 async function createTicketModal(project,type,fromPortal=S.portalMode){
