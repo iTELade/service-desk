@@ -73,7 +73,7 @@ test('1.1.2 global search is permission aware and prioritizes exact ticket keys'
 });
 
 
-test('2.1.0 attachments respect reply locks and lifecycle without hiding downloads',()=>{
+test('2.1.1 attachments respect reply locks and lifecycle without hiding downloads',()=>{
  const f=setup();try{
   const body={ticket_id:f.ticket.id,filename:'sp1.txt',mime:'text/plain',data_base64:Buffer.from('sp1').toString('base64'),internal:false};
   const existing=f.r.attachmentCreate(f.customer,body);

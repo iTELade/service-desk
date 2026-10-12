@@ -4,3 +4,5 @@ backups/
 node_modules/
 .sites-runtime/
 artifacts/
+
+fixtures/

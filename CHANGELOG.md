@@ -1,3 +1,9 @@
+## 2.1.1 — unreleased
+
+- Per-project opt-in similar-ticket suggestions in creation forms and ticket details, with configurable threshold, access-controlled ranking and manual related links.
+- Optional agent attention signals and reviewable handover summaries without internal notes.
+- Local title matching; no external AI, automatic merge or native knowledge portal. External Knowledge Base API integration with title/body suggestions, encrypted token, live previews and stable article references; schema 10→11.
+
 ## 2.1.0 — 2026-10-11 — Agent workspace i ITSM
 
 Nowe kolejki i podgląd, atomowe odpowiedzi i operacje zbiorcze, praca i checklisty, CSAT, incydenty/problemy/zmiany, mapa usług, monitoring, kalendarz zmian, projektant workflow, symulacje i raporty. Schemat 10. Portal wiedzy pozostaje osobnym projektem. Szczegóły: [RELEASE_NOTES_2.1.0.md](RELEASE_NOTES_2.1.0.md).

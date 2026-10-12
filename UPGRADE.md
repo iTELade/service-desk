@@ -42,3 +42,7 @@ docker compose --profile updates up -d --build updater
 ## Powrót do 2.0.x
 
 Migracja 10 jest jednokierunkowa. Zatrzymaj nowy kontener, przywróć pełną kopię danych wykonaną przed aktualizacją wraz z master.key i uruchom poprzedni obraz. Nie uruchamiaj kodu 2.0.x na bazie w schemacie 10. Po odtworzeniu sprawdź integrity_check, foreign_key_check i healthz.
+
+## Przygotowywana aktualizacja 2.1.0 → 2.1.1
+
+2.1.1 nie jest jeszcze wydane. Przy przyszłej aktualizacji migracja **10 → 11** doda tylko tabelę stabilnych powiązań z artykułami zewnętrznej KB, zachowując zgłoszenia i konfigurację. Kopia bazy i `master.key` jest konieczna przed aktualizacją; powrót do 2.1.0 wymaga odtworzenia kopii schematu 10. Nowe opcje **Podpowiedzi i usprawnienia** w ustawieniach projektu są domyślnie wyłączone; włącza je manager lub administrator. Zewnętrzną bazę wiedzy konfiguruje administrator w istniejącej sekcji integracji. Nie uruchamiaj publikacji ani nie aktualizuj produkcji na podstawie gałęzi przygotowawczej.

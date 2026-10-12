@@ -1,3 +1,4 @@
+import {migrateV11} from './lib/migration-v11.mjs';
 import {migrateV10} from './lib/migration-v10.mjs';
 import {createV21} from './lib/v21.mjs';
 import {createReset,applyPendingReset} from './lib/reset.mjs';
@@ -143,6 +144,7 @@ migrateV7(db);
 if(db.prepare('PRAGMA user_version').get().user_version<8)migrateV8(db);
 if(db.prepare('PRAGMA user_version').get().user_version<9)migrateV9(db);
 if(db.prepare('PRAGMA user_version').get().user_version<10)migrateV10(db);
+if(db.prepare('PRAGMA user_version').get().user_version<11)migrateV11(db);
 // Fresh installations do not need the legacy built-in automation account.
 if(!schemaVersion&&!db.prepare('SELECT id FROM projects LIMIT 1').get())db.prepare("DELETE FROM users WHERE email='bot@desk.invalid' AND password='!service'").run();
 const mfa=createMfa(db,{dataDir});
@@ -399,7 +401,7 @@ const server = http.createServer(async (req,res)=>{
     const extensionResult=await extensions.handle(method,pathname,user,searchParams,readBody);if(extensionResult)return json(res,extensionResult.status,extensionResult.value);
     if(method==='GET'&&pathname==='/api/meta'){
       const visible=projects.list(user),assignees=[...new Map(visible.filter(p=>p.can_work).flatMap(p=>projects.agents(p,user)).map(a=>[a.id,a])).values()];
-      return json(res,200,{statuses,priorities,types,workflow_events:workflowEvents,projects:visible,assignees,brand_name:accounts.settings().brand_name});
+      return json(res,200,{statuses,priorities,types,workflow_events:workflowEvents,projects:visible.map(p=>({...p,knowledge_enabled:extensions.knowledge.available(p.id,user)})),assignees,brand_name:accounts.settings().brand_name});
     }
     if(pathname==='/api/settings'){
       if(method==='GET'){admin();return json(res,200,accounts.settings());}

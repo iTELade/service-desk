@@ -81,6 +81,188 @@ export function createWorkspaceUI(ctx) {
       .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
       .replaceAll('\n', '<br>');
   }
+  function similarList(result, links = false) {
+    if (!result.enabled) return '';
+    return `<p class="hint">Dopasowanie tematów — sugestia, nie potwierdzenie duplikatu.</p>${result.matches.map((t) => `<article class="w21-similar-item"><a href="#/ticket/${e(t.key)}"${links ? ' target="_blank" rel="noopener"' : ''}><strong>${e(t.key)}</strong> ${e(t.title)}</a><small>${t.score} / 100 · ${e(S.meta.statuses[t.status] || t.status)}<br>${t.exact ? 'Ten sam temat' : 'Wspólne słowa: ' + e(t.shared.join(', '))}</small>${!links && !S.portalMode && S.ticket?.can_work && !S.ticket.project_archived && !S.ticket.archived_at && S.ticket.status !== 'closed' ? `<button type="button" data-smart-link="${e(t.key)}"${S.ticket.links?.some((l) => l.key === t.key) ? ' disabled' : ''}>${S.ticket.links?.some((l) => l.key === t.key) ? 'Powiązane' : 'Powiąż sprawy'}</button>` : ''}</article>`).join('') || '<p>Brak podobnych zgłoszeń przy wybranym progu.</p>'}<small>${e(result.definition)} Sprawdzono ${result.examined}.</small>`;
+  }
+  function mountCreate(form) {
+    if (!form || form.dataset.smartMounted) return;
+    form.dataset.smartMounted = '1';
+    const box = document.createElement('section');
+    box.className = 'w21-smart-create';
+    box.hidden = true;
+    box.setAttribute('aria-live', 'polite');
+    form.elements.title.closest('label').after(box);
+    let timer,
+      generation = 0;
+    const update = () => {
+      clearTimeout(timer);
+      const token = ++generation;
+      const project = S.meta.projects.find((p) => p.id === Number(form.elements.project_id.value));
+      const title = form.elements.title.value.trim();
+      box.hidden = !project?.settings?.ticket_assistance?.similar || title.length < 3;
+      box.replaceChildren();
+      if (box.hidden) return;
+      box.innerHTML = '<h3>Podobne zgłoszenia</h3><p>Sprawdzanie tematów…</p>';
+      timer = setTimeout(async () => {
+        try {
+          const result = await call('similar', { project_id: project.id, title });
+          if (token !== generation || !form.isConnected || !form.closest('dialog')?.open) return;
+          box.hidden = !result.enabled;
+          box.innerHTML = '<h3>Podobne zgłoszenia</h3>' + similarList(result, true);
+        } catch (err) {
+          if (token === generation && form.isConnected)
+            box.innerHTML = '<p>Nie udało się pobrać podpowiedzi. Możesz utworzyć zgłoszenie.</p>';
+        }
+      }, 350);
+    };
+    form.elements.title.addEventListener('input', update);
+    form.elements.project_id.addEventListener('change', update);
+    update();
+  }
+  function knowledgePanel(main, t, sidebar) {
+    const host = document.createElement('section');
+    host.className = 'w21-panel w21-knowledge';
+    host.innerHTML =
+      '<h2>Artykuły pomocne w tej sprawie</h2><p data-kb-state role="status">Szukam na podstawie tematu i opisu…</p><form data-kb-search><label>Szukaj w bazie wiedzy<input name="q" minlength="2" maxlength="240" placeholder="Temat lub słowa kluczowe" required></label><button type="submit">Szukaj</button></form><div data-kb-results></div><h3>Powiązane artykuły</h3><div data-kb-links></div>';
+    sidebar.append(host);
+    let generation = 0;
+    const kb = (path, data, method = 'POST') => api('/desk/knowledge/' + path, { method, data });
+    const active = () => main.isConnected && S.ticket === t;
+    const showArticle = guarded(async (id) => {
+      showModal(
+        '<h2>Artykuł bazy wiedzy</h2><p data-kb-loading>Wczytywanie…</p><button type=\"button\" data-kb-loading-close>Zamknij</button>',
+      );
+      const loading = $('[data-kb-loading]');
+      $('[data-kb-loading-close]').onclick = () => $('#modal').close();
+      const article = await kb('pages/' + encodeURIComponent(id), { project_id: t.project_id }).catch(
+        (err) => {
+          if (loading.isConnected) loading.textContent = err.message;
+          throw err;
+        },
+      );
+      if (!active() || !loading.isConnected || !$('#modal').open) return;
+      showModal(
+        `<h2>${e(article.title)}</h2><p>${e(article.summary)}</p><div class="w21-kb-content">${markdown(article.content)}</div><p><a href="${e(article.url)}" target="_blank" rel="noopener noreferrer">Otwórz w osobnej bazie wiedzy →</a></p><div class="button-row">${!t.archived_at && !t.project_archived && t.status !== 'closed' ? '<button type="button" data-kb-pin>Powiąż ze zgłoszeniem</button><button type="button" data-kb-insert>Wstaw odnośnik do szkicu</button>' : ''}<button type="button" data-kb-close>Zamknij</button></div><p data-kb-modal-status role="status"></p>`,
+      );
+      $('[data-kb-close]').onclick = () => $('#modal').close();
+      const pin = $('[data-kb-pin]');
+      if (pin)
+        pin.onclick = guarded(async () => {
+          pin.disabled = true;
+          try {
+            await kb('tickets/' + encodeURIComponent(t.key) + '/links', { page_id: id, version: t.version });
+            if (active()) {
+              $('#modal').close();
+              await refreshLinks();
+              notify('Powiązano artykuł.');
+            }
+          } finally {
+            if (pin.isConnected) pin.disabled = false;
+          }
+        });
+      const insert = $('[data-kb-insert]');
+      if (insert)
+        insert.onclick = guarded(async () => {
+          const composer = $('[data-w21-composer]', main),
+            field = $('[name=body]', composer),
+            internal = $('[name=internal]', composer)?.checked;
+          if (!composer || !field) throw Error('Edytor odpowiedzi nie jest dostępny.');
+          let selected = article;
+          if (!internal) {
+            try {
+              selected = await kb('pages/' + encodeURIComponent(id), {
+                project_id: t.project_id,
+                public_only: true,
+              });
+            } catch {
+              const status = $('[data-kb-modal-status]');
+              status.textContent =
+                'Ten artykuł nie jest dostępny publicznie. Wstaw go do notatki wewnętrznej lub wybierz publiczny artykuł.';
+              return;
+            }
+          }
+          if (!active()) return;
+          field.value += (field.value.trim() ? '\n\n' : '') + selected.title + '\n' + selected.url;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          $('#modal').close();
+          field.focus();
+          notify('Wstawiono odnośnik do szkicu. Odpowiedź nie została wysłana.');
+        });
+    });
+    const bindArticle = (box) =>
+      $$('[data-kb-open]', box).forEach(
+        (button) => (button.onclick = () => showArticle(button.dataset.kbOpen)),
+      );
+    const display = (results) => {
+      const box = $('[data-kb-results]', host);
+      box.innerHTML =
+        results
+          .map(
+            (r) =>
+              `<article class="w21-similar-item"><button type="button" data-kb-open="${e(r.id)}">${e(r.title)}</button><p>${e(r.summary)}</p><small>${e(r.language)} · ${e(r.visibility)}</small></article>`,
+          )
+          .join('') || '<p>Brak dopasowanych artykułów. Spróbuj innych słów.</p>';
+      bindArticle(box);
+    };
+    const refreshLinks = async () => {
+      try {
+        const result = await kb('tickets/' + encodeURIComponent(t.key) + '/links', undefined, 'GET');
+        if (!active()) return;
+        const box = $('[data-kb-links]', host);
+        box.innerHTML =
+          result.links
+            .map(
+              (l) =>
+                `<p>${l.unavailable ? 'Artykuł niedostępny lub poza aktualnym zakresem.' : `<button type="button" data-kb-open="${e(l.article.id)}">${e(l.article.title)}</button>`}${!t.archived_at && !t.project_archived && t.status !== 'closed' ? ` <button type="button" data-kb-unlink="${l.id}" aria-label="Odłącz artykuł">×</button>` : ''}</p>`,
+            )
+            .join('') || '<p>Brak powiązanych artykułów.</p>';
+        bindArticle(box);
+        $$('[data-kb-unlink]', box).forEach(
+          (b) =>
+            (b.onclick = guarded(async () => {
+              await kb(
+                'tickets/' + encodeURIComponent(t.key) + '/links',
+                { link_id: Number(b.dataset.kbUnlink), version: t.version },
+                'DELETE',
+              );
+              await refreshLinks();
+            })),
+        );
+      } catch {
+        if (active()) $('[data-kb-links]', host).textContent = 'Powiązane artykuły są chwilowo niedostępne.';
+      }
+    };
+    const search = async (q) => {
+      const token = ++generation,
+        state = $('[data-kb-state]', host);
+      state.textContent = 'Szukam artykułów…';
+      $('[data-kb-results]', host).replaceChildren();
+      try {
+        const result = await kb(
+          'search',
+          q === undefined ? { ticket_key: t.key, suggest: true } : { ticket_key: t.key, q },
+        );
+        if (!active() || token !== generation) return;
+        if (!result.enabled) {
+          host.remove();
+          return;
+        }
+        state.textContent =
+          result.automatic === false
+            ? 'Automatyczne podpowiedzi są wyłączone. Możesz wyszukać artykuł ręcznie.'
+            : 'Podpowiedzi z zewnętrznej bazy wiedzy. Sprawdź treść przed użyciem.';
+        display(result.results);
+      } catch (err) {
+        if (active() && token === generation)
+          state.textContent =
+            'Baza wiedzy jest chwilowo niedostępna. Możesz nadal obsługiwać zgłoszenie. ' + err.message;
+      }
+    };
+    bindForm($('[data-kb-search]', host), async (f) => search(f.q));
+    void search();
+    void refreshLinks();
+  }
   async function preference(update) {
     prefs = await call('preferences');
     prefs = await call('preferences', { version: prefs.version, config: { ...prefs.config, ...update } });
@@ -587,6 +769,42 @@ export function createWorkspaceUI(ctx) {
       t.can_work && !S.portalMode && !t.project_archived && !t.archived_at && t.status !== 'closed';
     if (t.can_work && !S.portalMode) {
       const sidebar = $('.ticket-sidebar', main) || host;
+      if (S.meta.projects.find((p) => p.id === t.project_id)?.knowledge_enabled)
+        knowledgePanel(main, t, sidebar);
+      const insight = await call('tickets/' + encodeURIComponent(key) + '/insights');
+      if (!main.isConnected || S.ticket !== t) return;
+      if (insight.config.attention)
+        sidebar.insertAdjacentHTML(
+          'beforeend',
+          panel(
+            'Warto sprawdzić',
+            `<ul class="w21-attention">${insight.attention.map((a) => `<li>${e(a.label)}</li>`).join('') || '<li>Brak sygnałów wymagających uwagi.</li>'}</ul><small>Sygnały pomocnicze; nie zmieniają priorytetu ani SLA.</small>`,
+          ),
+        );
+      if (insight.handover !== null) {
+        sidebar.insertAdjacentHTML(
+          'beforeend',
+          panel(
+            'Przekazanie sprawy',
+            '<p>Podsumowanie stanu i następnych kroków.</p><button type="button" data-handover>Przejrzyj i skopiuj</button>',
+          ),
+        );
+        $('[data-handover]', sidebar).onclick = () => {
+          showModal(
+            `<h2>Podsumowanie do przekazania</h2><p>${e(insight.definition)}</p><textarea data-handover-text readonly rows="12" aria-label="Podsumowanie zgłoszenia">${e(insight.handover)}</textarea><div class="button-row"><button type="button" data-copy-handover class="primary">Kopiuj podsumowanie</button><button type="button" data-close-handover>Zamknij</button></div>`,
+          );
+          $('[data-close-handover]').onclick = () => $('#modal').close();
+          $('[data-copy-handover]').onclick = guarded(async () => {
+            const area = $('[data-handover-text]');
+            area.focus();
+            area.select();
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(area.value);
+              notify('Skopiowano podsumowanie.');
+            } else notify('Zaznaczono podsumowanie. Użyj Ctrl+C.');
+          });
+        };
+      }
       sidebar.insertAdjacentHTML(
         'beforeend',
         panel(
@@ -962,6 +1180,22 @@ export function createWorkspaceUI(ctx) {
   }
   async function render(view, key, search) {
     const routeToken = S.routeId;
+    if (view === 'assist') {
+      const d = await call('assistance/' + key);
+      if (routeToken === S.routeId) S.ticketAssistance = d;
+      const checks = [
+        ['similar', 'Wykrywaj podobne zgłoszenia'],
+        ['attention', 'Pokazuj sygnały wymagające uwagi'],
+        ['handover', 'Udostępniaj podsumowanie do przekazania'],
+      ];
+      return (
+        head('PROJEKT · USPRAWNIENIA', 'Podpowiedzi i usprawnienia') +
+        panel(
+          'Opcje projektu',
+          `<p>Wszystkie opcje są domyślnie wyłączone. Podobieństwo sprawdzane jest lokalnie, bez wysyłania danych do zewnętrznej AI. Wyniki przestrzegają uprawnień do zgłoszeń.</p><form data-assistance-settings>${checks.map(([name, label]) => `<label class="check"><input type="checkbox" name="${name}"${d.config[name] ? ' checked' : ''}>${label}</label>`).join('')}${field('threshold', 'Minimalna ocena podobieństwa · 20–100', d.config.threshold, 'type="number" min="20" max="100" required')}${field('stale_days', 'Sygnał po dniach bez aktualizacji · 1–30', d.config.stale_days, 'type="number" min="1" max="30" required')}<p class="hint">Porównujemy tematy do 2000 ostatnio aktualizowanych, dostępnych zgłoszeń tego projektu. Wynik to dopasowanie słów, nie pewność duplikatu. Podsumowanie nie zawiera notatek wewnętrznych.</p>${submit()}</form>`,
+        )
+      );
+    }
     if (view === 'integrations') {
       const rows = await api('/desk/v8/integration-health');
       return (
@@ -1090,6 +1324,15 @@ export function createWorkspaceUI(ctx) {
     return null;
   }
   async function mountOperations(main, view, key, search) {
+    if (view === 'assist')
+      bindForm($('[data-assistance-settings]', main), async (f, form) => {
+        const config = { threshold: Number(f.threshold), stale_days: Number(f.stale_days) };
+        for (const name of ['similar', 'attention', 'handover']) config[name] = form.elements[name].checked;
+        await call('assistance/' + key, { version: S.ticketAssistance.version, config });
+        await ctx.refreshMeta();
+        notify('Zapisano usprawnienia projektu.');
+        await route();
+      });
     const caseEditor = async (c) => {
       const services = await call('services'),
         kind = c?.kind || search.get('kind') || 'incident';
@@ -1735,6 +1978,7 @@ export function createWorkspaceUI(ctx) {
         'calendar',
         'workflow',
         'replies',
+        'assist',
         'integrations',
         'portal',
         'portal-home',
@@ -1744,7 +1988,7 @@ export function createWorkspaceUI(ctx) {
     main.classList.add('w21-main');
     main.dataset.workspaceProject =
       search.get('project') ||
-      (['workflow', 'replies', 'project'].includes(view)
+      (['workflow', 'replies', 'assist', 'project'].includes(view)
         ? key
         : view === 'ticket'
           ? S.ticket?.project_id
@@ -1761,6 +2005,30 @@ export function createWorkspaceUI(ctx) {
     window.DeskProductMount?.shell();
     if (view === 'queue' && S.user.role !== 'customer' && !S.portalMode) await queue(main, search);
     if (view === 'ticket') await ticket(main, key);
+    if (
+      view === 'ticket' &&
+      main.isConnected &&
+      S.meta.projects.find((p) => p.id === S.ticket?.project_id && !p.archived)?.settings?.ticket_assistance
+        ?.similar
+    ) {
+      const t = S.ticket,
+        similar = await call('similar', { project_id: t.project_id, title: t.title, exclude_key: t.key });
+      if (main.isConnected && S.ticket === t && similar.enabled) {
+        const host = $('.ticket-sidebar', main) || main;
+        host.insertAdjacentHTML('beforeend', panel('Podobne zgłoszenia', similarList(similar)));
+        $$('[data-smart-link]', host).forEach(
+          (button) =>
+            (button.onclick = guarded(async () => {
+              await api('/desk/tickets/' + t.id + '/link', {
+                method: 'POST',
+                data: { key: button.dataset.smartLink },
+              });
+              notify('Powiązano zgłoszenia.');
+              await route();
+            })),
+        );
+      }
+    }
     await mountOperations(main, view, key, search);
     await window.DeskLegacyMount?.mount();
     if (view === 'queue' && !S.portalMode && main.isConnected) {
@@ -1814,6 +2082,7 @@ export function createWorkspaceUI(ctx) {
   return {
     render,
     mount,
+    mountCreate,
     refreshActivity: () => refreshActivity(),
     dispose: () => {
       dispose();
