@@ -1,3 +1,7 @@
+## Service Desk 2.2.0 candidate
+
+See [VALIDATION_2.2.0.md](VALIDATION_2.2.0.md) for current evidence and open release gates. The historical checks below do not prove completion of 2.2.0.
+
 # Walidacja Service Desk 2.1.0
 
 Wersja **2.1.0**, SQLite **10**. Migracja 9 → 10 zachowuje istniejące zgłoszenia i konfigurację, bez dodawania portalu wiedzy. Powrót do 2.0.x wymaga pełnej kopii danych sprzed migracji, wraz z master.key.
@@ -33,3 +37,17 @@ Na izolowanym zbiorze 10 000 zgłoszeń: pierwsza i ostatnia strona po 25 rekord
 Sprawdź healthz (ok / 2.1.0 / 10), logowanie każdej używanej roli, widoczność projektów, tworzenie przez portal, odpowiedź publiczną i notatkę, chronione pliki, konflikty równoczesnego zapisu, CSAT i ewidencję pracy. Zweryfikuj reguły, rzeczywiste połączenia SMTP/IMAP/LDAP/SSO/GitHub/webhook oraz konfigurację adaptera monitoringu. Środowisko syntetyczne nie potwierdza konfiguracji dostawców produkcyjnych.
 
 Publikator buduje amd64/arm64, uruchamia obraz po digest bez roota, wykonuje świeżą instalację, tworzy zgłoszenie i kontroluje SQLite/master.key. Następnie publikuje stabilny tag i desk-release.json. Opublikowanie obrazu nie jest wdrożeniem na serwer użytkownika.
+# Kontrola gałęzi przygotowawczej 2.1.1
+
+2.1.1 pozostaje nieopublikowane. Lokalnie przeszło **268 testów aplikacji**, **525 kontroli workspace** w Chromium, **362 kontrole dotychczasowych funkcji** i **1431 kontroli wizualnych bez błędów**. Nowy zestaw domenowy obejmuje domyślne wyłączenie funkcji, uprawnienia, izolację klienta/projektu, archiwum/usuwanie, limit 2000 kandydatów, polskie znaki, konflikty wersji ustawień, zachowanie innych opcji projektu i brak notatek wewnętrznych w podsumowaniu. Zestaw przeglądarkowy weryfikuje włączenie opcji w UI, ręczne powiązanie, podgląd podsumowania, sygnały uwagi, podpowiedzi w formularzu, wybór bieżącego projektu i czyszczenie wyników przy zmianie projektu oraz otwieranie zgłoszenia w archiwalnym projekcie i kontrast przycisku tworzenia po najechaniu w obu motywach; obejmuje nową stronę ustawień w obu motywach i czterech szerokościach.
+
+CI PR dodatkowo wykonuje pełną regresję workspace w Chromium, Firefox i WebKit, dotychczasową regresję, kontrolę wizualną oraz obciążenie 10 000 zgłoszeń. Wynik tych bramek należy sprawdzić przed późniejszym wydaniem. Ta gałąź nie uruchamia publikacji na main. Schema 11 zawiera migrację 10 → 11 dodającą wyłącznie referencje do zewnętrznych artykułów; nie dodano natywnego portalu wiedzy.
+
+
+## Integracja z osobną KB — gałąź 2.1.1
+
+`tests/knowledge-integration.test.mjs` obejmuje migrację/rollback, szyfrowanie i redakcję tokenu, izolację klientów/projektów/przestrzeni, dopasowanie tematu i opisu, anonimowe sprawdzanie odnośników, nieosadzanie zdalnego HTML, idempotentne referencje, ponowne sprawdzenie uprawnień po odczycie asynchronicznym, odrzucenie przekierowań oraz przypięcie DNS i blokadę niedozwolonych sieci.
+
+`scripts/knowledge-regression.mjs` uruchamia rzeczywisty Desk i checkout KB 0.5.1 na izolowanych danych. Lokalnie przeszło **31 kontroli** w Chromium: ustawienia, handshake health/search/read, dopasowanie wyłącznie z opisu, podgląd, referencje, wstawienie do szkicu bez wysyłki, blokada artykułu publicznego w prywatnej przestrzeni, rozdzielenie szkiców, obydwa motywy/trzy szerokości, odmowa klientowi, wycofanie tokenu i dalsza obsługa zgłoszenia przy awarii KB. CI powtarza te scenariusze w trzech silnikach. Fixture jest przypięty do `afefd4b98a0ed42ef704ad1452aa523923c28b62` i nie jest składnikiem obrazu produkcyjnego.
+
+Test używa rzeczywistego prywatnego interfejsu sieciowego, jeżeli środowisko go udostępnia. W lokalnym runtime dostępnym tylko przez loopback stosuje jawny adapter socketu wyłącznie w procesie testowym; nie dodaje flagi obejścia zabezpieczeń w aplikacji. Jednostkowe kontrole transportu nadal blokują loopback i adresy metadanych. Produkcyjny URL, token, reverse proxy i zasięg odnośników wymagają sprawdzenia w środowisku docelowym; test syntetyczny nie sprawdza cudzej produkcji. Release pozostaje nieopublikowany.

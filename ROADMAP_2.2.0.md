@@ -1,6 +1,6 @@
 # Service Desk 2.2.0 — szablony projektów, procesy i obsługa pluginów
 
-Status: PLAN / UNRELEASED. Dokument określa przyszły zakres, nie potwierdza implementacji ani wyników testów.
+Status: W REALIZACJI / UNRELEASED. Dokument określa uzgodniony zakres. Implementacja kandydata i pozostałe bramki odbioru: VALIDATION_2.2.0.md.
 Zależność: przygotowywane 2.1.1, PR #78.
 Pozostawić PR jako draft. Nie scalać do main, nie tworzyć tagu/release'u bez osobnej decyzji; scalenie może uruchomić publikację.
 Numer schematu i migracje zostaną określone podczas implementacji.
@@ -236,4 +236,4 @@ Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i p
 - Wybór technologii, terminu, właścicieli i repozytorium aplikacji pozostaje nieustalony.
 - Nie dodawać aplikacji mobilnej, nowych mobilnych connectorów ani publikacji w sklepach do zakresu 2.2.0.
 
-PR dodaje wyłącznie plan. Implementacja, migracje, testy funkcjonalne i publikacja pozostają przyszłymi pracami.
+PR zawiera plan oraz niepełny kandydat implementacji. Checklisty nie zostały oznaczone jako ukończone. Pełny odbiór i stabilna publikacja pozostają zablokowane do spełnienia VALIDATION_2.2.0.md.

@@ -239,6 +239,66 @@ try {
     (await page.locator('[data-command-results]').innerText()).includes(t.key),
   );
   await page.keyboard.press('Escape');
+  const similarTicket = await api('/tickets', {
+    project_id: p.id,
+    title: 'VPN connection failure',
+    description: 'A related VPN request',
+    priority: 'P3',
+    type: 'incident',
+  });
+  const otherProject = await api('/projects', {
+    key: 'SX',
+    name: 'Assistance disabled project',
+    project_type: 'external',
+    portal_access: 'authenticated',
+  });
+  await go('assist/' + p.id);
+  check('Assistance disabled by default', !(await page.locator('[name=similar]').isChecked()));
+  for (const name of ['similar', 'attention', 'handover'])
+    await page.locator('[data-assistance-settings] [name=' + name + ']').check();
+  await page.locator('[data-assistance-settings] [type=submit]').click();
+  await page.waitForTimeout(350);
+  const assistance = await api('/desk/v21/assistance/' + p.id);
+  check(
+    'Project assistance settings saved',
+    assistance.config.similar && assistance.config.handover && assistance.config.attention,
+  );
+  await go('ticket/' + t.key);
+  check(
+    'Similar ticket inspector shows actual accessible ticket',
+    (await page.locator('#main').innerText()).includes(similarTicket.key),
+  );
+  await page.locator('[data-smart-link="' + similarTicket.key + '"]').click();
+  await page.waitForTimeout(350);
+  check(
+    'Manual related link persisted',
+    (await api('/tickets/' + t.key)).ticket.links.some((l) => l.key === similarTicket.key),
+  );
+  await page.locator('[data-handover]').click();
+  check(
+    'Handover contains ticket and worklog',
+    (await page.locator('[data-handover-text]').inputValue()).includes(t.key) &&
+      (await page.locator('[data-handover-text]').inputValue()).includes('25 min'),
+  );
+  await page.locator('[data-close-handover]').click();
+  check(
+    'Attention shows unassigned ticket',
+    (await page.locator('.w21-attention').innerText()).includes('Brak opiekuna'),
+  );
+  await page.locator('.topbar [data-action=create]').click();
+  check(
+    'Create defaults to current ticket project',
+    (await page.locator('[data-form=create-ticket] [name=project_id]').inputValue()) === String(p.id),
+  );
+  await page.locator('[data-form=create-ticket] [name=title]').fill('VPN connection failure');
+  await page.waitForSelector('.w21-smart-create .w21-similar-item');
+  check(
+    'Create form shows similar existing tickets',
+    (await page.locator('.w21-smart-create').innerText()).includes(t.key),
+  );
+  await page.locator('[data-form=create-ticket] [name=project_id]').selectOption(String(otherProject.id));
+  check('Disabled project clears previous suggestions', await page.locator('.w21-smart-create').isHidden());
+  await page.keyboard.press('Escape');
   const { user } = await api('/users', {
     first_name: 'QA',
     last_name: 'Customer',
@@ -280,6 +340,25 @@ try {
   const denied = await clientContext.request.get(base + '/api/desk/v21/reports');
   check('Reports denied to customer', denied.status() === 403);
   await clientContext.close();
+  const archivedTicket = await api('/tickets', {
+    project_id: otherProject.id,
+    title: 'Archived assistance ticket',
+    description: 'Archive remains readable',
+    priority: 'P3',
+    type: 'incident',
+  });
+  const archivedConfig = await api('/desk/v21/assistance/' + otherProject.id, {
+    version: (await api('/desk/v21/assistance/' + otherProject.id)).version,
+    config: { similar: true, attention: true, handover: true, threshold: 35, stale_days: 3 },
+  });
+  await api('/projects/' + otherProject.id, { version: archivedConfig.version, archived: true }, 'PATCH');
+  await page.reload();
+  await go('ticket/' + archivedTicket.key);
+  check(
+    'Archived project ticket remains readable with assistance enabled',
+    (await page.locator('[data-handover]').isVisible()) &&
+      (await page.locator('[data-smart-link]').count()) === 0,
+  );
   const routes = [
     'queue?project=' + p.id,
     'ticket/' + t.key,
@@ -292,6 +371,7 @@ try {
     'service/' + service.id,
     'calendar',
     'workflow/' + p.id,
+    'assist/' + p.id,
     'replies/' + p.id,
     'integrations',
     'portal',
@@ -332,6 +412,14 @@ try {
         const contrast = await page.evaluate(inspectTextContrast);
         if (contrast.length) console.log('CONTRAST ' + JSON.stringify(contrast.slice(0, 12)));
         check('2.1 text contrast ' + width + ' ' + theme + ' ' + route, contrast.length === 0);
+        if (width === 1440 && route.startsWith('queue?')) {
+          await page.locator('.topbar [data-action=create]').hover();
+          await page.waitForTimeout(180);
+          const hoverContrast = await page.evaluate(inspectTextContrast);
+          if(hoverContrast.length) console.log('HOVER CONTRAST '+JSON.stringify(hoverContrast.slice(0,12)));
+          check('Topbar create hover contrast ' + theme, hoverContrast.length === 0);
+          await page.mouse.move(0,0);
+        }
         if (width === 1440 && process.env.DESK_SCREENSHOTS) {
           mkdirSync(join(process.env.DESK_SCREENSHOTS, theme), { recursive: true });
           await page.screenshot({

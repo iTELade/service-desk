@@ -38,6 +38,11 @@ jobs:
           for engine in chromium firefox webkit; do
             DESK_SCREENSHOTS="artifacts/workspace/$engine" DESK_BROWSER_ENGINE="$engine" npm run test:workspace
           done
+      - name: Platform 2.2 regression and virtual passkeys
+        run: |
+          for engine in chromium firefox webkit; do
+            DESK_BROWSER_ENGINE="$engine" npm run test:platform
+          done
       - name: Visual regression — all views and themes
         run: npm run test:visual
       - name: Upgrade script syntax
@@ -48,3 +53,33 @@ jobs:
         with:
           name: workspace-2.1
           path: artifacts/workspace/
+
+  knowledge:
+    name: Knowledge Base (${{ matrix.engine }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Checkout standalone Knowledge Base fixture
+        uses: actions/checkout@v4
+        with:
+          repository: iTELade/service-desk-knowledge-base
+          ref: afefd4b98a0ed42ef704ad1452aa523923c28b62
+          path: fixtures/knowledge-base
+          persist-credentials: false
+      - name: Install browser
+        run: npx playwright install --with-deps ${{ matrix.engine }}
+      - name: Real Desk–KB integration
+        env:
+          DESK_BROWSER_ENGINE: ${{ matrix.engine }}
+        run: npm run test:knowledge

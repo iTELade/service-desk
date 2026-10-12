@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag opublikowanego wydania, np. v2.1.0"
+        description: "Tag opublikowanego wydania, np. v2.1.1"
         required: true
-        default: "v2.1.0"
+        default: "v2.1.1"
         type: string
 
 permissions:
@@ -88,6 +88,14 @@ jobs:
           npm run check
           npm test
 
+      - name: Checkout compatible standalone Knowledge Base fixture
+        uses: actions/checkout@v4
+        with:
+          repository: iTELade/service-desk-knowledge-base
+          ref: afefd4b98a0ed42ef704ad1452aa523923c28b62
+          path: fixtures/knowledge-base
+          persist-credentials: false
+
       - name: Instalacja Chromium
         run: npx playwright install --with-deps chromium firefox webkit
 
@@ -98,6 +106,8 @@ jobs:
           npm run test:load
           for engine in chromium firefox webkit; do
             DESK_SCREENSHOTS="artifacts/workspace/$engine" DESK_BROWSER_ENGINE="$engine" npm run test:workspace
+            DESK_BROWSER_ENGINE="$engine" npm run test:knowledge
+            DESK_BROWSER_ENGINE="$engine" npm run test:platform
           done
 
       - name: Nazwa obrazu

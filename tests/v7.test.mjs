@@ -115,7 +115,7 @@ test('Asset project creates a catalogue and does not expose a customer portal',(
  }finally{f.close();}
 });
 
-test('Update repository is fixed and checks are forced on; knowledge integration only stores configuration',()=>{
+test('Update repository is fixed and checks are forced on; knowledge configuration remains versioned and validated',()=>{
  const f=setup();try{const updates=createUpdates(f.db,f.projects,{dataDir:f.dataDir});try{const s=updates.status(f.admin);assert.equal(s.repository,RELEASE_REPOSITORY);assert.equal(s.automatic_checks,true);assert.throws(()=>updates.save({version:s.version,repository:'other/desk'},f.admin),e=>e.status===400);assert.equal(updates.save({version:s.version,automatic_checks:false},f.admin).automatic_checks,true);}finally{updates.stop();}
  const kb=createKnowledge(f.db,f.projects);assert.throws(()=>kb.save({version:1,enabled:true,base_url:'https://user:pass@example.test'},f.admin),e=>e.status===400);const c=kb.save({version:1,enabled:true,base_url:'https://kb.example.test'},f.admin);assert.equal(c.base_url,'https://kb.example.test');assert.equal(c.contract_version,1);assert.throws(()=>kb.status(f.user('kb@example.test')),e=>e.status===403);
  }finally{f.close();}

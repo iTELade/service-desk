@@ -67,6 +67,13 @@ jobs:
           npm run test:ci
           bash -n scripts/upgrade.sh
           sha256sum -c MANIFEST.sha256
+      - name: Checkout compatible standalone Knowledge Base fixture
+        uses: actions/checkout@v4
+        with:
+          repository: iTELade/service-desk-knowledge-base
+          ref: afefd4b98a0ed42ef704ad1452aa523923c28b62
+          path: fixtures/knowledge-base
+          persist-credentials: false
       - name: Install browser
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Browser regression
@@ -76,6 +83,16 @@ jobs:
           npm run test:load
           for engine in chromium firefox webkit; do
             DESK_SCREENSHOTS="artifacts/workspace/$engine" DESK_BROWSER_ENGINE="$engine" npm run test:workspace
+          done
+      - name: Knowledge integration — real KB API and three browsers
+        run: |
+          for engine in chromium firefox webkit; do
+            DESK_BROWSER_ENGINE="$engine" npm run test:knowledge
+          done
+      - name: Platform 2.2 regression and virtual passkeys
+        run: |
+          for engine in chromium firefox webkit; do
+            DESK_BROWSER_ENGINE="$engine" npm run test:platform
           done
       - name: Visual regression — all views and themes
         run: npm run test:visual

@@ -1,4 +1,8 @@
-# iTELade Service Desk 2.1.0
+# iTELade Service Desk 2.2.0 — implementation candidate
+
+> Gałąź przygotowawcza **2.1.1**: opcjonalne podobne zgłoszenia, panel uwagi agenta, podsumowanie do przekazania oraz rzeczywista integracja z `service-desk-knowledge-base` z podpowiedziami z tematu i opisu zgłoszenia (schemat 11). Wersja **nieopublikowana**; ostatni stabilny release pozostaje 2.1.0. Szczegóły: [RELEASE_NOTES_2.1.1.md](RELEASE_NOTES_2.1.1.md).
+
+> This branch is an uncompleted 2.2.0 implementation candidate, not a published release. Last stable release: 2.1.0. See [PR #79](https://github.com/iTELade/service-desk/pull/79), [candidate notes](RELEASE_NOTES_2.2.0.md), [plugin SDK](PLUGIN_SDK.md) and [remaining release gates](VALIDATION_2.2.0.md).
 
 Self-hosted Service Desk / ITSM platform for customer support and internal IT operations.
 
@@ -226,7 +230,7 @@ The active frontend remains compatible with the strict `script-src 'self'` / `st
 
 SQLite is used by a single application writer. Do not run multiple Service Desk replicas against the same SQLite volume.
 
-Current database schema version: **9**.
+Current candidate database schema version: **12** (stable 2.1.0 uses schema 10).
 
 ### Active frontend boundary
 

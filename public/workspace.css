@@ -1,4 +1,61 @@
 /* 2.1 workspace: shared tokens, responsive layouts, route-owned surfaces. */
+.w21-smart-create {
+  padding: 14px;
+  border: 1px solid var(--w21-border);
+  border-radius: 10px;
+  background: var(--w21-soft);
+  color: var(--w21-ink);
+}
+.w21-similar-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--w21-border);
+  overflow-wrap: anywhere;
+}
+.w21-similar-item small {
+  color: var(--w21-muted);
+}
+.w21-similar-item button {
+  justify-self: start;
+}
+.w21-attention {
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+.w21-knowledge {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+}
+.w21-knowledge form,
+.w21-knowledge label,
+.w21-knowledge input {
+  min-width: 0;
+}
+.w21-knowledge button {
+  max-width: 100%;
+  white-space: normal;
+}
+.w21-knowledge [data-kb-search] {
+  margin: 12px 0;
+}
+.w21-knowledge .w21-similar-item button {
+  white-space: normal;
+  text-align: left;
+}
+.w21-kb-content {
+  max-height: 48vh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border: 1px solid var(--w21-border);
+  border-radius: 8px;
+}
+.w21-kb-content pre {
+  white-space: pre-wrap;
+}
 :root {
   --w21-surface: var(--surface, #fff);
   --w21-bg: var(--bg, #f6f8fc);
@@ -43,6 +100,11 @@ body.sd20 .topbar {
   box-shadow: none;
   border-bottom: 1px solid var(--w21-border);
   background: var(--w21-surface);
+}
+body.sd20 .topbar button.primary:hover {
+  background: var(--j-blue-hover);
+  border-color: var(--j-blue-hover);
+  color: var(--sd20-on-primary);
 }
 .w21-command-trigger {
   display: flex;
