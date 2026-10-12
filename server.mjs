@@ -200,7 +200,7 @@ function securityHeaders(res) {
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; frame-src blob:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
   res.setHeader('Cache-Control', 'no-store');
   if (prod) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 }
@@ -296,6 +296,7 @@ function queryTickets(search,user){
 
 const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/attachment-preview.js', ['attachment-preview.js', 'text/javascript; charset=utf-8']],
   ['/platform.js', ['platform.js', 'text/javascript; charset=utf-8']],
   ['/passkeys.js', ['passkeys.js', 'text/javascript; charset=utf-8']],
   ['/workspace.js', ['workspace.js', 'text/javascript; charset=utf-8']],

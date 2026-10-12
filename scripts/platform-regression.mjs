@@ -42,6 +42,25 @@ try {
   await page.goto(base + '/#/ticket/' + t.key); await page.getByRole('heading', { name: 'Następny krok', exact: true }).waitFor();
   check('Diagnostics action', await page.getByRole('button', { name: 'Dlaczego?', exact: true }).count() === 1);
   await page.getByRole('button', { name: 'Dlaczego?', exact: true }).click(); await page.locator('dialog').getByRole('heading', { name: 'Dlaczego?', exact: true }).waitFor(); check('Diagnostic dialog', true); await page.keyboard.press('Escape');
+  const portal = await api('/projects', { key: 'PORTAL', name: 'Portal QA', project_type: 'external', portal_access: 'authenticated' });
+  const customerPassword = 'Portal-test-password-2026';
+  const customer = (await api('/users', { first_name: 'Portal', last_name: 'Customer', email: 'portal22@x.test', role: 'customer', password: customerPassword })).user;
+  const customerTicket = await api('/tickets', { project_id: portal.id, reporter_id: customer.id, title: 'Customer layout', description: 'Public description', type: 'incident', priority: 'P3' });
+  await api('/desk/v22/settings/' + portal.id, { version: (await api('/projects')).find(p => p.id === portal.id).version, transition_conditions: {}, customer_layout: ['next', 'description', 'attachments', 'conversation'] });
+  const customerContext = await browser.newContext();
+  const customerLogin = await customerContext.request.post(base + '/api/login', { headers: { Origin: base }, data: { email: customer.email, password: customerPassword } }); check('Customer login for layout', customerLogin.ok());
+  const customerPage = await customerContext.newPage(); customerPage.on('pageerror', err => errors.push(err.message));
+  await customerPage.goto(base + '/#/ticket/' + customerTicket.key);
+  await customerPage.waitForFunction(() => document.querySelectorAll('[data-customer-section]').length === 4 && !document.querySelector('[data-ticket-tabs]'));
+  assert.deepEqual(await customerPage.locator('[data-customer-section]').evaluateAll(nodes => nodes.map(n => n.dataset.customerSection)), ['next', 'description', 'attachments', 'conversation']);
+  check('Configured customer section order', true); check('Customer has no process administration', await customerPage.locator('[data-p22=approval-start]').count() === 0);
+  await customerContext.close();
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=';
+  const uploaded = await api('/desk/r112/attachments', { ticket_id: t.id, filename: 'preview.png', mime: 'image/png', data_base64: png });
+  await page.goto(base + '/#/ticket/' + t.key); await page.locator('#activity-files').click();
+  await page.locator('[data-r112-preview="' + uploaded.id + '"]').click();
+  await page.waitForFunction(() => { const img = document.querySelector('.attachment-preview-image'); return img?.complete && img.naturalWidth === 1; });
+  check('Raster attachment preview', true); await page.locator('[data-preview-close]').click();
   // Passkey registration and login use actual browser-generated cryptographic credentials.
   // This is a virtual authenticator, not evidence of physical iPhone/hybrid interoperability.
   if (engine === 'chromium') {

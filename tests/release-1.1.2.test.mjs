@@ -92,3 +92,20 @@ test('2.2.0 attachments respect reply locks and lifecycle without hiding downloa
 
  }finally{f.closeAll();}
 });
+
+test('2.2.0 preview rejects spoofed MIME and project quotas apply to email as well as portal',()=>{
+ const f=setup();try{
+  const forged=f.r.attachmentCreate(f.customer,{ticket_id:f.ticket.id,filename:'spoof.png',mime:'image/png',data_base64:Buffer.from('<svg onload="alert(1)"></svg>').toString('base64')});
+  assert.equal(f.r.attachmentContent(f.customer,forged.id).preview_mime,null);
+  const pdf=f.r.attachmentCreate(f.admin,{ticket_id:f.ticket.id,filename:'safe.pdf',mime:'application/pdf',data_base64:Buffer.from('%PDF-1.7\nExample').toString('base64'),internal:true});
+  assert.equal(f.r.attachmentContent(f.admin,pdf.id).preview_mime,'application/pdf');
+  assert.throws(()=>f.r.attachmentContent(f.customer,pdf.id),e=>e.status===404);
+  f.db.prepare('DELETE FROM r112_attachments').run();
+  f.db.prepare('UPDATE projects SET settings=? WHERE id=?').run(JSON.stringify({attachments:{max_bytes:1024,extensions:['txt'],max_storage_bytes:6}}),f.p.id);
+  const first=f.r.attachmentCreate(f.customer,{ticket_id:f.ticket.id,filename:'a.txt',mime:'text/plain',data_base64:Buffer.from('1234').toString('base64')});
+  assert.ok(first.id);
+  assert.deepEqual(storeInboundAttachments(f.db,f.ticket.id,null,[{filename:'b.txt',contentType:'text/plain',content:Buffer.from('123')}]),{stored:0,rejected:1});
+  assert.deepEqual(storeInboundAttachments(f.db,f.ticket.id,null,[{filename:'c.pdf',contentType:'application/pdf',content:Buffer.from('%PDF-1.7')}]),{stored:0,rejected:1});
+  assert.throws(()=>f.r.attachmentCreate(f.customer,{ticket_id:f.ticket.id,filename:'d.txt',mime:'text/plain',data_base64:Buffer.from('123').toString('base64')}),e=>e.status===413);
+ }finally{f.closeAll();}
+});

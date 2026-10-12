@@ -1,3 +1,4 @@
+import {attachmentPreview} from './attachment-preview.js?v=2.2.0';
 import {createPlatformUI} from './platform.js?v=2.2.0';
 import {installPasskeyUI} from './passkeys.js?v=2.2.0';
 import {createWorkspaceUI} from './workspace.js?v=2.2.0';
@@ -8,6 +9,7 @@ const date = value => value ? new Intl.DateTimeFormat(window.DeskLocale?.locale=
 const S = {user:null,csrf:'',meta:null,ticket:null,routeId:0,config:{brand_name:'Service Desk',registration_mode:'approval'},portal:null,portalMode:false,project:null,users:[],ldap:null,preview:null,settings:null};
 const workspaceUI=createWorkspaceUI({S,api,e,date,notify,route,showModal,refreshMeta});
 installPasskeyUI({api,e,notify,showModal});
+window.DeskPreviewAttachment = attachmentPreview({api, showModal, e});
 const platformUI=createPlatformUI({S,api,e,date,notify,route,showModal,refreshMeta});
 window.DeskNativeRefresh=()=>route();
 window.DeskSession=()=>S.user?{user:S.user,csrf:S.csrf}:null;
