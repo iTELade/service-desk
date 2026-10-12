@@ -16,6 +16,7 @@ Numer schematu i migracje zostaną określone podczas implementacji.
 - Własne konfiguracje, formularze, filtry i workflow są rozszerzane.
 - Baza wiedzy pozostaje osobnym projektem. Nie zmieniać produkcji.
 - Konfigurowalny układ ekranu agenta jest wykluczony zgodnie z decyzją Adama; konfiguracja widoku dotyczy wyłącznie klienta.
+- Nie dodawać szkiców zgłoszeń ani zapisywania częściowo wypełnionych formularzy zgłoszenia. Wcześniej uzgodnione drafty konfiguracji projektów pozostają w zakresie.
 
 ## 1. Szablony i drafty projektów
 
@@ -138,6 +139,18 @@ Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonani
 - Raport spójności prowadzi do właściwych ustawień; nie wybiera zastępców ani nie naprawia konfiguracji automatycznie. Kroki wymagające brakującej zależności blokować z czytelną przyczyną.
 - Wykorzystać wspólny walidator projektu i istniejący audyt, zamiast tworzyć konkurencyjne mechanizmy.
 
+## 12. Następny krok i historia komunikacji z klientem
+
+- Wyraźny „następny krok” przy zgłoszeniu: na kogo sprawa czeka (klient, akceptujący, zespół), wymagane działanie, termin i przyczyna blokady.
+- Stan wynika z aktualnej wersji procesu, aktywnych akceptacji, obowiązkowych zależności i dostępnych danych. Przy równoległych krokach pokazać wszystkie wymagane działania zamiast arbitralnie wybierać jedno.
+- Nie zgadywać wykonawcy ani terminu, gdy proces ich nie definiuje; pokazać brak przypisania lub brak terminu.
+- Aktualizacja po decyzji, przekazaniu, zmianie zależności lub cofnięciu uprawnień; respektować poufność przy prezentacji agentowi i klientowi.
+- Historia komunikacji z klientem: ostatnie publiczne zgłoszenia i kontakt osoby przypisanej jako klient/zgłaszający, wyłącznie w zakresie dostępu odczytującego.
+- Wykluczyć notatki wewnętrzne, poufne pola i sprawy spoza dostępu; nie ujawniać ich istnienia w licznikach ani wynikach.
+- Powiązanie po stabilnym identyfikatorze użytkownika, nie wyłącznie po nazwie lub ponownie wykorzystanym adresie e-mail. Jasno wskazać, czy kontekst dotyczy zgłaszającego, czy innej osoby objętej sprawą.
+- Odnośnik z historii ponownie sprawdza aktualny dostęp do zgłoszenia; paginacja i ograniczona liczba wpisów zapobiegają ładowaniu całej historii.
+- Szkice zgłoszeń są poza zakresem tego dodatku i wydania 2.2.0.
+
 ## Kolejność realizacji
 
 1. Kontrakty, regresja synchronizacji i poufność.
@@ -145,7 +158,7 @@ Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonani
 3. Dodawanie pluginów, API/SDK, uprawnienia i trwałe zadania.
 4. Akceptacje, osoby, macierz odpowiedzialności, zastępstwa i wersjonowanie procesów.
 5. Workflow, podzadania, kolejki i historia wykonania.
-6. Współpraca, portal klienta, powiadomienia, kosz i przenoszenie konfiguracji.
+6. Współpraca, portal klienta, następny krok, historia komunikacji, powiadomienia, kosz i przenoszenie konfiguracji.
 7. Historia konfiguracji, diagnostyka, podgląd operacji zbiorczych i spójność zależności.
 8. Raporty, poczta, załączniki, utrzymanie i pełna regresja.
 
@@ -188,6 +201,10 @@ Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i p
 - [ ] Podgląd operacji zbiorczej wskazuje skutki i blokady; zmiana danych po podglądzie jest wykrywana przy wykonaniu.
 - [ ] Wyniki i bezpieczne ponowienia operacji zbiorczych są rozliczane per zgłoszenie oraz audytowane.
 - [ ] Usunięcie zespołu, blokada użytkownika i wyłączenie pluginu ujawniają zależne błędy spójności, bez automatycznego podstawiania wykonawców.
+- [ ] Następny krok odzwierciedla akceptacje, zależności i wykonawców, także równoległe; nie wymyśla terminów ani przypisań.
+- [ ] Zmiana procesu/decyzji/dostępu aktualizuje następny krok bez ujawnienia poufnych danych.
+- [ ] Historia klienta obejmuje tylko dostępne publiczne sprawy/komunikację i respektuje aktualny dostęp oraz stabilną tożsamość.
+- [ ] Brak szkiców zgłoszeń i zapisu częściowo wypełnionych formularzy; drafty projektów pozostają dostępne.
 - [ ] Chromium, Firefox i WebKit oraz dokumentacja odpowiadają wdrożonemu stanowi.
 
 PR dodaje wyłącznie plan. Implementacja, migracje, testy funkcjonalne i publikacja pozostają przyszłymi pracami.
