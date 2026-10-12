@@ -15,6 +15,7 @@ Numer schematu i migracje zostaną określone podczas implementacji.
 - Eskalacje pomiędzy projektami korzystają z istniejącej synchronizacji.
 - Własne konfiguracje, formularze, filtry i workflow są rozszerzane.
 - Baza wiedzy pozostaje osobnym projektem. Nie zmieniać produkcji.
+- Konfigurowalny układ ekranu agenta jest wykluczony zgodnie z decyzją Adama; konfiguracja widoku dotyczy wyłącznie klienta.
 
 ## 1. Szablony i drafty projektów
 
@@ -112,6 +113,19 @@ Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonani
 - Ujednolicenie README, schematu, dokumentacji KB i opisów wydania.
 - Plan migracji, kopii i odtworzenia przed zmianami schematu.
 
+## 10. Współpraca, portal i zarządzanie konfiguracją
+
+- Konfigurowalny widok zgłoszenia wyłącznie dla klienta: sekcje, kolejność pól i zakładki według typu zgłoszenia, z egzekwowaniem poufności. Bez kreatora układu ekranu agenta.
+- Uczestnicy zgłoszenia odrębni od obserwatorów: zaproszenie do publicznej rozmowy, kontrola prawa zapraszania, cofnięcie dostępu i audyt. Uczestnictwo nie ujawnia notatek wewnętrznych ani nie omija ograniczeń projektu/pól.
+- Scalanie duplikatów: sprawa główna, podgląd danych, świadome zatwierdzenie, zachowane autorstwo/pochodzenie, stare numery prowadzą do sprawy głównej. Kontrola dostępu, poufności i konfliktów z synchronizacją, zadaniami oraz załącznikami.
+- Relacje „blokuje / jest blokowane przez”: widoczne zależności, ochrona przed cyklami i opcjonalny warunek przejścia po zakończeniu wymaganej sprawy.
+- Osobiste przypomnienia i odłożenie sprawy do terminu: trwały harmonogram, strefa czasowa, anulowanie i ponowna kontrola dostępu przy dostarczeniu. Odłożenie nie zmienia automatycznie zasad ani pomiaru SLA.
+- Preferencje powiadomień: wybór zdarzeń i istniejących kanałów, godziny ciszy oraz podsumowania. Rozszerzenia mogą dostarczać kolejne kanały przez ogólny kontrakt; bez nowych connectorów w core.
+- Walidator konfiguracji projektu przed aktywacją: brak wykonawcy, niedostępny formularz, błędne mapowanie statusów, brak uprawnień i zależności pluginów; lista błędów prowadzi do właściwych ustawień.
+- Kosz i odtwarzanie zgłoszeń/konfiguracji przez konfigurowalny czas, z zarezerwowanymi numerami. Usunięcie wstrzymuje zależne zadania; przywrócenie wymaga rewalidacji i nie uruchamia ich samoczynnie. Trwałe usunięcie ma oddzielną kontrolę uprawnień i audyt.
+- Przenoszenie konfiguracji między instalacjami: eksport/import projektu, formularzy, procesów i mapowań; podgląd różnic, walidacja i mapowanie lokalnych zespołów/użytkowników. Bez sekretów, danych spraw i automatycznej aktywacji integracji.
+- Polityki załączników per projekt: limit rozmiaru, dozwolone typy, bezpieczny podgląd obrazów/PDF, zużycie miejsca i ograniczenia magazynu. Reguły projektu nie mogą omijać globalnych blokad niebezpiecznych formatów ani uprawnień.
+
 ## Kolejność realizacji
 
 1. Kontrakty, regresja synchronizacji i poufność.
@@ -119,7 +133,8 @@ Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonani
 3. Dodawanie pluginów, API/SDK, uprawnienia i trwałe zadania.
 4. Akceptacje, osoby, macierz odpowiedzialności, zastępstwa i wersjonowanie procesów.
 5. Workflow, podzadania, kolejki i historia wykonania.
-6. Raporty, portal, poczta, utrzymanie i pełna regresja.
+6. Współpraca, portal klienta, powiadomienia, kosz i przenoszenie konfiguracji.
+7. Raporty, poczta, załączniki, utrzymanie i pełna regresja.
 
 Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i poza wydaniem core 2.2.0.
 
@@ -145,6 +160,16 @@ Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i p
 - [ ] Warunki workflow są egzekwowane w UI, API i kontrakcie rozszerzeń.
 - [ ] Raporty/wyszukiwanie respektują zakres oraz poufność.
 - [ ] Migracje/odtworzenie, równoczesna praca i regresja API/portalu/admina są sprawdzone.
+- [ ] Widok klienta jest konfigurowalny bez ujawnienia chronionych pól; kreator ekranu agenta nie jest dodany.
+- [ ] Zaproszenie/usunięcie uczestnika i obserwowanie sprawy mają odrębne uprawnienia.
+- [ ] Scalanie zachowuje historię/numery i nie ujawnia danych przez aliasy.
+- [ ] Relacje blokujące mają kontrolę cykli, dostępu i warunków przejścia.
+- [ ] Przypomnienia przetrwają restart; odłożenie nie zatrzymuje SLA bez odpowiedniej reguły.
+- [ ] Preferencje powiadomień, godziny ciszy i podsumowania respektują aktualny dostęp.
+- [ ] Walidator blokuje aktywację błędnej konfiguracji i wskazuje przyczynę.
+- [ ] Kosz zachowuje numery, wstrzymuje zadania i nie uruchamia ich automatycznie po odtworzeniu.
+- [ ] Import pokazuje różnice, mapuje lokalne identyfikatory i nie przenosi sekretów.
+- [ ] Polityki/podglądy załączników respektują globalne zabezpieczenia i dostęp projektu.
 - [ ] Chromium, Firefox i WebKit oraz dokumentacja odpowiadają wdrożonemu stanowi.
 
 PR dodaje wyłącznie plan. Implementacja, migracje, testy funkcjonalne i publikacja pozostają przyszłymi pracami.
