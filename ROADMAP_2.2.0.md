@@ -151,6 +151,22 @@ Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonani
 - Odnośnik z historii ponownie sprawdza aktualny dostęp do zgłoszenia; paginacja i ograniczona liczba wpisów zapobiegają ładowaniu całej historii.
 - Szkice zgłoszeń są poza zakresem tego dodatku i wydania 2.2.0.
 
+## 13. Passkeys i logowanie kluczem z telefonu — 2.2.0
+
+- Rozszerzyć obecną obsługę WebAuthn/FIDO2 o pełny przepływ passkeys, także zapisanych na iPhonie; zachować sprzętowe klucze USB/NFC.
+- Rejestracja i logowanie bez hasła na zgodnych urządzeniach: lokalny passkey w telefonie/komputerze oraz logowanie na komputerze z potwierdzeniem na iPhonie przez standardowy przepływ przeglądarki (np. QR/hybrid, gdy środowisko wspiera).
+- Nie ograniczać do Apple: obsłużyć zgodne authenticatory platformowe i menedżery passkeys; wsparcie poszczególnych kombinacji określić testami.
+- Ekran „Zaloguj kluczem dostępu” i zarządzanie wieloma kluczami: nazwa, utworzenie, ostatnie użycie, dodawanie i odwołanie.
+- Discoverable credentials, stabilne user handle oraz wymagane user verification dla logowania bez hasła; identyfikacja konta na serwerze po zweryfikowanym credential.
+- Walidacja challenge, origin, RP ID, podpisu, flag i jednokrotnego użycia; obsługa backup eligibility/state i liczników zgodnie z WebAuthn, również dla synchronizowanych passkeys.
+- Wrażliwe zmiany kluczy wymagają ponownego uwierzytelnienia; audyt, limit prób i jawna ścieżka odzyskania dostępu.
+- Konta zablokowane, nieaktywne lub bez dostępu z katalogu nie mogą się logować passkey; klucz nie omija polityk konta/projektu.
+- Zachować istniejące hasła, TOTP, sprzętowe FIDO2, LDAP i SSO; jasno określić politykę dostępności lokalnego passkey dla kont zewnętrznych.
+- HTTPS i poprawna konfiguracja publicznego URL/RP ID; Face ID/Touch ID i inne metody lokalnej weryfikacji są obsługiwane przez urządzenie. Desk nie otrzymuje danych biometrycznych.
+- Testy automatyczne kontraktu oraz odbiór na rzeczywistym iPhonie/Safari i komputerze z cross-device authentication; sama emulacja przeglądarki nie potwierdza tych scenariuszy.
+- Dokumentacja kompatybilności, anulowania, braku obsługi, utraty urządzenia i odwołania klucza.
+- Referencje implementacji: [Apple Passkeys](https://developer.apple.com/passkeys/) i [W3C WebAuthn](https://www.w3.org/TR/webauthn-3/).
+
 ## Kolejność realizacji
 
 1. Kontrakty, regresja synchronizacji i poufność.
@@ -160,7 +176,8 @@ Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonani
 5. Workflow, podzadania, kolejki i historia wykonania.
 6. Współpraca, portal klienta, następny krok, historia komunikacji, powiadomienia, kosz i przenoszenie konfiguracji.
 7. Historia konfiguracji, diagnostyka, podgląd operacji zbiorczych i spójność zależności.
-8. Raporty, poczta, załączniki, utrzymanie i pełna regresja.
+8. Passkeys: rejestracja, logowanie, zarządzanie, bezpieczeństwo i odbiór na rzeczywistych urządzeniach.
+9. Raporty, poczta, załączniki, utrzymanie i pełna regresja.
 
 Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i poza wydaniem core 2.2.0.
 
@@ -205,6 +222,18 @@ Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i p
 - [ ] Zmiana procesu/decyzji/dostępu aktualizuje następny krok bez ujawnienia poufnych danych.
 - [ ] Historia klienta obejmuje tylko dostępne publiczne sprawy/komunikację i respektuje aktualny dostęp oraz stabilną tożsamość.
 - [ ] Brak szkiców zgłoszeń i zapisu częściowo wypełnionych formularzy; drafty projektów pozostają dostępne.
+- [ ] Rejestracja i logowanie passkey na rzeczywistym iPhonie oraz logowanie na komputerze z potwierdzeniem przez iPhone mają dowody odbioru.
+- [ ] Discoverable credential, user verification, synchronizowane klucze i błędne/powtórzone challenge mają testy.
+- [ ] Odwołany klucz i nieaktywne konto nie pozwalają na logowanie; zarządzanie kluczami i odzyskanie dostępu są audytowane.
+- [ ] Dotychczasowe hasła, TOTP, sprzętowe FIDO2, LDAP i SSO zachowują działanie.
 - [ ] Chromium, Firefox i WebKit oraz dokumentacja odpowiadają wdrożonemu stanowi.
+
+## Kierunek 3.0 — aplikacja mobilna (wstępnie)
+
+- Adam wskazał aplikację mobilną jako cel przyszłej wersji 3.0.
+- To kierunek do osobnej specyfikacji, nie zobowiązanie dostarczenia w 2.2.0.
+- Przed realizacją ustalić platformy (iOS/Android), odbiorców (klienci/agenci), zakres funkcji, logowanie/passkeys/SSO, powiadomienia, dystrybucję i model połączenia z self-hosted Desk.
+- Wybór technologii, terminu, właścicieli i repozytorium aplikacji pozostaje nieustalony.
+- Nie dodawać aplikacji mobilnej, nowych mobilnych connectorów ani publikacji w sklepach do zakresu 2.2.0.
 
 PR dodaje wyłącznie plan. Implementacja, migracje, testy funkcjonalne i publikacja pozostają przyszłymi pracami.
