@@ -213,7 +213,14 @@ const request=http.request.bind(http);http.request=(url,opts,done)=>{if(new URL(
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   async function go(route) {
-    await page.goto(desk + '/#/' + route);
+    const target = desk + '/#/' + route;
+    if (page.url() !== target) {
+      if (page.url().startsWith(desk + '/'))
+        await page.evaluate((hash) => {
+          location.hash = hash;
+        }, '#/' + route);
+      else await page.goto(target);
+    }
     await page.waitForFunction(
       (r) =>
         document.querySelector('#main')?.dataset.workspaceRoute === r &&
