@@ -1,147 +1,150 @@
-# Service Desk 2.2.0 — plan następnej wersji
+# Service Desk 2.2.0 — szablony projektów, procesy i obsługa pluginów
 
-Status: PLAN / UNRELEASED. Ten dokument określa zakres przyszłej implementacji, nie potwierdza dostarczenia funkcji ani wykonania testów.
-Zależność: przygotowane 2.1.1 z PR #78 (podpowiedzi zgłoszeń i integracja z zewnętrzną bazą wiedzy).
-Nie scalać tego PR do main ani nie tworzyć tagu/release'u bez osobnej decyzji: scalenie może uruchomić publikację.
-Numer 2.2.0 oznacza planowane wydanie funkcjonalne po 2.1.1; numer schematu zostanie określony przy implementacji.
+Status: PLAN / UNRELEASED. Dokument określa przyszły zakres, nie potwierdza implementacji ani wyników testów.
+Zależność: przygotowywane 2.1.1, PR #78.
+Pozostawić PR jako draft. Nie scalać do main, nie tworzyć tagu/release'u bez osobnej decyzji; scalenie może uruchomić publikację.
+Numer schematu i migracje zostaną określone podczas implementacji.
 
-## Ustalenia produktu
+## Granica wydania
 
-- Wykorzystać istniejącą synchronizację do przekazywania/eskalowania spraw pomiędzy projektami. Nie budować drugiego konkurencyjnego mechanizmu.
-- Zachować własne konfiguracje użytkowników, formularze i workflow. Nowe możliwości mają je rozszerzać.
-- Baza wiedzy pozostaje osobnym projektem; bez natywnego portalu ani edytora wiedzy w Desk.
-- Plugin LDAP/AD Lifecycle ma być osobnym rozszerzeniem. Core zapewnia kontrakt i runtime, nie zaszywa operacji AD w logice zgłoszeń.
-- Nie zmieniać produkcji podczas planowania.
+- Core dostarcza szablony projektów, ogólne procesy i możliwość dodawania pluginów z osobnych repozytoriów.
+- Plugin LDAP/Active Directory będzie rozwijany w osobnym repozytorium i NIE jest częścią zakresu 2.2.0.
+- Wykluczone z tego PR: implementacja lifecycle kont, wyłączanie/usuwanie użytkowników katalogowych, retencja kont, adaptery zapisu LDAP/AD, reguły objectGUID/OU, rejestr dostępów do zewnętrznych systemów i inne operacje biznesowe przyszłego pluginu.
+- Nie dodawać gotowego pluginu ani jego kodu do repozytorium Desk. Dopuszczalny jest neutralny fixture testowy kontraktu platformy, bez integracji katalogowej.
+- Dotychczasowe logowanie i synchronizacja LDAP pozostają objęte regresją istniejących funkcji.
+- Eskalacje pomiędzy projektami korzystają z istniejącej synchronizacji.
+- Własne konfiguracje, formularze, filtry i workflow są rozszerzane.
+- Baza wiedzy pozostaje osobnym projektem. Nie zmieniać produkcji.
 
 ## 1. Szablony i drafty projektów
 
-- Biblioteka edytowalnych szablonów HR, IT/Helpdesk, Administracja kontami, Administracja/Facilities.
-- Szablon zawiera typy zgłoszeń, formularze, własne pola, statusy, przejścia, kolejki, SLA, automatyzacje i wymagania pluginów.
-- Zapisywalny draft projektu: konfiguracja i podgląd przed aktywacją, bez dostępu klienta i uruchamiania integracji/zadań.
-- Kreator mapuje role logiczne na istniejące zespoły, kierowników, projekty i integracje.
-- Kopiowanie istniejącego projektu do szablonu bez zgłoszeń, historii, danych osobowych i sekretów.
-- Własne szablony, wersjonowanie, duplikowanie, eksport/import z walidacją i kontrolą uprawnień.
-- Pakiety powiązanych projektów, np. HR + IT, wraz z mapowaniami synchronizacji.
-- Podgląd skutków aktywacji; walidacja formularzy, osiągalności statusów, mapowań i brakujących zależności.
-- Zmiana szablonu nie nadpisuje samoczynnie już utworzonych projektów.
+- Edytowalne szablony HR, IT/Helpdesk, Administracja kontami i Administracja/Facilities.
+- Typy zgłoszeń, formularze, własne pola, statusy, przejścia, kolejki, SLA, automatyzacje i deklaracje opcjonalnych zależności od pluginów.
+- Zapisywalny draft projektu z podglądem, bez publikacji w portalu i uruchamiania akcji/zadań.
+- Mapowanie ról logicznych na zespoły, kierowników, projekty i istniejące integracje.
+- Własne szablony, wersjonowanie, duplikowanie oraz eksport/import z walidacją.
+- Zapis istniejącego projektu jako szablonu bez zgłoszeń, historii, danych osobowych i sekretów.
+- Pakiety projektów, np. HR + IT, z mapowaniami synchronizacji.
+- Walidacja formularzy, osiągalności statusów, mapowań i wymaganych zależności przed aktywacją.
+- Zmiana szablonu nie nadpisuje automatycznie istniejących projektów.
+- Podgląd procesu na przykładowej osobie: odbiorcy akceptacji, zespoły, powiązane sprawy i planowane ogólne kroki, bez wykonania operacji i bez ujawniania sekretów.
 
-## 2. Runtime pluginów i SDK
+## 2. Dodawanie i obsługa pluginów z osobnych repozytoriów
 
-Obecny registry manifestów nie jest pełnym mechanizmem wykonawczym. Rozbudować go o:
+Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonania:
+- Panel instalacji/rejestracji, aktualizacji, włączania, wyłączania i odinstalowania pluginu; zakres globalny/projektowy.
+- Zdefiniowany format paczki lub rejestracji zewnętrznego connectora, manifest, wersja, zgodność Desk/API i zależności. Sam adres repozytorium nie oznacza wykonania jego kodu.
+- Wersjonowany kontrakt API/SDK i dokumentacja dla autora pluginu.
+- Punkty rozszerzeń: ustawienia, formularze, panele/akcje zgłoszeń, warunki workflow, akcje/wyzwalacze automatyzacji, szablony, dashboardy i harmonogram.
+- Egzekwowane uprawnienia, zakres projektów i autoryzacja użytkownika zlecającego akcję; brak dowolnego dostępu do bazy core.
+- Izolacja wykonania, timeouty, limity i stan zdrowia. Szczegóły zewnętrznej integracji implementuje jej osobne repozytorium.
+- Ogólny magazyn szyfrowanych sekretów; bez sekretów w logach, manifestach, frontendzie i eksporcie.
+- Trwałe zadania platformy: idempotencja, retry/backoff, anulowanie, wstrzymanie i wznowienie po restarcie.
+- Odebranie uprawnień/wyłączenie pluginu blokuje dalsze wykonanie; widoczne konsekwencje dla zadań i zachowany audyt.
+- Kontrola zgodności i migracji rozszerzenia podczas aktualizacji.
+- Ogólne środowisko testowe kontraktu: przykładowe zdarzenia, testowe konfiguracje, symulacja wyników, awarii i powtórzenia żądania.
+- Brak gotowych connectorów AD, poczty, VPN czy innych nowych integracji w ramach tego zakresu.
 
-- Wersjonowane API/SDK i testy zgodności kontraktu.
-- Manifest z wersją API, zgodnością Desk, zależnościami, punktami rozszerzeń i egzekwowanymi uprawnieniami.
-- Punkty rozszerzeń: ustawienia globalne/projektowe, formularze, panele i akcje zgłoszeń, warunki/przejścia workflow, akcje/wyzwalacze automatyzacji, szablony projektów, dashboardy i zadania harmonogramu.
-- Autoryzowany dostęp do zgłoszeń i wyników operacji; brak nieograniczonego dostępu do bazy core.
-- Osobny proces/kontener dla connectorów zewnętrznych; timeouty, kontrola zdrowia i izolacja awarii.
-- Sekrety szyfrowane, bez ujawniania w manifestach, logach, eksporcie czy frontendzie.
-- Trwała kolejka zadań: idempotencja, retry/backoff, anulowanie, wstrzymywanie, obsługa restartu i zadań przeterminowanych.
-- Wyłączenie/usunięcie pluginu zatrzymuje wykonanie i pokazuje konsekwencje dla oczekujących zadań; nie usuwa audytu.
-- Aktualizacje pluginu, migracje danych rozszerzenia i walidacja zgodności przed aktywacją.
-- Przykładowy plugin, dokumentacja autora, test harness i scenariusze błędów.
-- Rozdzielić możliwość techniczną pluginu od prawa konkretnego użytkownika do zlecenia akcji.
+## 3. Akceptacje, osoby i odpowiedzialność
 
-## 3. Pierwszy plugin: LDAP/AD Lifecycle
+- Wieloetapowe akceptacje kolejno/równolegle, terminy decyzji, zastępstwa i odrzucenie z powodem.
+- Rozdzielone pola: zgłaszający, osoba której dotyczy sprawa, akceptujący i wykonawca.
+- Konfigurowalna macierz wyboru zespołu/akceptujących według działu, lokalizacji lub organizacji, na podstawie danych dostępnych w Desk.
+- Brak dopasowania trafia do jawnej kolejki do przypisania; nie zgadywać akceptującego.
+- Reguły ponownej akceptacji po zmianie istotnych danych wniosku.
+- Kalendarz nieobecności i zastępstwa, zakres oraz czas obowiązywania delegacji.
+- Zmiana lub cofnięcie decyzji rewaliduje zależne ogólne kroki i zadania procesu.
+- Nie dodawać w core polityk zatrudnienia, retencji kont ani konkretnych operacji katalogowych.
 
-Scenariusz referencyjny: zwolnienie pracownika.
+## 4. Poufność i wersjonowanie procesów
 
-1. Kierownik tworzy wniosek, wybiera pracownika i datę/godzinę zakończenia dostępu.
-2. HR potwierdza dane, termin i politykę retencji.
-3. IT Admini lub skonfigurowany dział weryfikują konto i zatwierdzają wykonanie.
-4. Plugin wyłącza konto w zatwierdzonym terminie, odczytuje stan z katalogu i zapisuje rezultat.
-5. Powstaje trwałe zadanie usunięcia po konfigurowalnym okresie, np. 90 dni.
-6. Przed usunięciem następuje ponowna walidacja tożsamości, stanu konta i aktualności decyzji.
-7. Wynik i błędy trafiają do audytu oraz powiązanego zgłoszenia.
+- Uprawnienia do pól/sekcji według projektu, roli i zespołu.
+- Reguły poufności stosowane w UI, API, wyszukiwaniu, raportach, eksporcie, powiadomieniach i synchronizacji.
+- Wersja procesu zachowana dla trwającej sprawy; nowe sprawy korzystają z aktualnej wersji.
+- Migracja trwających spraw na nowy proces wymaga walidacji i podglądu skutków.
+- Jedna historia uruchomienia: decyzje ludzi, przekazania, automatyzacje i ogólne wyniki pluginów, wraz z powodem wykonania/blokady i aktorem.
+- Historia nie ujawnia chronionych pól ani sekretów.
 
-Wymagania:
-- Identyfikacja konta AD po objectGUID, nie wyłącznie po loginie/e-mailu/DN.
-- Jawna podstawa liczenia retencji, domyślnie faktyczne skuteczne wyłączenie; zapis konkretnego terminu.
-- Ponowne zatrudnienie, reaktywacja, cofnięcie akceptacji lub wstrzymanie blokuje/anuluje usunięcie.
-- Zdefiniować zatwierdzanie zmian terminu i celu operacji; istotna zmiana unieważnia wcześniejsze akceptacje.
-- Status skopiowany przez synchronizację sam nie uprawnia do wyłączenia/usunięcia konta.
-- Osobne konto integracyjne z delegowanym zakresem zapisu, ograniczenie OU i ochrona kont uprzywilejowanych/systemowych.
-- Adapter AD oraz jawne wsparcie innych katalogów LDAP; bez zakładania, że wszystkie używają userAccountControl.
-- Dry-run/podgląd, kontrola rezultatu, ręczne ponowienie bez podwójnej operacji.
-- Błąd katalogu oznacza „Wymaga interwencji”, nie sukces procesu.
-- Zamknięcie sprawy nie gubi zaplanowanego zadania; usunięcie/archiwizacja sprawy ma jawnie określoną politykę dla zadania.
-- Wyłączenie AD nie oznacza automatycznego cofnięcia wszystkich sesji w innych usługach. Dodatkowe czynności connectorów muszą mieć osobne, widoczne wyniki.
-- Utrzymać dotychczasowe logowanie i synchronizację LDAP; operacje zapisu należą do pluginu.
-- Plugin może później dostarczać onboarding, zmianę uprawnień i przenoszenie kont — poza obowiązkowym pierwszym scenariuszem.
+## 5. Synchronizacja, zespoły i przekazanie pracy
 
-## 4. Synchronizacja, zespoły i przekazanie pracy
-
-- Zweryfikować istniejące transfery, statusy, komentarze, kierunki, uprawnienia, deduplikację i awarie.
-- Rozszerzyć proces o odpowiedzialny zespół i agenta, kolejki zespołowe oraz audyt eskalacji.
+- Zweryfikować transfery, mapowania statusów, komentarze, kierunki, uprawnienia, deduplikację i awarie.
+- Odpowiedzialny zespół i agent, kolejki zespołowe oraz audyt eskalacji.
 - Przekazanie zapisuje powód, wykonane czynności, następny krok, blokadę i termin.
-- Potwierdzenie przejęcia oraz widoczny stan przekazania.
-- Zachować oryginalne autorstwo i rozdzielić aktora technicznego od biznesowego.
-- Chronić notatki HR i pola poufne przed kopiowaniem do nieuprawnionych projektów.
-- Reguły ponowienia i konflikty statusów muszą być widoczne dla operatora.
+- Potwierdzenie przejęcia i widoczny stan przekazania.
+- Zachować autorstwo; rozdzielić aktora technicznego od biznesowego.
+- Synchronizacja respektuje poufność pól/notatek i nie zastępuje akceptacji procesu.
+- Reguły ponowień i konflikty statusów widoczne dla operatora.
 
-## 5. Workflow i podzadania
+## 6. Workflow, podzadania i centrum zadań
 
 - Warunki przejścia według roli, formularza, wartości pól, akceptacji i obowiązkowych kroków.
-- Czytelny komunikat, czego brakuje do przejścia.
-- Warunki oraz akcje pluginowe sprawdzane po stronie serwera.
-- Podzadania z właścicielem, terminem i postępem; zależności i blokady.
-- Szablony procesów wielodziałowych, np. onboarding i offboarding.
-- Zdefiniować, które obowiązkowe podzadania blokują zakończenie sprawy nadrzędnej.
+- Czytelny komunikat, czego brakuje; egzekwowanie także po stronie API.
+- Ogólne warunki/akcje rozszerzeń przez kontrakt pluginów.
+- Podzadania z właścicielem, terminem, postępem, zależnościami i blokadami.
+- Określić obowiązkowe podzadania blokujące zakończenie sprawy nadrzędnej.
+- Centrum zaplanowanych zadań platformy: termin, źródłowa sprawa, status, wynik, retry i uprawnione anulowanie/wstrzymanie.
+- Jawna polityka zadań przy archiwizacji/usunięciu sprawy i wyłączeniu pluginu.
+- Ekran jest neutralny wobec domeny pluginu; nie dostarcza funkcji zarządzania kontami.
 
-## 6. Kolejki, podobieństwo i duplikaty
+## 7. Kolejki, podobieństwo i duplikaty
 
-- Rozszerzyć istniejące własne filtry o OR, IN, zakresy dat, puste pola, własne pola i currentUser().
-- Jeden kontrakt dla kreatora graficznego i wyrażenia tekstowego.
-- Współdzielenie/publikowanie kolejek zespołowi z kontrolą uprawnień.
-- Rozwinąć przygotowane 2.1.1: podobieństwo opisu, usług i assetów, indeks pełnotekstowy i wyjaśnienie dopasowania.
-- Rozróżnić „duplikat”, „powiązane” i „ten sam incydent”.
-- Podgląd skutków łączenia/oznaczania duplikatów oraz zachowanie pochodzenia komentarzy i plików.
-- Indeks i ranking zawsze respektują dostęp; żadnego ujawniania poufnych spraw.
+- Rozszerzyć własne filtry o OR, IN, zakresy dat, puste pola, własne pola i currentUser().
+- Wspólny kontrakt kreatora graficznego i wyrażeń tekstowych.
+- Kolejki współdzielone/publikowane zespołom z kontrolą dostępu.
+- Rozwinięcie 2.1.1: podobieństwo opisu, usług i assetów, indeks pełnotekstowy i wyjaśnienie dopasowania.
+- Rozróżnić duplikat, powiązane i ten sam incydent.
+- Podgląd skutków operacji; pochodzenie komentarzy i plików zachowane.
+- Ranking i indeks respektują uprawnienia oraz poufność.
 
-## 7. Poczta, portal i raporty
+## 8. Poczta, portal i raporty
 
-- Rozmowa mailowa: odbiorcy/CC, stan wysyłki, błędy, ponowienia i poprawne przypisanie wątków.
-- Raporty: wybór okresu, mediany/percentyle, ponowne otwarcia, starzenie kolejki, zespoły i formularze.
-- Przejście z wyniku raportu do zgłoszeń z identycznym zakresem danych.
-- Pełne wykrywanie spraw zagrożonych SLA lub jawne oznaczanie ograniczeń podglądu; nie przedstawiać ograniczonego radaru jako pełnego zbioru.
-- Portal: opisowe statusy klienta, „czekamy na Ciebie”, podgląd przed wysłaniem i formularze usługowe.
+- Odbiorcy/CC, stan wysyłki, błędy, retry i poprawne przypisanie wątków w istniejącej obsłudze poczty.
+- Okresy raportów, mediany/percentyle, ponowne otwarcia, starzenie kolejki, zespoły i formularze.
+- Wynik raportu otwiera zgłoszenia o identycznym zakresie.
+- Pełne wykrywanie zagrożeń SLA lub jawne ograniczenia radaru.
+- Portal: opisowe statusy, „czekamy na Ciebie”, podgląd przed wysłaniem i formularze usługowe.
 
-## 8. Administracja i utrzymanie
+## 9. Administracja i utrzymanie
 
-- Panel operacyjny: import poczty, LDAP, stan pluginów/integracji, kolejki zadań i zweryfikowane kopie zapasowe.
-- Stopniowa modularizacja frontendowego app.js i wycofanie aktywnych historycznych dekoratorów przy zachowaniu funkcji.
-- Testy równoczesnej pracy agentów, importu poczty i automatyzacji, z pomiarem opóźnień i konfliktów.
-- Ujednolicenie README, numerów schematu, dokumentacji KB i opisów wydania.
-- Plan migracji, kopii zapasowej i odtworzenia ustalić przed implementacją zmian schematu.
+- Panel operacyjny: istniejąca poczta/LDAP, stan pluginów/integracji, kolejki i zweryfikowane kopie zapasowe.
+- Modularizacja app.js i stopniowe wycofanie aktywnych historycznych dekoratorów bez utraty funkcji.
+- Testy równoczesnej pracy agentów, importu poczty i automatyzacji z pomiarem opóźnień/konfliktów.
+- Ujednolicenie README, schematu, dokumentacji KB i opisów wydania.
+- Plan migracji, kopii i odtworzenia przed zmianami schematu.
 
 ## Kolejność realizacji
 
-1. Kontrakty i testy istniejącej synchronizacji.
-2. Szablony/drafty i pakiety projektów.
-3. Runtime pluginów, SDK, uprawnienia i trwałe zadania.
-4. Osobny plugin LDAP/AD Lifecycle i referencyjny proces HR → IT.
-5. Workflow, podzadania, kolejki i dopracowanie pracy agentów.
+1. Kontrakty, regresja synchronizacji i poufność.
+2. Szablony/drafty, pakiety i podgląd procesu.
+3. Dodawanie pluginów, API/SDK, uprawnienia i trwałe zadania.
+4. Akceptacje, osoby, macierz odpowiedzialności, zastępstwa i wersjonowanie procesów.
+5. Workflow, podzadania, kolejki i historia wykonania.
 6. Raporty, portal, poczta, utrzymanie i pełna regresja.
 
-## Kryteria odbioru — do wykonania, nie wyniki testów
+Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i poza wydaniem core 2.2.0.
 
-- [ ] Utworzenie HR + IT z pakietu bez ręcznej budowy formularzy i przejść.
-- [ ] Własny szablon i draft dają się zapisać, wznowić oraz aktywować po walidacji.
-- [ ] Eksport szablonu nie zawiera sekretów ani danych zgłoszeń.
-- [ ] Istniejące konfiguracje i synchronizacje działają po aktualizacji.
-- [ ] Przekazanie HR → IT nie ujawnia nieuprawnionym danych HR.
-- [ ] Przykładowy plugin instaluje się i działa przez publiczny kontrakt SDK.
-- [ ] Odebranie uprawnień i wyłączenie pluginu zatrzymuje operacje zewnętrzne.
-- [ ] Restart nie gubi zadań i nie powoduje ponownego wykonania skutecznej akcji.
-- [ ] Pełny offboarding: kierownik → HR → IT → sprawdzone wyłączenie → usunięcie po retencji.
-- [ ] Zmiana loginu/DN nie zmienia celu; ponowne użycie loginu nie usuwa innego konta.
-- [ ] Reaktywacja, rehire, cofnięcie decyzji i wstrzymanie zatrzymują usunięcie.
-- [ ] Brak AD i odebranie uprawnień dają widoczny błąd, bez fałszywego sukcesu.
-- [ ] Błędna tożsamość, niedozwolone OU i konto chronione blokują zapis.
-- [ ] Warunki przejść są egzekwowane także przez API i pluginy.
-- [ ] Raporty i indeks wyszukiwania respektują uprawnienia oraz zakres.
-- [ ] Migracje i odtworzenie sprawdzone na kopii danych.
-- [ ] Regresja API, portal/agent/admin i przeglądarki Chromium/Firefox/WebKit.
-- [ ] Równoczesna praca i zewnętrzna integracja katalogowa mają scenariusze odbioru.
-- [ ] Dokumentacja opisuje rzeczywiście wdrożony stan i ograniczenia.
+## Kryteria odbioru — do wykonania
 
-Ten PR dodaje wyłącznie plan. Implementacja, migracje, testy funkcjonalne i publikacja pozostają przyszłymi pracami.
+- [ ] Projekt lub pakiet HR + IT powstaje z szablonu z formularzami i przejściami.
+- [ ] Draft zapisuje się, wznawia i aktywuje po walidacji; podgląd nie wykonuje akcji.
+- [ ] Eksport nie zawiera danych zgłoszeń, danych osobowych ani sekretów.
+- [ ] Dotychczasowe konfiguracje, logowanie LDAP i synchronizacje działają po aktualizacji.
+- [ ] Poufne pola/sekcje są chronione we wszystkich kanałach, w tym synchronizacji.
+- [ ] Akceptacje równoległe/sekwencyjne, odmowa, termin, zastępstwo i ponowna akceptacja mają testy.
+- [ ] Osoba objęta sprawą pozostaje odrębna od zgłaszającego i akceptującego.
+- [ ] Macierz odpowiedzialności wskazuje właściwy zespół lub jawny brak dopasowania.
+- [ ] Trwająca sprawa zachowuje wersję procesu; migracja ma podgląd skutków.
+- [ ] Neutralny zewnętrzny fixture instaluje się/rejestruje przez udokumentowany kontrakt.
+- [ ] Niezgodny plugin lub niedozwolona capability są blokowane.
+- [ ] Odebranie uprawnień/wyłączenie blokuje wykonanie i zachowuje audyt.
+- [ ] Aktualizacja/odinstalowanie respektują dane rozszerzenia i oczekujące zadania.
+- [ ] Restart, retry i powtórzone zdarzenie nie powodują podwójnego skutku.
+- [ ] Centrum zadań i historia pokazują wyniki, blokady i źródłową sprawę.
+- [ ] Testowy tryb pluginów nie wykonuje operacji na produkcyjnych połączeniach.
+- [ ] Repozytorium nie zawiera nowego pluginu LDAP/AD ani jego funkcji biznesowych.
+- [ ] Warunki workflow są egzekwowane w UI, API i kontrakcie rozszerzeń.
+- [ ] Raporty/wyszukiwanie respektują zakres oraz poufność.
+- [ ] Migracje/odtworzenie, równoczesna praca i regresja API/portalu/admina są sprawdzone.
+- [ ] Chromium, Firefox i WebKit oraz dokumentacja odpowiadają wdrożonemu stanowi.
+
+PR dodaje wyłącznie plan. Implementacja, migracje, testy funkcjonalne i publikacja pozostają przyszłymi pracami.
