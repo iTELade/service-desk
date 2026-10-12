@@ -26,6 +26,17 @@
 }
 .w21-knowledge {
   overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+}
+.w21-knowledge form,
+.w21-knowledge label,
+.w21-knowledge input {
+  min-width: 0;
+}
+.w21-knowledge button {
+  max-width: 100%;
+  white-space: normal;
 }
 .w21-knowledge [data-kb-search] {
   margin: 12px 0;

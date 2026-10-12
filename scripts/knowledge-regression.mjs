@@ -323,10 +323,36 @@ const request=http.request.bind(http);http.request=(url,opts,done)=>{if(new URL(
     for (const width of [390, 768, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.waitForTimeout(180);
-      check(
-        'KB panel overflow ' + theme + ' ' + width,
-        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
-      );
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      });
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+      if (overflow)
+        console.log(
+          'KB OVERFLOW ' +
+            JSON.stringify(
+              await page.evaluate(() => ({
+                viewport: innerWidth,
+                scroll: document.documentElement.scrollWidth,
+                elements: [...document.querySelectorAll('body *')]
+                  .filter(
+                    (e) =>
+                      e.getBoundingClientRect().right > innerWidth + 2 &&
+                      getComputedStyle(e).position !== 'fixed',
+                  )
+                  .slice(0, 15)
+                  .map((e) => ({
+                    tag: e.tagName,
+                    cls: e.className,
+                    right: e.getBoundingClientRect().right,
+                    width: e.getBoundingClientRect().width,
+                    text: e.textContent.slice(0, 100),
+                  })),
+              })),
+            ),
+        );
+      check('KB panel overflow ' + theme + ' ' + width, !overflow);
       const contrast = await page.evaluate(inspectTextContrast);
       if (contrast.length) console.log('KB CONTRAST ' + JSON.stringify(contrast.slice(0, 10)));
       check('KB panel contrast ' + theme + ' ' + width, contrast.length === 0);
