@@ -126,6 +126,18 @@ Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonani
 - Przenoszenie konfiguracji między instalacjami: eksport/import projektu, formularzy, procesów i mapowań; podgląd różnic, walidacja i mapowanie lokalnych zespołów/użytkowników. Bez sekretów, danych spraw i automatycznej aktywacji integracji.
 - Polityki załączników per projekt: limit rozmiaru, dozwolone typy, bezpieczny podgląd obrazów/PDF, zużycie miejsca i ograniczenia magazynu. Reguły projektu nie mogą omijać globalnych blokad niebezpiecznych formatów ani uprawnień.
 
+## 11. Diagnostyka i bezpieczne zmiany konfiguracji
+
+- Historia konfiguracji formularzy, workflow, SLA, automatyzacji i innych wersjonowanych ustawień: autor, czas, zakres oraz porównanie przed/po. Sekrety i poufne dane są maskowane.
+- Przywrócenie poprzedniej konfiguracji tworzy nową rewizję po walidacji aktualnych zależności i konfliktów. Nie cofa historii zgłoszeń, wykonanych akcji ani schematu bazy.
+- Diagnostyka „dlaczego?” przy zgłoszeniu: wyjaśnienie niewykonania reguły, zatrzymania/pomiaru SLA i niedostępności przejścia. Pokazać sprawdzane warunki, wynik i powód, z uwzględnieniem wersji procesu oraz uprawnień osoby odczytującej.
+- Diagnostyka jest tylko odczytem/symulacją; nie uruchamia ponownie akcji i nie ujawnia danych chronionych, sekretów ani nieuprawnionych zasobów.
+- Rozszerzyć istniejące operacje zbiorcze o podgląd skutków i listę spraw, których nie można zmienić. Przed wykonaniem ponownie sprawdzić wersje, dostęp i warunki; podgląd nie rezerwuje danych.
+- Wynik operacji zbiorczej osobno dla każdej sprawy: sukces, konflikt, brak dostępu lub błąd. Ponowienie ma chronić przed podwójnym skutkiem, a audyt identyfikować zlecenie i wykonane zmiany.
+- Sprawdzanie spójności po usunięciu zespołu, zablokowaniu użytkownika, zmianie formularza/workflow lub wyłączeniu pluginu: wskazać procesy, akceptacje, mapowania i zadania z brakującym wykonawcą lub zależnością.
+- Raport spójności prowadzi do właściwych ustawień; nie wybiera zastępców ani nie naprawia konfiguracji automatycznie. Kroki wymagające brakującej zależności blokować z czytelną przyczyną.
+- Wykorzystać wspólny walidator projektu i istniejący audyt, zamiast tworzyć konkurencyjne mechanizmy.
+
 ## Kolejność realizacji
 
 1. Kontrakty, regresja synchronizacji i poufność.
@@ -134,7 +146,8 @@ Rozbudować obecny rejestr manifestów o ogólny mechanizm instalacji i wykonani
 4. Akceptacje, osoby, macierz odpowiedzialności, zastępstwa i wersjonowanie procesów.
 5. Workflow, podzadania, kolejki i historia wykonania.
 6. Współpraca, portal klienta, powiadomienia, kosz i przenoszenie konfiguracji.
-7. Raporty, poczta, załączniki, utrzymanie i pełna regresja.
+7. Historia konfiguracji, diagnostyka, podgląd operacji zbiorczych i spójność zależności.
+8. Raporty, poczta, załączniki, utrzymanie i pełna regresja.
 
 Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i poza wydaniem core 2.2.0.
 
@@ -170,6 +183,11 @@ Implementacja pluginów w osobnych repozytoriach jest poza tą kolejnością i p
 - [ ] Kosz zachowuje numery, wstrzymuje zadania i nie uruchamia ich automatycznie po odtworzeniu.
 - [ ] Import pokazuje różnice, mapuje lokalne identyfikatory i nie przenosi sekretów.
 - [ ] Polityki/podglądy załączników respektują globalne zabezpieczenia i dostęp projektu.
+- [ ] Historia konfiguracji pokazuje autora i różnice bez sekretów; odtworzenie tworzy zwalidowaną rewizję bez cofania wykonanych akcji.
+- [ ] Diagnostyka wyjaśnia reguły, SLA i przejścia na właściwej wersji procesu, nie wykonując akcji ani nie ujawniając chronionych danych.
+- [ ] Podgląd operacji zbiorczej wskazuje skutki i blokady; zmiana danych po podglądzie jest wykrywana przy wykonaniu.
+- [ ] Wyniki i bezpieczne ponowienia operacji zbiorczych są rozliczane per zgłoszenie oraz audytowane.
+- [ ] Usunięcie zespołu, blokada użytkownika i wyłączenie pluginu ujawniają zależne błędy spójności, bez automatycznego podstawiania wykonawców.
 - [ ] Chromium, Firefox i WebKit oraz dokumentacja odpowiadają wdrożonemu stanowi.
 
 PR dodaje wyłącznie plan. Implementacja, migracje, testy funkcjonalne i publikacja pozostają przyszłymi pracami.
