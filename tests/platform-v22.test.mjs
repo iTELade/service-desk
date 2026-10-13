@@ -577,3 +577,41 @@ test('project queues preserve portable query logic with explicit account form an
   const outside={projects:[{...project,queues:[{name:'Outside project queue',query_ast:{kind:'comparison',field:'project',operator:'=',value:'OTHER'}}]}]};assert.throws(()=>f.v.blueprints.portable(outside),status(400));
  }finally{f.close();}
 });
+
+
+test('configuration recycle respects retention, ACL, restore and permanent purge', async () => {
+  const f=fixture();
+  try {
+    const tpl=f.v.blueprints.save(null,{name:'Temporary IT template',config:{projects:[{alias:'it',project_type:'internal',forms:[{name:'Access request'}]}]}},f.admin);
+    const draft=f.v.blueprints.draft(null,{name:'Temporary project draft',blueprint:'it'},f.admin);
+    const agent=f.user('recycle-agent@x.test','agent');
+    assert.deepEqual(f.v.configTrash.policy(null,f.admin),{retention_days:30,version:1});
+    assert.throws(()=>f.v.configTrash.policy({version:1,retention_days:0},f.admin),status(400));
+    assert.throws(()=>f.v.configTrash.policy(null,agent),status(403));
+    assert.deepEqual(f.v.configTrash.policy({version:1,retention_days:14},f.admin),{retention_days:14,version:2});
+    assert.throws(()=>f.v.configTrash.policy({version:1,retention_days:7},f.admin),status(409));
+    assert.throws(()=>f.v.configTrash.trash('blueprint',tpl.id,{version:1,confirm_name:'wrong'},f.admin),status(400));
+    const gone=f.v.configTrash.trash('blueprint',tpl.id,{version:1,confirm_name:'Temporary IT template'},f.admin);
+    assert.equal(f.v.blueprints.list(f.admin).custom.some(x=>x.id===tpl.id),false);
+    assert.throws(()=>f.v.configTrash.trash('blueprint',tpl.id,{version:1,confirm_name:'Temporary IT template'},f.admin),status(404));
+    assert.ok(Math.abs(Date.parse(gone.expires_at)-Date.now()-14*86400000)<15000);
+    assert.equal(f.v.governance.recycle(f.admin).find(r=>r.id===gone.id).kind,'blueprint');
+    const restored=await f.v.handle('POST','/api/desk/v22/recycle/'+gone.id+'/restore',f.admin,new URLSearchParams(),async()=>({confirm_name:'Temporary IT template'}));
+    assert.equal(restored.value.activated,false);
+    assert.equal(f.v.blueprints.list(f.admin).custom.some(x=>x.id===tpl.id),true);
+    assert.throws(()=>f.v.configTrash.restore(gone.id,{confirm_name:'Temporary IT template'},f.admin),status(404));
+    const deletion=f.v.configTrash.trash('draft',draft.id,{version:1,confirm_name:'Temporary project draft'},f.admin);
+    assert.equal(f.v.blueprints.list(f.admin).drafts.some(x=>x.id===draft.id),false);
+    assert.throws(()=>f.v.configTrash.purge(deletion.id,{confirm_name:'Temporary project draft',confirm_purge:'NO'},f.admin),status(400));
+    assert.throws(()=>f.v.configTrash.purge(deletion.id,{confirm_name:'wrong',confirm_purge:'USUŃ NA STAŁE'},f.admin),status(400));
+    const purged=await f.v.handle('POST','/api/desk/v22/recycle/'+deletion.id+'/purge',f.admin,new URLSearchParams(),async()=>({confirm_name:'Temporary project draft',confirm_purge:'USUŃ NA STAŁE'}));
+    assert.equal(purged.value.purged,true);
+    assert.equal(f.db.prepare('SELECT snapshot FROM recycle_entries WHERE id=?').get(deletion.id).snapshot,'{}');
+    assert.equal(f.v.governance.recycle(f.admin).some(r=>r.id===deletion.id),false);
+    assert.throws(()=>f.v.configTrash.restore(deletion.id,{confirm_name:'Temporary project draft'},f.admin),status(404));
+    const p=f.project('REC'),ticket=f.ticket(p),bin=f.v.governance.recycleTicket(ticket.id,{version:ticket.version,confirm_key:ticket.key},f.admin);
+    assert.ok(Math.abs(Date.parse(f.db.prepare('SELECT expires_at FROM recycle_entries WHERE id=?').get(bin.id).expires_at)-Date.now()-14*86400000)<15000);
+    assert.throws(()=>f.v.configTrash.purge(bin.id,{confirm_purge:'USUŃ NA STAŁE'},f.admin),status(409));
+    assert.deepEqual(f.db.prepare('PRAGMA foreign_key_check').all(),[]);
+  } finally { f.close(); }
+});
