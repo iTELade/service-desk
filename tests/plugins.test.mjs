@@ -41,3 +41,14 @@ test('plugin API versions and dependency versions are checked before enabling',(
   plugins.install({id:'base.plugin',version:'2.0.0'},admin);assert.equal(plugins.list(admin).find(p=>p.id==='base.plugin').enabled,false);plugins.setEnabled('base.plugin',true,admin);assert.equal(plugins.setEnabled('dependent.plugin',true,admin).enabled,true);
  }finally{db.close();}
 });
+
+test('plugin dependency checks reject prerelease-as-stable and cyclic updates',()=>{
+ const {db,plugins}=setup();try{
+  const manifest=(id,version,dependencies=[])=>({id,name:id,version,dependencies});
+  plugins.install(manifest('neutral.base','1.0.0-beta.2'),admin);plugins.setEnabled('neutral.base',true,admin);
+  plugins.install(manifest('neutral.consumer','1.0.0',[{id:'neutral.base',minimum:'1.0.0'}]),admin);assert.throws(()=>plugins.setEnabled('neutral.consumer',true,admin),e=>e.status===409);
+  plugins.install(manifest('neutral.base','1.0.0'),admin);plugins.setEnabled('neutral.base',true,admin);plugins.setEnabled('neutral.consumer',true,admin);
+  plugins.install(manifest('neutral.base','1.1.0',[{id:'neutral.consumer',minimum:'1.0.0'}]),admin);assert.throws(()=>plugins.setEnabled('neutral.base',true,admin),/cycle/);
+  assert.throws(()=>plugins.install(manifest('neutral.invalid','1.0.0-beta..2'),admin),e=>e.status===400);assert.throws(()=>plugins.install(manifest('neutral.invalid','1.0.0-01'),admin),e=>e.status===400);
+ }finally{db.close();}
+});

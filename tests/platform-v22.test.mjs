@@ -331,3 +331,27 @@ test('versioned processes freeze core/plugin conditions; reviewed migration rech
   assert.equal(f.workflows.transition(f.desk.ticket(t.id),{workflow_status:'resolved',workflow_version:f.workflows.forTicket(f.desk.ticket(t.id)).version},true,agent).key,'resolved');
  }finally{f.close();}
 });
+
+test('project templates preserve form-specific SLA and protected team fields through explicit mapping',()=>{
+ const f=fixture();try{
+  const p=f.project('BPM'),agent=f.user('blueprint-private@x.test','agent');f.projects.setMember(p.id,agent.id,'agent',f.admin);
+  const teamId=f.v.processes.saveTeam(null,{project_id:p.id,name:'Review team',members:[agent.id]},f.admin)[0].id;
+  const form=f.catalog.save(p.id,null,{name:'Protected request',enabled:true,fields:[{key:'private',label:'Protected',type:'text',visibility:'internal',allowed_team_ids:[teamId]}],default_priority:'P1',base_fields:{title:{hidden:true,value:'Template request'},description:{hidden:false,value:''}}},f.admin);
+  const settings=JSON.parse(f.projects.project(p.id).settings);settings.sla={timezone:'UTC',rules:[{id:'form_sla',name:'Form deadline',kind:'status',goals:{P1:10,P2:20,P3:30,P4:40},start:['open'],pause:['waiting'],stop:['resolved','closed'],request_type_ids:[form.id]}]};f.db.prepare('UPDATE projects SET settings=? WHERE id=?').run(JSON.stringify(settings),p.id);
+  const exported=f.v.blueprints.fromProject(p.id,{name:'Mapped template'},f.admin).config,project=exported.projects[0],definition=project.forms.find(x=>x.name==='Protected request');
+  assert.deepEqual(project.sla.rules[0].request_type_aliases,[definition.alias]);assert.equal(project.sla.rules[0].request_type_ids,undefined);assert.deepEqual(definition.fields[0].allowed_team_aliases,[project.teams[0].alias]);assert.equal(definition.fields[0].allowed_team_ids,undefined);assert.ok(!JSON.stringify(exported).includes(agent.email));
+  const draft=f.v.blueprints.draft(null,{name:'Mapped draft',config:exported},f.admin),mapping={project:{key:'BPN',name:'Mapped new project',teams:{[project.teams[0].alias]:[agent.id]}}};
+  assert.equal(f.v.blueprints.validate(draft.id,{version:1,mapping:{project:{key:'BPN',name:'Missing team'}}},f.admin).valid,false);
+  const created=f.v.blueprints.activate(draft.id,{version:1,mapping},f.admin).projects.project,newForm=f.catalog.list(created,f.admin,'manage').find(x=>x.name===definition.name),newTeam=f.v.processes.teams(f.admin,created)[0];
+  assert.notEqual(newTeam.id,teamId);assert.deepEqual(newForm.fields[0].allowed_team_ids,[newTeam.id]);assert.equal(newForm.default_priority,'P1');assert.equal(newForm.base_fields.title.value,'Template request');assert.deepEqual(JSON.parse(f.projects.project(created).settings).sla.rules[0].request_type_ids,[newForm.id]);assert.equal(f.projects.canWork(agent,f.projects.project(created)),true);
+ }finally{f.close();}
+});
+
+test('required plugin dependencies block project activation before any project is created',()=>{
+ const f=fixture();try{
+  const config={projects:[{alias:'test',project_type:'internal',forms:[{name:'Request'}],plugins:[{id:'neutral.required',minimum:'1.0.0',required:true}]}]},draft=f.v.blueprints.draft(null,{name:'Dependency draft',config},f.admin),b={version:1,mapping:{test:{key:'BPD',name:'Dependencies'}}};
+  assert.equal(f.v.blueprints.validate(draft.id,b,f.admin).valid,false);assert.throws(()=>f.v.blueprints.activate(draft.id,b,f.admin),status(400));assert.equal(f.db.prepare('SELECT COUNT(*) n FROM projects').get().n,0);
+  f.ext.plugins.install({id:'neutral.required',name:'Required fixture',version:'1.0.0-beta.1'},f.admin);f.ext.plugins.setEnabled('neutral.required',true,f.admin);assert.equal(f.v.blueprints.validate(draft.id,b,f.admin).valid,false);
+  f.ext.plugins.install({id:'neutral.required',name:'Required fixture',version:'1.0.0'},f.admin);f.ext.plugins.setEnabled('neutral.required',true,f.admin);assert.equal(f.v.blueprints.validate(draft.id,b,f.admin).valid,true);
+ }finally{f.close();}
+});
