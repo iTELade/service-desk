@@ -40,6 +40,15 @@ try {
   for (const [path, title] of [['plugins22', 'Pluginy zewnętrzne'], ['jobs22', 'Zaplanowane zadania'], ['operations22?project=' + p.id, 'Procesy i spójność projektu'], ['preferences22', 'Powiadomienia i zastępstwa'], ['recycle22', 'Kosz'], ['reports22', 'Raporty okresowe']]) {
     await page.goto(base + '/#/' + path); await page.getByRole('heading', { name: title, exact: true }).waitFor(); check('Route ' + path, true);
   }
+  await page.goto(base+'/#/preferences22');await page.waitForFunction(()=>document.querySelector('#main')?.dataset.platformReady==='1');
+  await page.locator('form[data-p22-preferences] [name=digest]').check();
+  await page.locator('form[data-p22-preferences] [name=digest_email]').check();
+  await page.locator('form[data-p22-preferences] [name=digest_frequency]').selectOption('hourly');
+  await page.locator('form[data-p22-preferences] [name=digest_hour]').fill('10');
+  await page.locator('form[data-p22-preferences] button[type=submit]').click();
+  await page.waitForFunction(()=>document.querySelector('#main')?.dataset.platformReady==='1');
+  const notificationSettings=await api('/desk/v22/notification-preferences');
+  check('Digest schedule and email channel persist through settings UI',notificationSettings.config.digest===true&&notificationSettings.config.digest_frequency==='hourly'&&notificationSettings.config.digest_hour===10&&notificationSettings.config.channels.includes('email'));
   const library=await api('/desk/v22/blueprints');
   const disposable=await api('/desk/v22/blueprints',{name:'Browser recycle example',config:library.builtins.find(x=>x.id==='it').config});
   await page.goto(base+'/#/blueprints22');
