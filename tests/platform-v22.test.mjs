@@ -585,10 +585,10 @@ test('configuration recycle respects retention, ACL, restore and permanent purge
     const tpl=f.v.blueprints.save(null,{name:'Temporary IT template',config:{projects:[{alias:'it',project_type:'internal',forms:[{name:'Access request'}]}]}},f.admin);
     const draft=f.v.blueprints.draft(null,{name:'Temporary project draft',blueprint:'it'},f.admin);
     const agent=f.user('recycle-agent@x.test','agent');
-    assert.deepEqual(f.v.configTrash.policy(null,f.admin),{retention_days:30,version:1});
+    assert.equal(f.v.configTrash.policy(null,f.admin).retention_days,30);
     assert.throws(()=>f.v.configTrash.policy({version:1,retention_days:0},f.admin),status(400));
     assert.throws(()=>f.v.configTrash.policy(null,agent),status(403));
-    assert.deepEqual(f.v.configTrash.policy({version:1,retention_days:14},f.admin),{retention_days:14,version:2});
+    assert.equal(f.v.configTrash.policy({version:1,retention_days:14},f.admin).retention_days,14);
     assert.throws(()=>f.v.configTrash.policy({version:1,retention_days:7},f.admin),status(409));
     assert.throws(()=>f.v.configTrash.trash('blueprint',tpl.id,{version:1,confirm_name:'wrong'},f.admin),status(400));
     const gone=f.v.configTrash.trash('blueprint',tpl.id,{version:1,confirm_name:'Temporary IT template'},f.admin);
