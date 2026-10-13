@@ -205,6 +205,13 @@ test('similar tickets match linked services and assets without leaking inaccessi
     assert.ok(matched.matches[0].reasons.includes('Powiązana usługa'));
     assert.ok(matched.matches[0].reasons.includes('Powiązane urządzenie'));
     assert.equal(f.a.similar({project_id:p.id,title:'Completely unrelated system failure'},f.admin).matches.length,0);
+    f.db.prepare('INSERT INTO ticket_services(ticket_id,service_id) VALUES(?,?)').run(second.id,service);
+    f.db.prepare('INSERT INTO ticket_assets(ticket_id,asset_id) VALUES(?,?)').run(second.id,asset);
+    const inferred=f.a.similar({project_id:p.id,title:'Completely unrelated system failure',exclude_key:second.key},f.admin);
+    assert.equal(inferred.matches.length,1);
+    assert.equal(inferred.matches[0].key,first.key);
+    assert.ok(inferred.matches[0].reasons.includes('Powiązane urządzenie'));
+
     assert.throws(()=>f.a.similar({project_id:p.id,title:'Completely unrelated system failure',service_ids:[999999]},f.admin),error(404));
     assert.throws(()=>f.a.similar({project_id:p.id,title:'Completely unrelated system failure',asset_ids:[asset,asset]},f.admin),error(400));
     const customer=f.user('service-similarity@x.test','customer');
