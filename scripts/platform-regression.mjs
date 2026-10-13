@@ -40,6 +40,24 @@ try {
   for (const [path, title] of [['plugins22', 'Pluginy zewnętrzne'], ['jobs22', 'Zaplanowane zadania'], ['operations22?project=' + p.id, 'Procesy i spójność projektu'], ['preferences22', 'Powiadomienia i zastępstwa'], ['recycle22', 'Kosz'], ['reports22', 'Raporty okresowe']]) {
     await page.goto(base + '/#/' + path); await page.getByRole('heading', { name: title, exact: true }).waitFor(); check('Route ' + path, true);
   }
+  const library=await api('/desk/v22/blueprints');
+  const disposable=await api('/desk/v22/blueprints',{name:'Browser recycle example',config:library.builtins.find(x=>x.id==='it').config});
+  await page.goto(base+'/#/blueprints22');
+  await page.waitForFunction(()=>document.querySelector('#main')?.dataset.platformReady==='1');
+  await page.locator('[data-p22="delete-config"][data-kind="blueprint"][data-id="'+disposable.id+'"]').click();
+  await page.locator('dialog [name="confirm_name"]').fill('Browser recycle example');
+  await page.locator('dialog button[type="submit"]').click();
+  await page.locator('dialog').waitFor({state:'hidden'});
+  check('Template moved into recycle from admin UI',!(await api('/desk/v22/blueprints')).custom.some(x=>x.id===disposable.id));
+  const entry=(await api('/desk/v22/recycle')).find(x=>x.kind==='blueprint'&&x.name==='Browser recycle example');
+  check('Deleted template remains in the recycle list',Boolean(entry?.id));
+  await page.goto(base+'/#/recycle22');
+  await page.waitForFunction(()=>document.querySelector('#main')?.dataset.platformReady==='1');
+  await page.locator('[data-p22="restore-trash"][data-id="'+entry.id+'"]').click();
+  await page.locator('dialog [name="confirm_name"]').fill('Browser recycle example');
+  await page.locator('dialog button[type="submit"]').click();
+  await page.locator('dialog').waitFor({state:'hidden'});
+  check('Recycle restores template without activation',(await api('/desk/v22/blueprints')).custom.some(x=>x.id===disposable.id));
   const forms = await api('/projects/' + p.id + '/request-types?surface=manage'), form = forms.find(f => f.enabled);
   const t = await api('/tickets', { project_id: p.id, title: 'Platform flow', description: 'Synthetic process test', request_type_id: form.id, request_type_version: form.version, type: 'request' });
   await page.goto(base + '/#/ticket/' + t.key); await page.getByRole('heading', { name: 'Następny krok', exact: true }).waitFor();
