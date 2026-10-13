@@ -17,6 +17,9 @@
 
 - Versioned process snapshots now retain core and plugin transition conditions. Explicit migration previews differences, verifies a fresh preview token and invalidates queued jobs/approvals. New work follows current project settings.
 
+- CI on 2a8b8429723ab54f21b9fdff60eb2473ab2dccca passed all three platform engines, including PDF/image preview, typed settings/actions, migration queue/cancellation and Chromium virtual passkey registration/passwordless login. Desk–KB and real upgrade/backup/restore jobs also passed. The main regression job was still running when recorded.
+- New CI builds isolated production images for AMD64 and ARM64 without publishing, then checks startup/login, assets, restart persistence and backup. The smoke script passed locally against an isolated server; this does not establish container results until those jobs pass.
+
 ## Required before stable publication
 
 - [ ] CI application, migration and upgrade checks on the final commit.
@@ -28,7 +31,7 @@
 - [ ] Complete project-package portability of automation/SLA identity mappings and required plugin dependencies.
 - [ ] Verify customer layout configuration, attachment previews, configuration recycle/expiry/purge and all notification channels/digests end-to-end.
 - [ ] Complete period-report team/reopen metrics and comparable concurrent load tests.
-- [ ] Real upgrade and backup/restore smoke, including master.key.
+- [x] Real upgrade and backup/restore smoke, including master.key.
 - [ ] Final manifest checks and multi-architecture GHCR build/container smoke.
 
 ## Candidate limitations
