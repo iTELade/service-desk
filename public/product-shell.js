@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const VERSION='2.1.0';
+const VERSION='2.2.0';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tr=v=>window.DeskLocale?.t?.(v)||v;
 const $=(selector,root=document)=>root.querySelector(selector);
@@ -14,10 +14,10 @@ const routeName=value=>{
   if(value.startsWith('#/portal'))return 'portal';
   return value.startsWith('#/')?(value.slice(2).split('/')[0]||'home'):'home';
 };
-const labels={queue:'Kolejki',board:'Tablica',projects:'Projekty',users:'Użytkownicy',settings:'Administracja',ticket:'Zgłoszenie',portal:'Portal klienta',reports:'Radar i raporty',cases:'Incydenty i zmiany',case:'Sprawa operacyjna',services:'Usługi',service:'Usługa',calendar:'Kalendarz zmian',workflow:'Projektant obiegu',replies:'Gotowe odpowiedzi'};
+const labels={queue:'Kolejki',board:'Tablica',projects:'Projekty',users:'Użytkownicy',settings:'Administracja',ticket:'Zgłoszenie',portal:'Portal klienta',reports:'Radar i raporty',cases:'Incydenty i zmiany',case:'Sprawa operacyjna',services:'Usługi',service:'Usługa',calendar:'Kalendarz zmian',workflow:'Projektant obiegu',replies:'Gotowe odpowiedzi',assist:'Podpowiedzi i usprawnienia'};
 function currentProject(){
   const r=route();
-  const m=r.match(/^#\/(?:project|workflow|replies)\/(\d+)/);
+  const m=r.match(/^#\/(?:project|workflow|replies|assist)\/(\d+)/);
   const id=m?.[1]||$('#main')?.dataset.workspaceProject||query().get('project')||$('select[data-workspace-project]')?.value||'';
   if(!id)return null;
   const select=$('select[data-workspace-project]');

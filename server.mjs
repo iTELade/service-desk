@@ -1,3 +1,9 @@
+import { createPluginAPI } from './lib/plugin-api.mjs';
+import {createV22} from './lib/v22.mjs';
+import {compileExpression} from './lib/query-v22.mjs';
+import {migrateV12} from './lib/migration-v12.mjs';
+import {createPasskeys} from './lib/passkeys.mjs';
+import {migrateV11} from './lib/migration-v11.mjs';
 import {migrateV10} from './lib/migration-v10.mjs';
 import {createV21} from './lib/v21.mjs';
 import {createReset,applyPendingReset} from './lib/reset.mjs';
@@ -143,10 +149,13 @@ migrateV7(db);
 if(db.prepare('PRAGMA user_version').get().user_version<8)migrateV8(db);
 if(db.prepare('PRAGMA user_version').get().user_version<9)migrateV9(db);
 if(db.prepare('PRAGMA user_version').get().user_version<10)migrateV10(db);
+if(db.prepare('PRAGMA user_version').get().user_version<11)migrateV11(db);
+if(db.prepare('PRAGMA user_version').get().user_version<12)migrateV12(db);
 // Fresh installations do not need the legacy built-in automation account.
 if(!schemaVersion&&!db.prepare('SELECT id FROM projects LIMIT 1').get())db.prepare("DELETE FROM users WHERE email='bot@desk.invalid' AND password='!service'").run();
 const mfa=createMfa(db,{dataDir});
 const securityKeys=createSecurityKeys(db,{origin});
+const passkeys=createPasskeys(db,{origin});
 const projects = createProjects(db);
 const installation=createInstallation(db,{dataDir,encodePassword,projects});
 if(installation.required())console.log('Kod instalacji WWW: '+installation.token());
@@ -158,6 +167,8 @@ const desk=createDesk(db,projects,catalog,workflows),identity=createIdentity(db,
 const reset=createReset(db,{dataDir,accounts,checkPassword,canReset:()=>!maintenance()&&!(process.env.CONTROL_DIR&&existsSync(join(process.env.CONTROL_DIR,'request.json'))),onReset:()=>{setTimeout(()=>process.exit(0),150).unref();}});
 const extensions=createExtensions(db,projects,catalog,workflows,desk,accounts,identity,sso,{origin,dataDir});
 const v21=createV21(db,{projects,desk,workflows,ticketView:(t,u)=>ticketWithSla(db.prepare(ticketSelect+' WHERE t.id=?').get(t.id),u),queryTickets});
+const v22=createV22(db,{projects,desk,workflows,catalog,extensions,v21,dataDir});
+const pluginRPC=createPluginAPI(db,{runtime:v22.runtime,projects,catalog,processes:v22.processes,workspace:v21.workspace,workflows});
 const v8=createV8(db,{projects,desk,workflows,catalog,accounts,directory,origin,dataDir});
 // Wyrównuje koszt sprawdzenia nieistniejącego konta. Nie jest hasłem żadnego użytkownika.
 const dummyPassword = await encodePassword(randomBytes(32).toString('hex'));
@@ -191,7 +202,7 @@ function securityHeaders(res) {
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; worker-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
   res.setHeader('Cache-Control', 'no-store');
   if (prod) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 }
@@ -209,14 +220,14 @@ const ticketSelect = `SELECT t.*, p.name project_name, p.key project_key, p.proj
   p.sla_policy, r.name reporter_name, a.name assignee_name FROM tickets t JOIN projects p ON p.id=t.project_id
   JOIN users r ON r.id=t.reporter_id LEFT JOIN users a ON a.id=t.assignee_id`;
 function ticketFor(key, user) {
-  const t = db.prepare(`${ticketSelect} WHERE t.key=? OR t.id=(SELECT ticket_id FROM ticket_aliases WHERE key=?) ORDER BY t.key=? DESC LIMIT 1`).get(key,key,key);
+  const t = db.prepare(`${ticketSelect} WHERE (t.key=? OR t.id=(SELECT ticket_id FROM ticket_aliases WHERE key=?)) AND t.deleted_at IS NULL ORDER BY t.key=? DESC LIMIT 1`).get(key,key,key);
   if (!t || !projects.canRead(user,projects.project(t.project_id),t)) fail(404,'Nie znaleziono zgłoszenia.');
   return t;
 }
 function ticketWithSla(t,user) {
   const policy = {...defaultSla,...JSON.parse(t.sla_policy)}, p=projects.project(t.project_id);
   const {sla_policy,form_snapshot,custom_values,automation_state_since,automation_cycle,automation_customer_at,...out}=t,canWork=projects.canWork(user,p);
-  return {...out,...catalog.ticket(t,canWork),...workflows.ticket(t,canWork),...desk.detail(t,user),can_work:canWork,project_archived:Boolean(t.project_archived),response_due_at:new Date(Date.parse(t.created_at)+policy[t.priority][0]*60000).toISOString(),resolution_due_at:new Date(Date.parse(t.created_at)+policy[t.priority][1]*60000).toISOString()};
+  return {...out,...catalog.ticket(t,canWork,user),...workflows.ticket(t,canWork),...desk.detail(t,user),can_work:canWork,project_archived:Boolean(t.project_archived),response_due_at:new Date(Date.parse(t.created_at)+policy[t.priority][0]*60000).toISOString(),resolution_due_at:new Date(Date.parse(t.created_at)+policy[t.priority][1]*60000).toISOString()};
 }
 function record(ticketId, userId, message) {
   db.prepare('INSERT INTO activity(ticket_id,actor_id,body,created_at) VALUES(?,?,?,?)').run(ticketId, userId, message, now());
@@ -228,9 +239,11 @@ function assignee(value,p) {
   if (!u || !projects.canWork(u,p)) fail(400,'Opiekun musi mieć dostęp do obsługi tego projektu.');
   return value;
 }
+function catalogFieldsForQuery(user){const allowed=new Set(),denied=new Set();for(const p of projects.list(user).filter(p=>p.can_work))for(const form of catalog.list(p.id,user,'team'))for(const f of form.fields){if(catalog.visibleField(f,user,{project_id:p.id}))allowed.add(f.key);else denied.add(f.key);}return [...allowed].filter(k=>!denied.has(k));}
 function ticketFilters(search, user) {
   const scope=projects.ticketScope(user,{own:search.get('own')==='1'});
   const terms=[scope.sql,'t.deleted_at IS NULL'],values=[...scope.values];
+  if(search.get('expression')){const allowedFields=catalogFieldsForQuery(user);const expression=compileExpression(search.get('expression'),{user,projects,allowedFields});terms.push(expression.sql);values.push(...expression.values);}
   const arch=search.get('archived');if(arch!=='all')terms.push(arch==='1'?'t.archived_at IS NOT NULL':'t.archived_at IS NULL');
   const q = search.get('q')?.trim();
   if (q) { if (q.length > 200) fail(400, 'Wyszukiwanie jest za długie.'); terms.push("(t.title LIKE ? ESCAPE '\\' OR t.key LIKE ? ESCAPE '\\')"); const pattern = '%' + q.replace(/[\\%_]/g, '\\$&') + '%'; values.push(pattern, pattern); }
@@ -285,6 +298,11 @@ function queryTickets(search,user){
 
 const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/pdfjs/pdf.mjs', ['../node_modules/pdfjs-dist/legacy/build/pdf.mjs', 'text/javascript; charset=utf-8']],
+  ['/pdfjs/pdf.worker.mjs', ['../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', 'text/javascript; charset=utf-8']],
+  ['/attachment-preview.js', ['attachment-preview.js', 'text/javascript; charset=utf-8']],
+  ['/platform.js', ['platform.js', 'text/javascript; charset=utf-8']],
+  ['/passkeys.js', ['passkeys.js', 'text/javascript; charset=utf-8']],
   ['/workspace.js', ['workspace.js', 'text/javascript; charset=utf-8']],
   ['/workspace.css', ['workspace.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
@@ -323,6 +341,7 @@ const server = http.createServer(async (req,res)=>{
     if(method==='GET'&&/^\/api\/sso\/[1-9][0-9]*\/start$/.test(pathname)){rateLimit('sso-start',200);const result=await sso.begin(Number(pathname.split('/')[3]));res.setHeader('Set-Cookie',(prod?'__Host-desk_sso':'desk_sso')+'='+result.browser+'; Path=/; HttpOnly; SameSite=Lax; Max-Age=600'+(prod?'; Secure':''));res.writeHead(303,{Location:result.url});return res.end();}
     if(method==='POST'&&/^\/api\/monitoring\/[1-9][0-9]*$/.test(pathname)){rateLimit('monitoring',500);return json(res,200,v21.operations.incoming(pathname.split('/')[3],req.headers.authorization,await body(req)));}
     if(method==='POST'&&/^\/api\/hooks\/[1-9][0-9]*$/.test(pathname)){rateLimit('incoming-hook',500);const b=await body(req),result=extensions.webhooks.incoming(Number(pathname.split('/')[3]),req.headers.authorization,b);extensions.events();return json(res,200,result);}
+    if(pathname.startsWith('/api/plugins/')){rateLimit('plugin-rpc',300);const result=await pluginRPC.handle({method,path:pathname,token:req.headers.authorization,idempotencyKey:req.headers['idempotency-key'],read:()=>body(req)});if(method!=='GET')extensions.events();return json(res,result.status,result.value);}
     if(pathname.startsWith('/api/v1/')){rateLimit('public-api',2000);const b=method==='GET'?{}:await body(req),result=extensions.api.run(req.headers.authorization,method,pathname,searchParams,b,req.headers['idempotency-key']);extensions.events();return json(res,result.status,result.value);}
     if(!pathname.startsWith('/api/'))fail(404,'Nie znaleziono strony.');
     if(!['GET','POST','PATCH'].includes(method))fail(405,'Niedozwolona metoda.');
@@ -345,6 +364,8 @@ const server = http.createServer(async (req,res)=>{
       db.prepare('INSERT INTO sessions(token,user_id,csrf,expires_at) VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);
       res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(fresh),csrf});
     }
+    if(method==='POST'&&pathname==='/api/passkeys/options'){rateLimit('passkey-options',100);return json(res,200,await passkeys.options());}
+    if(method==='POST'&&pathname==='/api/passkeys/login'){rateLimit('passkey-login',30);const b=await body(req),u=await passkeys.verify(b),token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);passkeys.grant(u,digest(token));res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(u),csrf});}
     if(method==='POST'&&pathname==='/api/mfa/verify'){rateLimit('mfa-login',30);const b=await body(req),u=mfa.verify(b.challenge,b.code),token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(u),csrf});}
     if(method==='POST'&&pathname==='/api/mfa/security-key/options'){rateLimit('mfa-key-options',30);const b=await body(req);return json(res,200,securityKeys.loginOptions(b.challenge));}
     if(method==='POST'&&pathname==='/api/mfa/security-key/verify'){rateLimit('mfa-key-login',30);const b=await body(req),u=securityKeys.verifyLogin(b.challenge,b),token=randomBytes(32).toString('hex'),csrf=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token),u.id,csrf,Date.now()+12*3600000);res.setHeader('Set-Cookie',cookie(token,12*3600));return json(res,200,{user:safeUser(u),csrf});}
@@ -376,6 +397,7 @@ const server = http.createServer(async (req,res)=>{
     function admin(){if(user.role!=='admin')fail(403,'Dostęp tylko dla administratora.');}
     async function readBody(){const b=await body(req);authenticate();if(user.must_change&&pathname!=='/api/password')fail(403,'Najpierw zmień hasło tymczasowe.');return b;}
     authenticate();
+    if(pathname.startsWith('/api/passkeys')){rateLimit('passkey-settings:'+user.id,30);if(method==='GET')return json(res,200,passkeys.list(user));const b=await readBody();const action=pathname.split('/').at(-1);let value;if(action==='reauth'){if(user.sso_only||user.auth_source==='ldap'||!await checkPassword(b.password,user.password))fail(401,'Nieprawidłowe hasło.');passkeys.grant(user,user.token);value={ok:true};}else if(action==='reauth-options')value=await passkeys.options(user);else if(action==='reauth-verify')value={ok:Boolean(await passkeys.verify(b,user))};else if(action==='register-options')value=await passkeys.registrationOptions(user);else if(action==='register')value=await passkeys.register(user,b);else if(action==='remove')value=passkeys.remove(user,Number(b.id));else fail(404,'Nieznana operacja klucza dostępu.');return json(res,200,value);}
     if(pathname.startsWith('/api/mfa/')){rateLimit('mfa-settings:'+user.id,30);const action=pathname.split('/').at(-1);if(method==='GET'&&action==='status'){const a=mfa.status(user),k=securityKeys.status(user.id);return json(res,200,{...a,...k,enabled:a.enabled||k.security_key_enabled});}const b=await readBody();if(method!=='POST')fail(405,'Niedozwolona metoda.');if(pathname==='/api/mfa/security-key/register-options')return json(res,200,securityKeys.registrationOptions(user));if(pathname==='/api/mfa/security-key/register')return json(res,200,securityKeys.register(user,b));if(pathname==='/api/mfa/security-key/remove')return json(res,200,securityKeys.remove(user,b.id));if(action==='setup')return json(res,200,mfa.setup(user));if(action==='enable')return json(res,200,mfa.enable(user,b.code));if(action==='disable')return json(res,200,mfa.disable(user,b.code));fail(404,'Nieznana operacja.');}
     if(pathname==='/api/system/reset'&&method==='POST'){rateLimit('system-reset:'+user.id,10);const b=await readBody();const value=b.code?await reset.confirm(user,b):await reset.begin(user,b);return json(res,200,value);}
     if(method==='GET'&&pathname==='/api/me')return json(res,200,{user:safeUser(user),csrf:user.csrf});
@@ -394,12 +416,13 @@ const server = http.createServer(async (req,res)=>{
     if(method==='GET'&&/^\/api\/avatars\/[1-9][0-9]*$/.test(pathname)){const a=db.prepare('SELECT * FROM avatars WHERE user_id=?').get(Number(pathname.split('/')[3]));if(a){res.writeHead(200,{'Content-Type':a.mime,'Cache-Control':'no-store'});return res.end(Buffer.from(a.body));}res.writeHead(200,{'Content-Type':'image/svg+xml'});return res.end(readFileSync(join(root,'public/favicon.svg')));}
     if(pathname.startsWith('/api/desk/updates')){const b=method==='GET'?{}:await readBody();return json(res,200,method==='GET'?updates.status(user):pathname.endsWith('/check')?await updates.check(user):pathname.endsWith('/install')?updates.request(b,user):updates.save(b,user));}
     if(pathname==='/api/desk/brand-logo'&&method==='POST')return json(res,200,installation.saveLogo(await readBody(),user));
+    const v22Result=await v22.handle(method,pathname,user,searchParams,readBody);if(v22Result){if(method!=='GET')extensions.events();return json(res,v22Result.status,v22Result.value);}
     const v21Result=await v21.handle(method,pathname,user,searchParams,readBody);if(v21Result){if(method!=='GET')extensions.events();return json(res,v21Result.status,v21Result.value);}
     const v8Result=await v8.handle(method,pathname,user,searchParams,readBody);if(v8Result)return json(res,v8Result.status,v8Result.value);
     const extensionResult=await extensions.handle(method,pathname,user,searchParams,readBody);if(extensionResult)return json(res,extensionResult.status,extensionResult.value);
     if(method==='GET'&&pathname==='/api/meta'){
       const visible=projects.list(user),assignees=[...new Map(visible.filter(p=>p.can_work).flatMap(p=>projects.agents(p,user)).map(a=>[a.id,a])).values()];
-      return json(res,200,{statuses,priorities,types,workflow_events:workflowEvents,projects:visible,assignees,brand_name:accounts.settings().brand_name});
+      return json(res,200,{statuses,priorities,types,workflow_events:workflowEvents,projects:visible.map(p=>({...p,knowledge_enabled:extensions.knowledge.available(p.id,user)})),assignees,brand_name:accounts.settings().brand_name});
     }
     if(pathname==='/api/settings'){
       if(method==='GET'){admin();return json(res,200,accounts.settings());}
@@ -519,8 +542,8 @@ const server = http.createServer(async (req,res)=>{
         if(b.organization_id!==undefined||b.reporter_id!==undefined)next.organization_id=desk.organization(p,next.reporter_id,b.organization_id??null);
         if(b.resolution_text!==undefined)next.resolution_text=textValue(b.resolution_text,'Rozwiązanie',0,20000);
         for(const field of ['priority','type'])if(Object.hasOwn(b,field))next[field]=choice(b[field],{priority:priorities,type:types}[field],field);
-        const transition=workflows.transition(t,b,canWork);next.status=transition.category;next.workflow_status=transition.key;
-        if(b.custom_values!==undefined){if(t.status==='closed')fail(409,'Najpierw otwórz zgłoszenie ponownie.');next.custom_values=catalog.editValues(t,b.custom_values,canWork);}
+        const transition=workflows.transition(t,b,canWork,user);next.status=transition.category;next.workflow_status=transition.key;
+        if(b.custom_values!==undefined){if(t.status==='closed')fail(409,'Najpierw otwórz zgłoszenie ponownie.');next.custom_values=catalog.editValues(t,b.custom_values,canWork,user);}
         if(b.title!==undefined)next.title=textValue(b.title,'Temat',3,200);
         if(b.description!==undefined)next.description=textValue(b.description,'Opis',3,20000);
         if(b.assignee_id!==undefined)next.assignee_id=assignee(b.assignee_id,p);
@@ -528,7 +551,7 @@ const server = http.createServer(async (req,res)=>{
           const stamp=now(),done=['resolved','closed'].includes(next.status);
           db.prepare('UPDATE tickets SET title=?,description=?,status=?,priority=?,type=?,assignee_id=?,resolved_at=?,updated_at=?,version=version+1,workflow_status=?,custom_values=?,reporter_id=?,organization_id=?,resolution_text=?,change_source=?,last_actor_id=? WHERE id=?').run(next.title,next.description,next.status,next.priority,next.type,next.assignee_id,done?(t.resolved_at||stamp):null,stamp,next.workflow_status,next.custom_values,next.reporter_id,next.organization_id,next.resolution_text,'web',user.id,t.id);
           if(t.reporter_id!==next.reporter_id){record(t.id,user.id,`Zgłaszający: ${t.reporter_id} → ${next.reporter_id}.`);projects.audit(p.id,user,'ticket.reporter_changed',{ticket_id:t.id,before:t.reporter_id,after:next.reporter_id});}
-          if(t.workflow_status!==next.workflow_status){const w=workflows.get(p.id);record(t.id,user.id,`Status: ${w.statuses.find(s=>s.key===t.workflow_status).name} → ${w.statuses.find(s=>s.key===next.workflow_status).name}.`);}
+          if(t.workflow_status!==next.workflow_status){const w=workflows.forTicket(t);record(t.id,user.id,`Status: ${w.statuses.find(s=>s.key===t.workflow_status).name} → ${w.statuses.find(s=>s.key===next.workflow_status).name}.`);}
           if(t.custom_values!==next.custom_values)record(t.id,user.id,'Zmieniono dane formularza.');
           if(t.priority!==next.priority)record(t.id,user.id,`Priorytet: ${t.priority} → ${next.priority}.`);
           if(t.type!==next.type)record(t.id,user.id,`Typ: ${types[t.type]} → ${types[next.type]}.`);
@@ -594,8 +617,8 @@ const server = http.createServer(async (req,res)=>{
   }
 });
 server.requestTimeout=15000;server.headersTimeout=10000;server.maxRequestsPerSocket=100;
-workflows.automation.start();extensions.start();v8.start();updates.start();
+workflows.automation.start();extensions.start();v22.start();v8.start();updates.start();
 server.listen(Number(process.env.PORT||3000),process.env.HOST||'0.0.0.0',()=>console.log(`Service Desk działa na porcie ${server.address().port}`));
 let stopping=false;
-function stop(){if(stopping)return;stopping=true;clearInterval(housekeeping);updates.stop();v8.stop();workflows.automation.stop();extensions.stop();directory.stop();accounts.stop();server.close(()=>{db.exec('PRAGMA wal_checkpoint(TRUNCATE)');db.close();process.exit(0);});setTimeout(()=>process.exit(1),10000).unref();}
+function stop(){if(stopping)return;stopping=true;clearInterval(housekeeping);updates.stop();v8.stop();v22.stop();workflows.automation.stop();extensions.stop();directory.stop();accounts.stop();server.close(()=>{db.exec('PRAGMA wal_checkpoint(TRUNCATE)');db.close();process.exit(0);});setTimeout(()=>process.exit(1),10000).unref();}
 process.on('SIGTERM',stop);process.on('SIGINT',stop);

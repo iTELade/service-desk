@@ -71,7 +71,7 @@ if [ "$(docker inspect --format '{{.State.Running}}' "$desk_id")" = true ]; then
 mkdir -p "$desk_backup/data"
 docker cp -a "$desk_id:/app/data/." "$desk_backup/data/"
 # Integrity check uses a read-only copy; it does not start the new application or migrate data.
-docker run --rm --network none --user 0 --entrypoint node -v "$desk_backup/data:/backup" "service-desk:$desk_version" -e 'const {DatabaseSync}=require("node:sqlite"),fs=require("fs");const d=new DatabaseSync("/backup/desk.sqlite");if(d.prepare("PRAGMA integrity_check").get().integrity_check!=="ok")throw Error("Kopia uszkodzona");const v=d.prepare("PRAGMA user_version").get().user_version;if(![4,5,6,7,8,9,10].includes(v))throw Error("Wymagany schemat 4–10");d.close();if(fs.readFileSync("/backup/master.key").length!==32)throw Error("Nieprawidłowy master.key")'
+docker run --rm --network none --user 0 --entrypoint node -v "$desk_backup/data:/backup" "service-desk:$desk_version" -e 'const {DatabaseSync}=require("node:sqlite"),fs=require("fs");const d=new DatabaseSync("/backup/desk.sqlite");if(d.prepare("PRAGMA integrity_check").get().integrity_check!=="ok")throw Error("Kopia uszkodzona");const v=d.prepare("PRAGMA user_version").get().user_version;if(![4,5,6,7,8,9,10,11].includes(v))throw Error("Wymagany schemat 4–11");d.close();if(fs.readFileSync("/backup/master.key").length!==32)throw Error("Nieprawidłowy master.key")'
 desk_data_ready=1
 # Overlay application files. .env, data and previous backups are not in the package.
 (cd "$desk_source" && tar --exclude='./node_modules' --exclude='./.env' --exclude='./data' --exclude='./backups' --exclude='./.git' -cf - .) | tar -xf - -C "$desk_live"

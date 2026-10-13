@@ -1,6 +1,6 @@
 {
   "name": "service-desk",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -14,15 +14,20 @@
     "test:browser": "node scripts/browser-smoke.mjs",
     "test:visual": "node scripts/visual-regression.mjs",
     "test:workspace": "node scripts/workspace-regression.mjs",
-    "test:load": "node scripts/workspace-load.mjs"
+    "test:load": "node scripts/workspace-load.mjs",
+    "test:knowledge": "node scripts/knowledge-regression.mjs",
+    "test:platform": "node scripts/platform-regression.mjs",
+    "test:upgrade": "node scripts/upgrade-regression-v22.mjs"
   },
   "dependencies": {
+    "@simplewebauthn/server": "14.0.3",
     "imapflow": "2.0.2",
     "ldapts": "9.0.0",
     "luxon": "3.7.2",
     "mailparser": "3.9.38",
     "nodemailer": "10.0.9",
-    "openid-client": "6.8.8"
+    "openid-client": "6.8.8",
+    "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
     "jsdom": "30.0.1",
