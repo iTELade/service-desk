@@ -488,3 +488,18 @@ test('plugin comments and follow-ups reject stale source jobs and progress comme
   assert.equal(f.db.prepare('SELECT COUNT(*) n FROM comments WHERE ticket_id=?').get(t.id).n,1);
  }finally{f.close();}
 });
+
+test('per-form customer layouts validate privacy and portability and filter historical fields',()=>{
+ const f=fixture();try{
+  const p=f.project('CLO'),form=f.catalog.save(p.id,null,{name:'Public request',portal_visible:true,fields:[{key:'first',label:'First',type:'text'},{key:'second',label:'Second',type:'text'},{key:'secret',label:'Secret',type:'text',visibility:'internal'}]},f.admin),layout={mode:'tabs',sections:['next','fields','conversation'],field_order:['second','first']};
+  const save=input=>f.v.governance.settings(p.id,{version:f.projects.project(p.id).version,customer_form_layouts:input},f.admin);
+  for(const invalid of [{...layout,field_order:['secret']},{...layout,sections:['fields','fields']},{...layout,field_order:['missing']}])assert.throws(()=>save({[form.id]:invalid}),status(400));
+  assert.throws(()=>save({99999:layout}),status(400));save({[form.id]:layout});
+  const t=f.ticket(p);f.db.prepare('UPDATE tickets SET request_type_id=?,form_snapshot=? WHERE id=?').run(form.id,JSON.stringify({fields:[{key:'first',visibility:'portal'},{key:'second',visibility:'internal'}]}),t.id);
+  assert.deepEqual(f.v.processes.extras(t.id,f.admin).customer_view.field_order,['first']);
+  const cfg=f.v.blueprints.fromProject(p.id,{name:'Portal layout package'},f.admin).config,alias=cfg.projects[0].forms.find(f=>f.name===form.name).alias;assert.deepEqual(cfg.projects[0].process_settings.customer_form_layouts[alias],layout);assert.equal(cfg.projects[0].process_settings.customer_form_layouts[form.id],undefined);
+  const draft=f.v.blueprints.draft(null,{name:'Portal layout draft',config:cfg},f.admin),b={version:1,mapping:{project:{key:'CLN',name:'Portal destination'}}},preview=f.v.blueprints.validate(draft.id,b,f.admin);assert.equal(preview.valid,true,preview.errors.join(';'));
+  const id=f.v.blueprints.activate(draft.id,{...b,preview_fingerprint:preview.preview_fingerprint},f.admin).projects.project,newForm=f.catalog.list(id,f.admin,'manage').find(f=>f.name===form.name);assert.notEqual(newForm.id,form.id);assert.deepEqual(JSON.parse(f.projects.project(id).settings).customer_form_layouts[newForm.id],layout);
+  save({});assert.equal(f.v.processes.extras(t.id,f.admin).customer_view,undefined);
+ }finally{f.close();}
+});
