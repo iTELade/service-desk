@@ -10,7 +10,7 @@ const dataDir = mkdtempSync(join(tmpdir(), 'desk22-platform-')), probe = createS
 await new Promise(r => probe.listen(0, '127.0.0.1', r)); const port = probe.address().port; await new Promise(r => probe.close(r));
 const base = 'http://localhost:' + port, engine = process.env.DESK_BROWSER_ENGINE || 'chromium';
 const server = spawn(process.execPath, ['server.mjs'], { env: { ...process.env, NODE_ENV: 'test', APP_URL: base, HOST: '127.0.0.1', PORT: String(port), DATA_DIR: dataDir }, stdio: ['ignore', 'pipe', 'pipe'] });
-let logs = '', browser, count = 0; const errors = [];
+let logs = '', browser, count = 0; const errors = [];let page;
 server.stderr.on('data', c => logs += c);
 const check = (name, value) => { assert.ok(value, name); console.log('PASS ' + name); count++; };
 try {
@@ -22,7 +22,7 @@ try {
   const login = await context.request.post(base + '/api/login', { headers: { Origin: base }, data: { email: 'platform@x.test', password } }); check('Login', login.ok()); const { csrf } = await login.json();
   const api = async (path, data, method='POST') => { const r = await context.request.fetch(base + '/api' + path, { method: data ? method : 'GET', headers: { Origin: base, 'X-CSRF-Token': csrf }, ...(data ? { data } : {}) }); assert.ok(r.ok(), path + ': ' + await r.text()); return r.json(); };
   const settings=await api('/settings');await api('/settings',{...settings,language:'pl'},'PATCH');
-  const page = await context.newPage(); page.on('pageerror', err => errors.push(err.message));
+  page = await context.newPage(); page.on('pageerror', err => errors.push(err.message));
   await page.goto(base + '/#/blueprints22'); await page.getByRole('heading', { name: 'Szablony i drafty projektów', exact: true }).waitFor();
   check('Built-in project templates', await page.getByRole('heading', { name: 'HR + IT', exact: true }).count() === 1);
   await page.locator('.template-grid > section').filter({ has: page.getByRole('heading', { name: 'HR + IT', exact: true }) }).getByRole('button', { name: 'Utwórz draft', exact: true }).click();
@@ -94,7 +94,7 @@ try {
   const migrationPlugin='neutral.browser.migration';
   await api('/desk/plugins',{id:migrationPlugin,name:'Neutral migration',version:'1.0.0',dataVersion:1,capabilities:['migration'],permissions:['migration']});
   await api('/desk/v22/plugins/'+migrationPlugin+'/connector',{version:0,url:'https://neutral.example.test/migrate',project_ids:[p.id],permissions:['migration']});
-  await page.goto(base+'/#/plugins22');await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1');await page.locator('[data-p22=plugin-migrations][data-id="'+migrationPlugin+'"]').click();await page.locator('[data-p22-dialog]').waitFor({state:'visible'});await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
+  await page.goto(base+'/#/plugins22');await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1');await page.locator('[data-p22=plugin-migrations][data-id="'+migrationPlugin+'"]').click();await page.locator('[data-p22-dialog]').waitFor({state:'visible'});await page.locator('[data-p22-dialog] [name=run_at]').fill(new Date(Date.now()+3600000).toISOString().slice(0,16));await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
   const migrationJobs=await api('/desk/v22/plugins/'+migrationPlugin+'/migrations');check('Plugin migration queues without enabling extension',migrationJobs.length===1&&migrationJobs[0].state==='queued');
   await page.locator('[data-p22=plugin-migrations][data-id="'+migrationPlugin+'"]').click();await page.locator('[data-p22=migration-cancel]').click();await page.locator('dialog').waitFor({state:'hidden'});check('Plugin migration cancellation UI', (await api('/desk/v22/plugins/'+migrationPlugin+'/migrations'))[0].state==='cancelled');
   // Passkey registration and login use actual browser-generated cryptographic credentials.
@@ -114,4 +114,4 @@ try {
   }
   if(errors.length)console.error('Browser exceptions:',JSON.stringify(errors));
   check('No browser exceptions', errors.length === 0); console.log(JSON.stringify({ engine, checks: count, physical_iphone_verified: false }));
-} catch(err){console.error('Browser exceptions:',JSON.stringify(errors));throw err;} finally { await browser?.close(); server.kill('SIGTERM'); rmSync(dataDir, { recursive: true, force: true }); }
+} catch(err){console.error('Browser exceptions:',JSON.stringify(errors));if(page&&!page.isClosed())console.error('Last notice:',await page.locator('#notices').innerText().catch(()=>''));console.error('Server stderr:',logs.slice(-2000));throw err;} finally { await browser?.close(); server.kill('SIGTERM'); rmSync(dataDir, { recursive: true, force: true }); }

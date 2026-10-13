@@ -4,7 +4,7 @@
 
 - Actual 2.1.0 server code → current server migration passed locally: existing login, private comments, key numbering and encrypted SMTP settings survive. The real backup script restored current encrypted plugin settings; pre-upgrade backup boots with 2.1.0. CI now runs scripts/upgrade-regression-v22.mjs as a release gate.
 - Local syntax checks pass for the implementation candidate.
-- Local application suite: 309 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
+- Local application suite: 311 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
 - New platform tests cover migration/idempotence, blueprint preview/activation, approvals, dependencies, participants, recycle/restore, query grammar, bulk rollback, connector revocation and passkeys.
 - Real WebAuthn signature verification is exercised with synthetic credential data, including synced zero-counter passkeys, replay, origin and user-verification rejection.
 - Synthetic 10,000-ticket scenario passed locally. This is not a concurrent-production benchmark.
@@ -27,6 +27,9 @@
 - CI on abf1f5369d083202d60bcaa5e872e1281d360d14 passed every job, including the browser scenario that maps a role/integration, activates a package and executes its copied automation against the copied form. Process/responsibility additions still need their final CI run.
 
 - CI on 3aa44e2ebdade745d7fffab0a90402e5e0cf581c passed all jobs, including selected-person responsibility preview, process/attachment configuration mapping and activation followed by real copied-rule execution. Declared plugin templates, operational health and late-acknowledgement protections require the next CI run.
+
+- Complete form revisions now retain defaults, grouping, icons, order and base fields. Settings restore uses current validators within a rolled-back validation transaction; derived service settings/catalogue are synchronized after restore and package activation.
+- CI on 3ff1839988489841e41b9a4937bf1b41aa2af54d passed the main, Chromium/Firefox platform, KB, upgrade and container jobs. WebKit timed out cancelling an immediately due migration; the fixture now schedules that migration for a maintenance time, with actual dispatch/cancellation still covered in runtime tests. Failure diagnostics include the visible notice for the next run.
 
 ## Required before stable publication
 
