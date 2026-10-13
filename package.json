@@ -26,7 +26,8 @@
     "luxon": "3.7.2",
     "mailparser": "3.9.38",
     "nodemailer": "10.0.9",
-    "openid-client": "6.8.8"
+    "openid-client": "6.8.8",
+    "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
     "jsdom": "30.0.1",

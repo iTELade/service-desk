@@ -46,3 +46,12 @@ test('plugin panel treats signed result as plain text and action form preserves 
   const sent=u.requests.find(r=>r.path==='/desk/v22/plugins/neutral.ui/jobs');assert.ok(sent);assert.equal(sent.data.hook_id,'check');assert.equal(sent.data.input.count,3);assert.equal(sent.data.input.notify,true);
  }finally{u.close();}
 });
+
+test('global plugin settings open without ticket context, mask secrets and render numeric zero',async()=>{
+ const u=ui();try{
+  u.state.ticket=null;const hook={id:'config',kind:'admin.settings',label:'Settings',fields:[{key:'count',label:'Count',type:'number',required:true},{key:'password',label:'Password',type:'password',required:true}]},plugin={id:'neutral.settings',name:'Settings fixture',enabled:false,version:'1.0.0',manifest:{description:'',hooks:[hook]}};
+  u.w.fetch=async(url)=>({ok:true,json:async()=>url==='/api/desk/v22/plugins'?[plugin]:url==='/api/desk/v22/plugin-settings/neutral.settings/0'?[{hook,version:2,values:{count:0},has_secret:{password:true}}]:u.state.meta});
+  u.w.document.querySelector('#app').innerHTML='<main id="main"></main>';const html=await u.call('platformUI.render("plugins22",null,new URLSearchParams())');u.w.document.querySelector('#main').innerHTML=html;await u.call('platformUI.mount(document.querySelector("#main"),"plugins22")');u.w.document.querySelector('[data-p22=plugin-settings]').click();await new Promise(r=>setTimeout(r,10));
+  const form=u.w.document.querySelector('[data-p22-dialog]');assert.ok(form);assert.equal(form.elements.count.value,'0');assert.equal(form.elements.password.value,'');assert.equal(form.elements.password.required,false);assert.ok(form.textContent.includes('skonfigurowane'));
+ }finally{u.close();}
+});

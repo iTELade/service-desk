@@ -168,7 +168,7 @@ const reset=createReset(db,{dataDir,accounts,checkPassword,canReset:()=>!mainten
 const extensions=createExtensions(db,projects,catalog,workflows,desk,accounts,identity,sso,{origin,dataDir});
 const v21=createV21(db,{projects,desk,workflows,ticketView:(t,u)=>ticketWithSla(db.prepare(ticketSelect+' WHERE t.id=?').get(t.id),u),queryTickets});
 const v22=createV22(db,{projects,desk,workflows,catalog,extensions,v21,dataDir});
-const pluginRPC=createPluginAPI(db,{runtime:v22.runtime,projects,catalog,processes:v22.processes,workspace:v21.workspace});
+const pluginRPC=createPluginAPI(db,{runtime:v22.runtime,projects,catalog,processes:v22.processes,workspace:v21.workspace,workflows});
 const v8=createV8(db,{projects,desk,workflows,catalog,accounts,directory,origin,dataDir});
 // Wyrównuje koszt sprawdzenia nieistniejącego konta. Nie jest hasłem żadnego użytkownika.
 const dummyPassword = await encodePassword(randomBytes(32).toString('hex'));
@@ -202,7 +202,7 @@ function securityHeaders(res) {
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; frame-src blob:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; worker-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
   res.setHeader('Cache-Control', 'no-store');
   if (prod) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 }
@@ -298,6 +298,8 @@ function queryTickets(search,user){
 
 const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/pdfjs/pdf.mjs', ['../node_modules/pdfjs-dist/legacy/build/pdf.mjs', 'text/javascript; charset=utf-8']],
+  ['/pdfjs/pdf.worker.mjs', ['../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', 'text/javascript; charset=utf-8']],
   ['/attachment-preview.js', ['attachment-preview.js', 'text/javascript; charset=utf-8']],
   ['/platform.js', ['platform.js', 'text/javascript; charset=utf-8']],
   ['/passkeys.js', ['passkeys.js', 'text/javascript; charset=utf-8']],

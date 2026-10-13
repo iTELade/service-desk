@@ -55,19 +55,28 @@ try {
   assert.deepEqual(await customerPage.locator('[data-customer-section]').evaluateAll(nodes => nodes.map(n => n.dataset.customerSection)), ['next', 'description', 'attachments', 'conversation']);
   check('Configured customer section order', true); check('Customer has no process administration', await customerPage.locator('[data-p22=approval-start]').count() === 0);
   await customerContext.close();
-  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=';
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGMISKn4DwAEYAIsoOBXhgAAAABJRU5ErkJggg==';
   const uploaded = await api('/desk/r112/attachments', { ticket_key: t.key, filename: 'preview.png', mime: 'image/png', data_base64: png });
   await page.goto(base + '/#/ticket/' + t.key); await page.reload(); await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1'); await page.locator('#activity-files').click();
   await page.locator('[data-r112-preview="' + uploaded.id + '"]').click();
   await page.waitForFunction(() => { const img = document.querySelector('.attachment-preview-image'); return img?.complete && img.naturalWidth === 1; });
   check('Raster attachment preview', true); await page.locator('[data-preview-close]').click();
+  // Vector-only PDF with an embedded document action: canvas preview must not execute it.
+  const pdfObjects = ['<< /Type /Catalog /Pages 2 0 R /OpenAction 5 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << >> /Contents 4 0 R >>', '<< /Length 26 >>\nstream\n1 0 0 rg 10 10 80 80 re f\nendstream', '<< /S /JavaScript /JS (globalThis.pdfExecuted=true) >>'];
+  let pdfText = '%PDF-1.4\n', offsets = [0];
+  pdfObjects.forEach((body, i) => { offsets.push(Buffer.byteLength(pdfText)); pdfText += `${i + 1} 0 obj\n${body}\nendobj\n`; });
+  const xref = Buffer.byteLength(pdfText); pdfText += `xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(offset => String(offset).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  const pdfUpload = await api('/desk/r112/attachments', { ticket_key: t.key, filename: 'preview.pdf', mime: 'application/pdf', data_base64: Buffer.from(pdfText).toString('base64') });
+  await page.reload(); await page.waitForFunction(() => document.querySelector('#main')?.dataset.workspaceReady === '1'); await page.locator('#activity-files').click(); await page.locator('[data-r112-preview="' + pdfUpload.id + '"]').click();
+  await page.waitForFunction(() => { const canvas = document.querySelector('canvas.attachment-preview-pdf'); if (!canvas) return false; const pixel = canvas.getContext('2d').getImageData(canvas.width / 2, canvas.height / 2, 1, 1).data; return pixel[0] > 200 && pixel[1] < 20; });
+  check('PDF canvas preview does not execute document scripts', await page.evaluate(() => !globalThis.pdfExecuted && !document.querySelector('[data-attachment-preview] iframe'))); await page.locator('[data-preview-close]').click();
   const pluginId='neutral.browser',pluginPermissions=['ticket.read','scheduled.job','ui.extension','settings.read'];
   await api('/desk/plugins',{id:pluginId,name:'Neutral browser plugin',version:'1.0.0',capabilities:['scheduled.job','admin.settings','ticket.action','ticket.panel'],permissions:pluginPermissions,hooks:[{id:'configuration',kind:'admin.settings',label:'Neutral settings',fields:[{key:'host',label:'Host',type:'text',required:true},{key:'password',label:'Password',type:'password',required:true}]},{id:'check',kind:'ticket.action',label:'Neutral check',action:'check',fields:[{key:'amount',label:'Amount',type:'number',required:true}]},{id:'result',kind:'ticket.panel',label:'Neutral state',fields:[{key:'state',label:'State',type:'text'}]}]});
   await api('/desk/v22/plugins/'+pluginId+'/connector',{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:pluginPermissions});
-  await page.goto(base+'/#/plugins22');await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();
+  await page.goto(base+'/#/plugins22');await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1');await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();
   await page.locator('[data-p22-dialog] [name=host]').fill('neutral.example.test');await page.locator('[data-p22-dialog] [name=password]').fill('test-only-plugin-secret');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
   await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();check('Plugin secret is masked in UI',await page.locator('[data-p22-dialog] [name=password]').inputValue()==='');await page.keyboard.press('Escape');
-  await api('/desk/plugins/'+pluginId+'/enable',{});await page.goto(base+'/#/ticket/'+t.key);await page.getByRole('button',{name:'Neutral check',exact:true}).click();
+  await api('/desk/plugins/'+pluginId+'/enable',{});await page.goto(base+'/#/ticket/'+t.key);await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1');await page.getByRole('button',{name:'Neutral check',exact:true}).click();
   await page.locator('[data-p22-dialog] [name=amount]').fill('3');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
   const pluginJobs=await api('/desk/v22/jobs'),pluginJob=pluginJobs.find(j=>j.plugin_id===pluginId);check('Declarative action queues typed input',pluginJob?.payload.input.amount===3&&pluginJob.payload.action==='check');
   // Passkey registration and login use actual browser-generated cryptographic credentials.

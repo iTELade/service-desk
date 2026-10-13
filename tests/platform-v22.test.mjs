@@ -239,3 +239,39 @@ test('plugin field import previews effects, preserves old snapshots and publishe
   assert.equal(f.v.runtime.uiContract(p.id,agent)[0].hooks.find(h=>h.kind==='dashboard.widget').values.state,null);
  }finally{f.close();}
 });
+
+test('automation queues plugin work after cascade completion and revocation rolls back local actions',async()=>{
+ const f=fixture();try{
+  const p=f.project('AUTO'),t=f.ticket(p),id='neutral.automation',permissions=['scheduled.job','ticket.read','automation.action'];
+  f.ext.plugins.install({id,name:'Neutral automation',version:'1.0.0',capabilities:['scheduled.job','automation.action'],permissions},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin);
+  const w=f.workflows.get(p.id);f.workflows.save(p.id,{...w,rules:[{name:'Prioritize and schedule',event:'ticket_created',from:'*',conditions:[],actions:[{type:'priority',value:'P1'},{type:'plugin',value:{plugin_id:id,action:'noop'}}]},{name:'Move after priority',event:'priority_changed',from:'*',conditions:[],actions:[{type:'status',value:'in_progress'}]}],version:w.version},f.admin);
+  f.workflows.automation.emit(t.id,'ticket_created',f.admin);
+  const job=f.db.prepare('SELECT * FROM platform_jobs WHERE plugin_id=?').get(id),payload=JSON.parse(job.payload),after=f.desk.ticket(t.id);assert.equal(after.priority,'P1');assert.equal(after.status,'in_progress');assert.equal(payload.ticket_version,after.version);assert.ok(payload.automation_run_id);assert.equal(payload.business_actor_id,f.admin.id);
+  const deliveries=[],r=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async(...args)=>deliveries.push(args)});await r.flush();assert.equal(JSON.parse(deliveries[0][1]).automation_run_id,payload.automation_run_id);assert.ok(JSON.parse(deliveries[0][1]).instance_id);
+  f.ext.plugins.setEnabled(id,false,f.admin);const second=f.ticket(p);f.workflows.automation.emit(second.id,'ticket_created',f.admin);assert.equal(f.desk.ticket(second.id).priority,'P3');assert.equal(f.desk.ticket(second.id).status,'open');assert.equal(f.db.prepare('SELECT COUNT(*) n FROM platform_jobs').get().n,1);assert.equal(f.db.prepare('SELECT status FROM automation_runs WHERE ticket_id=? ORDER BY id DESC LIMIT 1').get(second.id).status,'failed');
+ }finally{f.close();}
+});
+
+test('signed plugin trigger is scoped and durable retries cannot repeat local automation',async()=>{
+ const f=fixture();try{
+  const p=f.project('TRIGGER'),t=f.ticket(p),id='neutral.trigger',permissions=['automation.trigger'];f.ext.plugins.install({id,name:'Neutral trigger',version:'1.0.0',capabilities:['automation.trigger'],permissions},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);
+  const configured=f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin),w=f.workflows.get(p.id);
+  f.workflows.save(p.id,{...w,version:w.version,rules:[{name:'Respond to plugin',event:'plugin_event',from:'*',conditions:[{field:'plugin_id',op:'eq',value:id},{field:'plugin_event',op:'eq',value:'ready'}],actions:[{type:'priority',value:'P1'}]}]},f.admin);
+  const api=createPluginAPI(f.db,{runtime:f.v.runtime,projects:f.projects,catalog:f.catalog,processes:f.v.processes,workspace:f.v21.workspace,workflows:f.workflows}),body={event:'ready',version:t.version},call=b=>api.handle({method:'POST',path:'/api/plugins/'+id+'/tickets/'+t.id+'/trigger',token:'Bearer '+configured.generated_secret,idempotencyKey:'trigger-receipt-0001',read:async()=>b});
+  assert.equal((await call(body)).value.event_accepted,true);assert.equal(f.desk.ticket(t.id).priority,'P1');const version=f.desk.ticket(t.id).version;
+  assert.equal((await call(body)).value.duplicate,true);assert.equal(f.desk.ticket(t.id).version,version);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM automation_runs WHERE ticket_id=?').get(t.id).n,1);
+  await assert.rejects(()=>call({...body,event:'different'}),status(409));f.ext.plugins.setEnabled(id,false,f.admin);await assert.rejects(()=>call(body),status(401));
+ }finally{f.close();}
+});
+
+test('request-bound delayed jobs survive status changes but material edits and archiving require review',async()=>{
+ const f=fixture();try{
+  const p=f.project('DELAY'),t=f.ticket(p),id='neutral.delay',permissions=['ticket.read','scheduled.job'];f.ext.plugins.install({id,name:'Neutral delay',version:'1.0.0',capabilities:['scheduled.job'],permissions},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);
+  const sent=[],r=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async(...args)=>sent.push(args)});r.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin);
+  const material=r.enqueue(id,{ticket_id:t.id,action:'noop',version_policy:'request',request_key:'delay-request-001'},f.admin),strict=r.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'delay-ticket-001'},f.admin);
+  f.state(t.id,'resolved',f.admin,{resolution:'Fixed'});f.state(t.id,'closed');await r.flush();assert.equal(sent.length,1);assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(material.id).state,'sent');assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(strict.id).state,'paused');
+  const changed=r.enqueue(id,{ticket_id:t.id,action:'noop',version_policy:'request',request_key:'delay-edited-001'},f.admin);f.db.prepare('UPDATE tickets SET title=?,version=version+1 WHERE id=?').run('Changed request',t.id);await r.flush();assert.equal(sent.length,1);assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(changed.id).state,'paused');
+  const archive=r.enqueue(id,{ticket_id:t.id,action:'noop',version_policy:'request',request_key:'delay-archive-001',run_at:new Date(Date.now()+86400000).toISOString()},f.admin);f.ext.lifecycle.archive(t.id,{version:f.desk.ticket(t.id).version,archived:true},f.admin);assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(archive.id).state,'paused');
+  f.ext.lifecycle.archive(t.id,{version:f.desk.ticket(t.id).version,archived:false},f.admin);assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(archive.id).state,'paused');
+ }finally{f.close();}
+});

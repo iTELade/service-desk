@@ -76,8 +76,18 @@ Core can import form.field definitions through POST `/api/desk/v22/form-extensio
 
 ## Remaining capability boundary
 
-This candidate implements external connector jobs, event subscriptions, scoped ticket access, asynchronous workflow conditions, typed settings, ticket panels and action forms. Extension migration runners and automation action/trigger integration remain pending. Arbitrary uploaded UI/code is outside the isolated connector model. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
+This candidate implements external connector jobs, event subscriptions, scoped ticket access, asynchronous workflow conditions, typed settings, ticket panels and action forms. Automation actions and signed triggers are implemented; extension migration runners remain pending. Arbitrary uploaded UI/code is outside the isolated connector model. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
 
 ## Lifecycle
 
 Disable pauses queued jobs. Uninstall requires disabling the plugin and removes connection secrets; job/audit history remains. Resume rechecks permissions and current ticket state. No LDAP/AD or other business implementation is included in Desk.
+
+## Automation and delayed execution
+
+Automation action `plugin` accepts `{plugin_id,action}` and requires the matching automation.action or workflow.action capability, plus automation.action, scheduled.job and ticket.read grants. The rule owner remains the execution actor; work is enqueued only after the local cascade finishes. Revoked grants fail the rule before its local mutations.
+
+Signed POST `/api/plugins/PLUGIN_ID/tickets/TICKET_ID/trigger` requires automation.trigger capability/grant and accepts `{version,event}` with Idempotency-Key. The source plugin identity comes from the authenticated route, never the body. Rules match `plugin_event`, plugin_id and plugin_event conditions. Durable receipts reject changed retries and prevent repeated local effects.
+
+Scheduled jobs default to `version_policy: "ticket"`. Optional `"request"` binds the material request fields and current approval, allowing status changes while pausing after material edits. Connector/settings/manifest changes and revoked actor/project access always invalidate execution. Archived or deleted tickets pause queued work immediately; restoration never resumes it automatically. Stale jobs require a new reviewed request.
+
+Outbound signed deliveries contain instance_id and X-Desk-Instance-ID. Deduplicate external execution using the persisted instance identity, plugin ID and request key; HTTP delivery acknowledgement is distinct from a completed business result.
