@@ -30,3 +30,11 @@ POST `/api/desk/v22/drafts/ID/preview` runs the same project/form/workflow/integ
 Required plugin version dependencies block activation; missing optional dependencies produce warnings. Existing projects are never overwritten by updating a template.
 
 Remaining project-package requirements are tracked in VALIDATION_2.2.0.md; the existence of the package API does not mark the full roadmap complete.
+
+## Process and responsibility configuration
+
+Packages retain validated transition requirements, declared plugin conditions, optional portal section order, attachment limits and process-versioning settings. Arbitrary project settings are excluded. Unknown fields/statuses or unavailable condition plugins fail the same validators during preview and activation. Plugin workflow conditions require the same explicit new-project scope consent as plugin automation.
+
+Responsibility rules retain department/location criteria, logical team aliases, approver roles and optional organization integration aliases. Activation creates the mapped team/rule and validates active approvers with project access. It does not initiate an approval run.
+
+Optional sample_person_id in preview uses the selected active human account's current Desk attributes and organization membership to show the responsible team and approver accounts. Missing or ambiguous matches require manual assignment. The person is not exported into the package. Changes to those attributes after preview invalidate the preview fingerprint; no directory operation or external task is executed.
