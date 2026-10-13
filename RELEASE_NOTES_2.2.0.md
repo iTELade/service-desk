@@ -1,37 +1,36 @@
-# Service Desk 2.2.0 — implementation candidate
+# Service Desk 2.2.0
 
-Status: **work in progress, not a published stable release**. PR #79 contains the implementation candidate. Do not merge until the remaining acceptance gates in VALIDATION_2.2.0.md are met.
+Version 2.2.0 is a major expansion of the self-hosted Service Desk platform. Release completion, downloadable artifact and published GHCR image are verified separately by GitHub Actions; this source document alone is not proof of a successful release.
 
-## Implemented foundation
+## What's included
 
-- Editable project blueprint API, built-in HR/IT/accounts/Facilities packages, saved project drafts, preview and atomic activation, portable import/export and configuration capture.
-- Separately deployed plugin connectors with manifest registration, scoped permissions, encrypted connection secrets, durable idempotent jobs, pause/cancel/retry and explicit delivery/business-result separation, event subscriptions, version-bound workflow condition proofs, declarative action/panel UI and encrypted plugin settings. No business plugin is bundled.
-- Responsible teams, affected person, handover acknowledgement, responsibility rules and local department/location metadata.
-- Sequential approval stages with parallel all/any decisions, delegation, rejection reasons and invalidation after material ticket changes.
-- Required subtask/dependency blockers, cycle detection, optional versioned processes and explicit migration preview.
-- Participants distinct from watchers, same-project duplicate merge, aliases, recycle/restore without automatic job resumption.
-- Extended parameterized filters with AND/OR/IN/date comparisons/currentUser, bulk preview and per-item outcomes.
-- Configuration revisions, restore validation, configuration consistency checks, read-only transition/SLA/automation diagnostics.
-- Configured customer section order and route-owned settings navigation; next step and permission-aware public customer history, personal reminders, notification event preferences and quiet hours.
-- Period reports with team/reopen metrics and quantiles, aging, protected attachment policy and storage quotas, isolated raster/PDF previews and FTS search candidates.
-- Passwordless discoverable passkeys for local accounts, mandatory user verification and fresh reauthentication for key changes; existing hardware FIDO2 remains supported.
-- Integration and assistance prepared in PR #78 are included in this branch; no separate 2.1.1 release is published.
+- Editable project blueprints and built-in HR, IT/Helpdesk, account administration and Facilities project configurations, drafts, portable packages with explicit role/team/form/integration mapping, dry-run validation, atomic activation and versioned edit/restore.
+- External plugin runtime and SDK: permission-scoped connectors, encrypted configuration, declarative actions/panels, safe workflow integration, durable version-bound jobs with cancellation/retries, migration coordination and diagnostics. Business-specific plugins belong to their own repositories.
+- Multi-step approval processes (sequential or all/any parallel), decisions, withdrawal, delegation, responsibility matrices and affected-person context. Workflow guardrails, subtasks, dependencies, tickets' process versioning and audited migration previews.
+- Configurable customer portal sections and field order with privacy protections; public communication history, participants separate from watchers, explicit merge aliases and ticket recycle/restore.
+- Configuration revisions, diagnostics, impact previews, consistency checks, advanced AND/OR/IN/date/currentUser filters, periodic reports and protected image/PDF attachment previews.
+- Search suggestions from ticket titles/descriptions and from accessible linked services and assets, with explanatory ranking and project permission enforcement.
+- Notification in-app summaries and opt-in daily/hourly e-mail digests by project using configured SMTP channels. Local timezone and quiet hours, crash-safe cursor tracking, encrypted queued messages and sender-time revalidation of access.
+- Concurrency-safe SMTP outbox claiming with five-minute leases and retry recovery. Automatic time-based purging for deleted blueprint and unactivated draft snapshots, preserving tombstone IDs.
+- Passwordless discoverable WebAuthn passkeys for active local accounts with user verification, registration/revocation and virtual authenticator regression tests. LDAP/SSO identities continue using their existing provider; USB/NFC security keys and TOTP remain separate supported methods.
+- Service Desk 2.1.1 Knowledge Base integration and ticket assistance improvements incorporated into 2.2.0, without a separate 2.1.1 production tag.
 
-## Authentication boundary
+## Upgrade and rollback
 
-Passkeys are supported for active local accounts. LDAP and SSO-only accounts continue to use their identity provider, so local credentials cannot bypass directory/provider policy. The new tests verify WebAuthn cryptography and a virtual browser authenticator; physical iPhone and hybrid interoperability require a separate manual acceptance test.
+The schema is upgraded forward-only to **12** (from 2.1.0 first apply **10 → 11 → 12**). Before updating, take a verified backup of the full persistent data volume, database, stored attachments and matching `master.key`. Test restore of that backup. Rollback requires restoring the entire pre-upgrade backup and older application image; never start 2.1.x code directly against schema 12. See `UPGRADE.md` and `VALIDATION_2.2.0.md`.
 
-## Database and rollback
+## Known limitations / outstanding acceptance
 
-Schema **11 → 12**, forward-only. Upgrading from stable 2.1.0 also applies schema 10 → 11. New tables preserve existing tickets, keys and identities. Back up the complete data volume and matching master.key before deployment. Rollback requires restoring the complete pre-upgrade backup; do not start older code on schema 12.
+- **Physical iPhone/Safari passkey registration and login and desktop-to-iPhone QR/hybrid authentication have not been physically validated.** Automated WebAuthn/virtual-authenticator results do not count as hardware acceptance. See `PASSKEY_ACCEPTANCE_2.2.0.md`. Do not depend on these flows as the sole recovery route until manually tested.
+- Cross-project queue references and some external service/asset mapping paths require additional explicit portability work. Import rejects unknown mappings rather than guessing.
+- Ticket deletion is soft-delete/recovery only: permanent destructive purge of tickets with linked records and attachments is deliberately blocked. Configuration blueprint/draft purge is available with audit and retention.
+- Opt-in digest delivery uses existing per-project SMTP channels, not external notification transport plugins. External SMTP service availability and exact delivery once after a network crash are not guaranteed.
+- Some advanced plugin extension variants, end-to-end operations under full production load and process edge cases require further acceptance coverage. See `VALIDATION_2.2.0.md`; do not interpret feature availability as complete closure of every roadmap checkbox.
 
-## Explicit exclusions
+## Product boundaries
 
-- No LDAP/AD account lifecycle plugin, account deletion retention, or new business connector; those belong to separate repositories.
-- No configurable agent layout builder and no ticket-creation drafts. Project configuration drafts are included.
-- The knowledge application stays separate.
-- Mobile application is a preliminary direction for 3.0, outside this release.
+No LDAP/AD account lifecycle implementation, ticket drafts, configurable agent layout builder or bundled third-party business connector. Knowledge Base remains a separate repository. Mobile apps remain a preliminary goal for 3.0.
 
-## Validation
+## Testing and acceptance
 
-See VALIDATION_2.2.0.md for actual evidence and uncompleted gates. The candidate version number is not evidence of a release or production deployment.
+See `VALIDATION_2.2.0.md`, GitHub Actions checks on the exact published commit, and `PASSKEY_ACCEPTANCE_2.2.0.md` for manual acceptance. Do not mark missing physical or operator tests as passed.
