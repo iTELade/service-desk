@@ -31,3 +31,18 @@ test('0.7.1 DOM: asset catalogue and notification switches persist from project 
 test('0.7.1 DOM: updates page has check action and no repository/token form',async()=>{const u=ui();try{
  u.w.document.querySelector('#app').innerHTML=await u.call('updatesView()');assert.equal(u.w.document.querySelector('[name=repository]'),null);assert.equal(u.w.document.querySelector('[name=token]'),null);assert.ok(u.w.document.querySelector('[data-v6-action=release-check]'));assert.match(u.w.document.body.textContent,/6 godzin/);
  }finally{u.close();}});
+
+test('plugin panel treats signed result as plain text and action form preserves typed input',async()=>{
+ const u=ui();try{
+  u.state.ticket={id:42,key:'CW-42',project_id:1,can_work:true};
+  const hook={id:'check',kind:'ticket.action',label:'Check service',description:'Neutral check',action:'check',fields:[{key:'count',label:'Count',type:'number',required:true},{key:'notify',label:'Notify',type:'checkbox',required:false}]};
+  u.w.mock=async(path,opts={})=>{if(path==='/desk/v22/tickets/42')return {next:{action:'Realizacja'},context:{handover:{}},plugin_ui:[{id:'neutral.ui',name:'Neutral',hooks:[hook,{id:'state',kind:'ticket.panel',label:'Service state',description:'',fields:[{key:'state',label:'State'}],values:{state:'<img src=x onerror=alert(1)>'}}]}]};if(opts.method==='POST'){u.requests.push({path,...opts});return {id:7};}return [];};
+  u.w.fetch=async(url,opts={})=>{const path=url.replace(/^\/api/,'');const value=path==='/meta'?u.state.meta:await u.w.mock(path,{...opts,data:opts.body?JSON.parse(opts.body):undefined});return {ok:true,json:async()=>value};};
+  u.w.document.querySelector('#app').innerHTML='<main id="main"><div class="ticket-layout"><div></div></div></main>';
+  await u.call('platformUI.mount(document.querySelector("#main"),"ticket","CW-42")');
+  const panel=u.w.document.querySelector('[data-plugin-panel]');assert.ok(panel.textContent.includes('<img src=x'));assert.equal(panel.querySelector('img'),null);
+  u.w.document.querySelector('[data-p22=plugin-action]').click();await new Promise(r=>setTimeout(r,5));
+  const form=u.w.document.querySelector('[data-p22-dialog]');form.elements.count.value='3';form.elements.notify.checked=true;form.dispatchEvent(new u.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,10));
+  const sent=u.requests.find(r=>r.path==='/desk/v22/plugins/neutral.ui/jobs');assert.ok(sent);assert.equal(sent.data.hook_id,'check');assert.equal(sent.data.input.count,3);assert.equal(sent.data.input.notify,true);
+ }finally{u.close();}
+});

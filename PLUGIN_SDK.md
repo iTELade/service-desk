@@ -52,9 +52,23 @@ A manifest may declare workflow.condition and request its permission. Project pr
 
 Manifests may declare dependencies as `[{"id":"base.plugin","minimum":"1.0.0"}]` and apiVersion:1. Enable and execution validate dependency availability/version. Updating a manifest disables it and pauses pending jobs for explicit review; changed permissions never grant themselves automatically.
 
+## Declarative UI and settings
+
+With `ui.extension` declared and granted, a manifest can define bounded `hooks`. Ticket panels and actions are rendered by core with escaped text; no uploaded JavaScript, HTML, styles or external iframes execute. A ticket.action declares an action identifier and typed fields (text/number/date/checkbox/select); POST jobs with hook_id validates input against that exact declaration and the current role/project grants. Use the authenticated result endpoint with a bounded `data` object whose keys match declared panel/widget fields. Unknown fields and secret input fields are rejected.
+
+admin.settings/project.settings hooks may also declare password fields. GET/POST `/api/desk/v22/plugin-settings/PLUGIN_ID/PROJECT_ID` uses project ID 0 for global administrator settings. POST requires hook_id, version and input. Secret values are encrypted with master.key, omitted from reads, and retained when submitted empty. Configuration is delivered only to the owning connector when `settings.read` is explicitly granted; it never enters the job history payload. Configuration changes invalidate queued jobs and workflow proofs. The connector receives `settings.global` and `settings.project`, keyed by hook ID, over its configured transport.
+
+Example hook:
+
+```json
+{"id":"verify","kind":"ticket.action","label":"Verify service","action":"verify","fields":[{"key":"mode","label":"Mode","type":"select","options":["check","review"],"required":true}]}
+```
+
+Declare the matching capability and scheduled.job; administrative grants remain separate from the manifest. Hook role lists contain admin/manager/agent. Public portal panels currently render declarative metadata only; dynamic job results remain limited to their authorized job reader.
+
 ## Remaining capability boundary
 
-This candidate implements external connector jobs, event subscriptions, scoped ticket access and asynchronous workflow conditions. Arbitrary uploaded UI/code, declarative panels, migration runners and other automation/UI hooks remain unimplemented. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
+This candidate implements external connector jobs, event subscriptions, scoped ticket access, asynchronous workflow conditions, typed settings, ticket panels and action forms. Migration runners, automation action/trigger integration, dashboard mounting and request-form field import remain pending. Arbitrary uploaded UI/code is outside the isolated connector model. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
 
 ## Lifecycle
 

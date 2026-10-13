@@ -5,7 +5,7 @@ Status: **work in progress, not a published stable release**. PR #79 contains th
 ## Implemented foundation
 
 - Editable project blueprint API, built-in HR/IT/accounts/Facilities packages, saved project drafts, preview and atomic activation, portable import/export and configuration capture.
-- Separately deployed plugin connectors with manifest registration, scoped permissions, encrypted connection secrets, durable idempotent jobs, pause/cancel/retry and explicit delivery/business-result separation, event subscriptions and version-bound workflow condition proofs. No business plugin is bundled.
+- Separately deployed plugin connectors with manifest registration, scoped permissions, encrypted connection secrets, durable idempotent jobs, pause/cancel/retry and explicit delivery/business-result separation, event subscriptions, version-bound workflow condition proofs, declarative action/panel UI and encrypted plugin settings. No business plugin is bundled.
 - Responsible teams, affected person, handover acknowledgement, responsibility rules and local department/location metadata.
 - Sequential approval stages with parallel all/any decisions, delegation, rejection reasons and invalidation after material ticket changes.
 - Required subtask/dependency blockers, cycle detection, optional versioned processes and explicit migration preview.

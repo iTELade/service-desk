@@ -139,3 +139,52 @@ test('plugin subscriptions preserve business actor and durable deduplication; wo
   f.ext.plugins.install({id,name:'Neutral hooks',version:'1.1.0',capabilities:['scheduled.job'],permissions:['ticket.read','scheduled.job']},f.admin);assert.equal(f.ext.plugins.list(f.admin)[0].enabled,false);
  }finally{f.close();}
 });
+
+test('changing affected person invalidates approvals and pauses already authorized external jobs',()=>{
+ const f=fixture();try{
+  const p=f.project('SUBJECT'),t=f.ticket(p),subject=f.user('affected@x.test');
+  const id='neutral.approval';f.ext.plugins.install({id,name:'Neutral approval',version:'1.0.0',capabilities:['scheduled.job'],permissions:['ticket.read','scheduled.job']},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);
+  f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:['ticket.read','scheduled.job']},f.admin);
+  const run=f.v.processes.approval(t.id,{stages:[{name:'Approval',mode:'all',users:[f.admin.id]}]},f.admin);
+  assert.throws(()=>f.v.runtime.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'subject-pending-001'},f.admin),status(409));
+  f.v.processes.decide(run.id,{version:1,decision:'approved',reason:'Reviewed'},f.admin);
+  const job=f.v.runtime.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'subject-approved-001'},f.admin);
+  f.v.processes.metadata(t.id,{version:0,subject_id:subject.id},f.admin);
+  assert.equal(f.db.prepare('SELECT state FROM approval_runs WHERE id=?').get(run.id).state,'cancelled');
+  assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(job.id).state,'paused');
+  assert.equal(f.desk.ticket(t.id).version,t.version+1);
+  assert.throws(()=>f.v.runtime.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'subject-changed-001'},f.admin),status(409));
+ }finally{f.close();}
+});
+
+test('declarative plugin actions enforce schema and scope; revoked UI disappears',()=>{
+ const f=fixture();try{
+  const p=f.project('PUI'),t=f.ticket(p),id='neutral.ui',manifest={id,name:'Neutral UI',version:'1.0.0',capabilities:['scheduled.job','ticket.action','ticket.panel'],permissions:['scheduled.job','ticket.read','ui.extension'],hooks:[{id:'check',kind:'ticket.action',label:'Check',action:'check',fields:[{key:'amount',label:'Amount',type:'number',required:true}]},{id:'result',kind:'ticket.panel',label:'Result',fields:[{key:'state',type:'text'}]}]};
+  f.ext.plugins.install(manifest,f.admin);f.ext.plugins.setEnabled(id,true,f.admin);f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:manifest.permissions},f.admin);
+  assert.equal(f.v.runtime.uiContract(p.id,f.admin,t.id)[0].hooks.length,2);
+  assert.throws(()=>f.v.runtime.enqueue(id,{ticket_id:t.id,action:'ignored',hook_id:'check',input:{amount:'3'},request_key:'ui-action-invalid-001'},f.admin),status(400));
+  const job=f.v.runtime.enqueue(id,{ticket_id:t.id,action:'ignored',hook_id:'check',input:{amount:3},request_key:'ui-action-valid-001'},f.admin);
+  const payload=JSON.parse(f.db.prepare('SELECT payload FROM platform_jobs WHERE id=?').get(job.id).payload);assert.equal(payload.action,'check');assert.equal(payload.input.amount,3);
+  f.ext.plugins.setEnabled(id,false,f.admin);assert.deepEqual(f.v.runtime.uiContract(p.id,f.admin,t.id),[]);
+  assert.throws(()=>f.ext.plugins.install({...manifest,id:'bad.ui',hooks:[{id:'eval',kind:'ticket.action',label:'Bad',action:'x',fields:[{key:'constructor',type:'text'}]}]},f.admin),status(400));
+ }finally{f.close();}
+});
+
+test('plugin settings encrypt secrets, mask reads, preserve omitted secrets and bind queued jobs to revision',async()=>{
+ const f=fixture();try{
+  const p=f.project('SECRET'),t=f.ticket(p),id='neutral.settings',manifest={id,name:'Neutral settings',version:'1.0.0',capabilities:['scheduled.job','admin.settings','project.settings'],permissions:['ticket.read','scheduled.job','ui.extension','settings.read'],hooks:[{id:'connection',kind:'admin.settings',label:'Connection',fields:[{key:'host',label:'Host',type:'text',required:true},{key:'password',label:'Password',type:'password',required:true}]},{id:'project',kind:'project.settings',label:'Project',fields:[{key:'mode',type:'select',options:['safe','review'],required:true}]}]};
+  f.ext.plugins.install(manifest,f.admin);f.ext.plugins.setEnabled(id,true,f.admin);
+  const sent=[],r=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async(...args)=>sent.push(args)});
+  r.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:manifest.permissions},f.admin);
+  const saved=r.settings.save(id,0,{hook_id:'connection',version:0,input:{host:'neutral.example.test',password:'test-only-secret'}},f.admin)[0];
+  assert.equal(saved.has_secret.password,true);assert.equal(saved.values.password,undefined);assert.ok(!f.db.prepare('SELECT config FROM plugin_settings').get().config.includes('test-only-secret'));
+  const stale=r.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'settings-stale-001'},f.admin);
+  r.settings.save(id,0,{hook_id:'connection',version:1,input:{host:'new.example.test',password:''}},f.admin);
+  assert.throws(()=>r.settings.save(id,0,{hook_id:'connection',version:1,input:{host:'old'}},f.admin),status(409));
+  await r.flush();assert.equal(sent.length,0);assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(stale.id).state,'paused');
+  r.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'settings-current-001'},f.admin);await r.flush();assert.equal(JSON.parse(sent[0][1]).settings.global.connection.password,'test-only-secret');
+  const customer=f.user('secret-customer@x.test');assert.throws(()=>r.settings.list(id,0,customer),status(403));
+  r.configure(id,{version:1,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:['ticket.read','scheduled.job','ui.extension']},f.admin);
+  r.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'settings-without-read-001'},f.admin);await r.flush();assert.equal(JSON.parse(sent[1][1]).settings,undefined);
+ }finally{f.close();}
+});

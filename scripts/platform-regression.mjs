@@ -8,7 +8,7 @@ import { chromium, firefox, webkit } from 'playwright';
 
 const dataDir = mkdtempSync(join(tmpdir(), 'desk22-platform-')), probe = createServer();
 await new Promise(r => probe.listen(0, '127.0.0.1', r)); const port = probe.address().port; await new Promise(r => probe.close(r));
-const base = 'http://127.0.0.1:' + port, engine = process.env.DESK_BROWSER_ENGINE || 'chromium';
+const base = 'http://localhost:' + port, engine = process.env.DESK_BROWSER_ENGINE || 'chromium';
 const server = spawn(process.execPath, ['server.mjs'], { env: { ...process.env, NODE_ENV: 'test', APP_URL: base, HOST: '127.0.0.1', PORT: String(port), DATA_DIR: dataDir }, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = '', browser, count = 0; const errors = [];
 server.stderr.on('data', c => logs += c);
@@ -57,10 +57,19 @@ try {
   await customerContext.close();
   const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=';
   const uploaded = await api('/desk/r112/attachments', { ticket_key: t.key, filename: 'preview.png', mime: 'image/png', data_base64: png });
-  await page.goto(base + '/#/ticket/' + t.key); await page.locator('#activity-files').click();
+  await page.goto(base + '/#/ticket/' + t.key); await page.reload(); await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1'); await page.locator('#activity-files').click();
   await page.locator('[data-r112-preview="' + uploaded.id + '"]').click();
   await page.waitForFunction(() => { const img = document.querySelector('.attachment-preview-image'); return img?.complete && img.naturalWidth === 1; });
   check('Raster attachment preview', true); await page.locator('[data-preview-close]').click();
+  const pluginId='neutral.browser',pluginPermissions=['ticket.read','scheduled.job','ui.extension','settings.read'];
+  await api('/desk/plugins',{id:pluginId,name:'Neutral browser plugin',version:'1.0.0',capabilities:['scheduled.job','admin.settings','ticket.action','ticket.panel'],permissions:pluginPermissions,hooks:[{id:'configuration',kind:'admin.settings',label:'Neutral settings',fields:[{key:'host',label:'Host',type:'text',required:true},{key:'password',label:'Password',type:'password',required:true}]},{id:'check',kind:'ticket.action',label:'Neutral check',action:'check',fields:[{key:'amount',label:'Amount',type:'number',required:true}]},{id:'result',kind:'ticket.panel',label:'Neutral state',fields:[{key:'state',label:'State',type:'text'}]}]});
+  await api('/desk/v22/plugins/'+pluginId+'/connector',{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:pluginPermissions});
+  await page.goto(base+'/#/plugins22');await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();
+  await page.locator('[data-p22-dialog] [name=host]').fill('neutral.example.test');await page.locator('[data-p22-dialog] [name=password]').fill('test-only-plugin-secret');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
+  await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();check('Plugin secret is masked in UI',await page.locator('[data-p22-dialog] [name=password]').inputValue()==='');await page.keyboard.press('Escape');
+  await api('/desk/plugins/'+pluginId,{enabled:true});await page.goto(base+'/#/ticket/'+t.key);await page.getByRole('button',{name:'Neutral check',exact:true}).click();
+  await page.locator('[data-p22-dialog] [name=amount]').fill('3');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
+  const pluginJobs=await api('/desk/v22/jobs'),pluginJob=pluginJobs.find(j=>j.plugin_id===pluginId);check('Declarative action queues typed input',pluginJob?.payload.input.amount===3&&pluginJob.payload.action==='check');
   // Passkey registration and login use actual browser-generated cryptographic credentials.
   // This is a virtual authenticator, not evidence of physical iPhone/hybrid interoperability.
   if (engine === 'chromium') {
