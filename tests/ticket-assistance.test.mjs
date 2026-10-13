@@ -181,3 +181,33 @@ test('attention and handover are read-only, staff-only and omit internal comment
     f.close();
   }
 });
+
+
+test('similar tickets match linked services and assets without leaking inaccessible inventory', () => {
+  const f=fixture();
+  try {
+    const p=f.project('SVC'),inventory=f.project('INV','internal');
+    f.db.prepare("UPDATE projects SET module_type='assets' WHERE id=?").run(inventory.id);
+    f.db.prepare('UPDATE projects SET settings=? WHERE id=?').run(JSON.stringify({asset_projects:[inventory.id]}),p.id);
+    const first=f.ticket(p),second=f.ticket(p);
+    f.db.prepare('UPDATE tickets SET title=? WHERE id=?').run('Printer port replacement',first.id);
+    f.db.prepare('UPDATE tickets SET title=? WHERE id=?').run('Network credentials rotation',second.id);
+    const stamp=new Date().toISOString();
+    const service=Number(f.db.prepare('INSERT INTO managed_services(project_id,name,description,state,created_at,updated_at) VALUES(?,?,?,?,?,?)').run(p.id,'Mail relay','Outbound messages','operational',stamp,stamp).lastInsertRowid);
+    const asset=Number(f.db.prepare('INSERT INTO assets(project_id,asset_key,name,created_at,updated_at) VALUES(?,?,?,?,?)').run(inventory.id,'INV-1','Laptop QA',stamp,stamp).lastInsertRowid);
+    f.db.prepare('INSERT INTO ticket_services(ticket_id,service_id) VALUES(?,?)').run(first.id,service);
+    f.db.prepare('INSERT INTO ticket_assets(ticket_id,asset_id) VALUES(?,?)').run(first.id,asset);
+    enable(f,p);
+    const matched=f.a.similar({project_id:p.id,title:'Completely unrelated system failure',service_ids:[service],asset_ids:[asset]},f.admin);
+    assert.equal(matched.matches.length,1);
+    assert.equal(matched.matches[0].key,first.key);
+    assert.ok(matched.matches[0].score>=95);
+    assert.ok(matched.matches[0].reasons.includes('Powiązana usługa'));
+    assert.ok(matched.matches[0].reasons.includes('Powiązane urządzenie'));
+    assert.equal(f.a.similar({project_id:p.id,title:'Completely unrelated system failure'},f.admin).matches.length,0);
+    assert.throws(()=>f.a.similar({project_id:p.id,title:'Completely unrelated system failure',service_ids:[999999]},f.admin),error(404));
+    assert.throws(()=>f.a.similar({project_id:p.id,title:'Completely unrelated system failure',asset_ids:[asset,asset]},f.admin),error(400));
+    const customer=f.user('service-similarity@x.test','customer');
+    assert.throws(()=>f.a.similar({project_id:p.id,title:'Completely unrelated system failure',service_ids:[service]},customer),error(403));
+  } finally {f.close();}
+});
