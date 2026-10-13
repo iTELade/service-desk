@@ -596,6 +596,8 @@ test('configuration recycle respects retention, ACL, restore and permanent purge
     assert.throws(()=>f.v.configTrash.trash('blueprint',tpl.id,{version:1,confirm_name:'Temporary IT template'},f.admin),status(404));
     assert.ok(Math.abs(Date.parse(gone.expires_at)-Date.now()-14*86400000)<15000);
     assert.equal(f.v.governance.recycle(f.admin).find(r=>r.id===gone.id).kind,'blueprint');
+    const replacement=f.v.blueprints.save(null,{name:'Reserved ID fixture',config:{projects:[{alias:'new',project_type:'internal',forms:[{name:'New request'}]}]}},f.admin);assert.notEqual(replacement.id,tpl.id,'Recycled blueprint identifiers must not be reused');
+    
     const restored=await f.v.handle('POST','/api/desk/v22/recycle/'+gone.id+'/restore',f.admin,new URLSearchParams(),async()=>({confirm_name:'Temporary IT template'}));
     assert.equal(restored.value.activated,false);
     assert.equal(f.v.blueprints.list(f.admin).custom.some(x=>x.id===tpl.id),true);
