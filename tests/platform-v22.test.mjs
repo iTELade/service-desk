@@ -10,7 +10,7 @@ import { migrateV12 } from '../lib/migration-v12.mjs';
 import { createV21 } from '../lib/v21.mjs';
 import { createV22 } from '../lib/v22.mjs';
 import { createPluginRuntime } from '../lib/plugin-runtime.mjs';
-import { compileExpression } from '../lib/query-v22.mjs';
+import { compileExpression, parseExpression, formatExpression } from '../lib/query-v22.mjs';
 import { createPasskeys } from '../lib/passkeys.mjs';
 import { generateKeyPairSync, createHash, randomBytes, sign } from 'node:crypto';
 import { isoCBOR } from '@simplewebauthn/server/helpers';
@@ -550,5 +550,30 @@ test('approval deadlines reject expired decisions without recording votes',()=>{
   const p=f.project('DDL'),t=f.ticket(p);assert.throws(()=>f.v.processes.approval(t.id,{stages:[{name:'Past deadline',users:[f.admin.id],due_at:new Date(Date.now()-1000).toISOString()}]},f.admin),status(400));
   const run=f.v.processes.approval(t.id,{stages:[{name:'Timed review',users:[f.admin.id],due_at:new Date(Date.now()+60000).toISOString()}]},f.admin),config=JSON.parse(f.db.prepare('SELECT config FROM approval_runs WHERE id=?').get(run.id).config);config[0].due_at=new Date(Date.now()-1000).toISOString();f.db.prepare('UPDATE approval_runs SET config=? WHERE id=?').run(JSON.stringify(config),run.id);
   assert.throws(()=>f.v.processes.decide(run.id,{version:1,decision:'approved'},f.admin),status(409));assert.equal(f.db.prepare('SELECT COUNT(*) n FROM approval_votes WHERE run_id=?').get(run.id).n,0);assert.equal(f.db.prepare('SELECT state FROM approval_runs WHERE id=?').get(run.id).state,'pending');
+ }finally{f.close();}
+});
+
+
+test('text and visual query AST round-trip preserve nested logic, literals and parameterized scope',()=>{
+ const f=fixture();try{
+  const p=f.project('AST'),t=f.ticket(p),input='project=AST AND (priority IN (P1,P3) OR assignee=currentUser()) AND custom.note = '+JSON.stringify('A "quoted" value');
+  f.db.prepare('UPDATE tickets SET custom_values=? WHERE id=?').run(JSON.stringify({note:'A "quoted" value',amount:12.5,code:'12.5'}),t.id);const numeric=compileExpression('custom.amount=12.5 AND custom.code="12.5"',{user:f.admin,projects:f.projects,allowedFields:['amount','code']});assert.equal(f.db.prepare('SELECT COUNT(*) n FROM tickets t WHERE '+numeric.sql).get(...numeric.values).n,1);assert.deepEqual(parseExpression(formatExpression({kind:'comparison',field:'custom.amount',operator:'=',value:12.5})).value,12.5);
+  const ast=parseExpression(input),formatted=formatExpression(ast),query=compileExpression(formatted,{user:f.admin,projects:f.projects,allowedFields:['note']});assert.deepEqual(query.ast,ast);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM tickets t WHERE '+query.sql).get(...query.values).n,1);
+  const untrusted={kind:'comparison',field:'title) OR 1=1 --',operator:'=',value:'x'};assert.throws(()=>formatExpression(untrusted),status(400));assert.throws(()=>formatExpression({kind:'comparison',field:'assignee',operator:'=',value:{function:'eval'}}),status(400));assert.throws(()=>formatExpression({kind:'and',children:[]}),status(400));assert.throws(()=>compileExpression('custom.note IS EMPTY',{user:f.admin,projects:f.projects}),status(403));
+ }finally{f.close();}
+});
+
+test('project queues preserve portable query logic with explicit account form and team aliases',()=>{
+ const f=fixture();try{
+  const p=f.project('QPT'),source=f.user('source-queue-agent@x.test','agent'),target=f.user('target-queue-agent@x.test','agent');f.projects.setMember(p.id,source.id,'agent',f.admin);
+  const form=f.catalog.save(p.id,null,{name:'Queue form',fields:[{key:'code',label:'Code',type:'text'}]},f.admin),team=f.v.processes.saveTeam(null,{project_id:p.id,name:'Queue team',members:[source.id]},f.admin)[0];
+  const expression='project='+p.key+' AND (assignee='+source.id+' OR assignee=currentUser()) AND form='+form.id+' AND team='+team.id+' AND custom.code="Ready"';
+  f.db.prepare('INSERT INTO v8_saved_views(owner_id,name,project_id,filters,shared,columns,sort_key,sort_dir,density,created_at,updated_at) VALUES(?,?,?,?,1,?,?,?,?,?,?)').run(source.id,'Portable team queue',p.id,JSON.stringify({expression,priority:'P2'}),JSON.stringify(['issue','status','assignee']),'priority','asc','compact',new Date().toISOString(),new Date().toISOString());
+  const cfg=f.v.blueprints.fromProject(p.id,{name:'Queue package'},f.admin).config,project=cfg.projects[0],queue=project.queues[0];assert.ok(queue.query_ast);assert.ok(!JSON.stringify(cfg).includes(source.email));assert.equal(queue.filters.expression,undefined);assert.ok(JSON.stringify(queue.query_ast).includes('@self'));assert.ok(JSON.stringify(queue.query_ast).includes('@assignee/role_1'));
+  const draft=f.v.blueprints.draft(null,{name:'Queue destination',config:cfg},f.admin),b={version:1,mapping:{project:{key:'QPN',name:'Queue destination',roles:{role_1:target.id},teams:{team_1:[target.id]}}}},preview=f.v.blueprints.validate(draft.id,b,f.admin);assert.equal(preview.valid,true,preview.errors.join(';'));const id=f.v.blueprints.activate(draft.id,{...b,preview_fingerprint:preview.preview_fingerprint},f.admin).projects.project;
+  const saved=f.db.prepare('SELECT * FROM v8_saved_views WHERE project_id=?').get(id),filters=JSON.parse(saved.filters),newForm=f.catalog.list(id,f.admin,'manage').find(x=>x.name===form.name),newTeam=f.v.processes.teams(f.admin,id)[0],stamp=new Date().toISOString(),ticketId=Number(f.db.prepare("INSERT INTO tickets(project_id,key,number,title,description,type,priority,status,workflow_status,reporter_id,created_by,created_at,updated_at,request_type_id,form_snapshot,custom_values) VALUES(?,?,1,'Queue test','Queue fixture','request','P2','open','open',?,?,?,?,?,?,?)").run(id,'QPN-1',f.admin.id,f.admin.id,stamp,stamp,newForm.id,JSON.stringify(newForm),JSON.stringify({code:'Ready'})).lastInsertRowid),t=f.desk.ticket(ticketId);
+  f.db.prepare('UPDATE tickets SET assignee_id=?,request_type_id=?,priority=?,custom_values=? WHERE id=?').run(target.id,newForm.id,'P2',JSON.stringify({code:'Ready'}),t.id);f.v.processes.metadata(t.id,{version:0,team_id:newTeam.id},f.admin);
+  const query=compileExpression(filters.expression,{user:target,projects:f.projects,allowedFields:['code']});assert.equal(f.db.prepare('SELECT COUNT(*) n FROM tickets t WHERE '+query.sql).get(...query.values).n,1);assert.deepEqual(JSON.parse(saved.columns),['issue','status','assignee']);assert.equal(saved.density,'compact');assert.equal(saved.sort_key,'priority');assert.equal(saved.sort_dir,'asc');
+  const outside={projects:[{...project,queues:[{name:'Outside project queue',query_ast:{kind:'comparison',field:'project',operator:'=',value:'OTHER'}}]}]};assert.throws(()=>f.v.blueprints.portable(outside),status(400));
  }finally{f.close();}
 });
