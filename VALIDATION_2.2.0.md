@@ -62,6 +62,13 @@
 - Preferencje godzin ciszy nie ukrywają już odczytu skrzynki powiadomień w aplikacji. Digest udostępnia ograniczone i ponownie weryfikowane podsumowanie według widocznych zgłoszeń. **Brak** jeszcze pełnego terminarza digestów oraz dostarczania przez istniejące kanały.
 - Weryfikacja wszystkich nowych commitów wymaga sukcesu najnowszego pełnego CI. Starszy zielony przebieg nie stanowi dowodu dla nowych zmian.
 
+## Nowe implementacje w kandydacie — wyszukiwanie kontekstowe i pracownicy poczty
+
+- Podobne zgłoszenia mogą uwzględniać identyfikatory usług i assetów, a widok istniejącego zgłoszenia automatycznie wyprowadza dozwolone powiązania. Każdy wskazany asset i usługa jest weryfikowany wobec bieżących uprawnień agenta; klient nie może przekazać referencji do zasobu, którego nie obsługuje. Wyszukiwanie ogranicza zbiór kandydatów do 2000, priorytetyzuje kontekstowe powiązania i zwraca czytelne powody rankingu. Nowe testy pokrywają kontekst jawny oraz wyprowadzony z istniejącej sprawy.
+- Dwa niezależne procesy wysyłkowe nie mogą jednocześnie przejąć tego samego wpisu SMTP: atomowe przejęcie w SQLite z 5-minutową dzierżawą i powrotem zleceń po restarcie. Zapisany Message-ID jest ponawiany bez zmiany. Zewnętrzny SMTP nie zapewnia dokładnie jednokrotnego efektu przy awarii po doręczeniu, ale przed zapisaniem potwierdzenia. Dodano test jednostkowy leasingu i test dwóch instancji nadawcy.
+- Usunięte drafty i szablony po wygaśnięciu okresu retencji są czyszczone porcjami, z systemowym wpisem audytu i zachowaniem minimalnego tombstone identyfikatora. Działa podczas startu Desk i cyklicznie. Nie dotyczy twardego usuwania zgłoszeń z relacjami.
+- Wyniki nowego CI są sprawdzane osobno. Nie oznaczać testów sprzętowego iPhone'a, pełnych digestów/kanałów ani bezpiecznego trwałego usuwania zgłoszeń jako zaliczonych.
+
 ## Required before stable publication
 
 - [ ] CI application, migration and upgrade checks on the final commit.
