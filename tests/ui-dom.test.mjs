@@ -55,3 +55,12 @@ test('global plugin settings open without ticket context, mask secrets and rende
   const form=u.w.document.querySelector('[data-p22-dialog]');assert.ok(form);assert.equal(form.elements.count.value,'0');assert.equal(form.elements.password.value,'');assert.equal(form.elements.password.required,false);assert.ok(form.textContent.includes('skonfigurowane'));
  }finally{u.close();}
 });
+
+test('global plugin migration dialog opens with a durable request key and wired cancellation',async()=>{
+ const u=ui();try{
+  const plugin={id:'neutral.migrate',name:'Migration fixture',enabled:false,version:'1.0.0',revision:1,data_version:0,manifest:{description:'',dataVersion:1,capabilities:['migration'],hooks:[]}},requests=[];
+  u.state.ticket=null;u.w.fetch=async(url,opts)=>{requests.push({url,opts});return {ok:true,json:async()=>url==='/api/desk/v22/plugins'?[plugin]:url==='/api/desk/v22/plugins/neutral.migrate/migrations'?[{id:7,version:2,state:'sent',payload:{from:0,to:1}}]:u.state.meta};};
+  u.w.document.querySelector('#app').innerHTML='<main id="main"></main>';u.w.document.querySelector('#main').innerHTML=await u.call('platformUI.render("plugins22",null,new URLSearchParams())');await u.call('platformUI.mount(document.querySelector("#main"),"plugins22")');u.w.document.querySelector('[data-p22=plugin-migrations]').click();await new Promise(r=>setTimeout(r,10));
+  const form=u.w.document.querySelector('[data-p22-dialog]');assert.ok(form);assert.match(form.elements.request_key.value,/^[a-f0-9-]{36}$/);u.w.document.querySelector('[data-p22=migration-cancel]').click();await new Promise(r=>setTimeout(r,10));assert.ok(requests.some(r=>r.url==='/api/desk/v22/plugin-migrations/7'&&JSON.parse(r.opts.body).version===2));
+ }finally{u.close();}
+});

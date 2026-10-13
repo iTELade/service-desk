@@ -310,3 +310,24 @@ test('cancelling an in-flight external migration cannot be undone by a late HTTP
   assert.equal(runtime.migrations.list(id,f.admin)[0].state,'cancelled');assert.throws(()=>runtime.migrations.result(id,job.id,secret,{status:'completed',data_version:1}),status(409));assert.equal(f.ext.plugins.list(f.admin)[0].data_version,0);
  }finally{f.close();}
 });
+
+test('versioned processes freeze core/plugin conditions; reviewed migration rechecks preview and invalidates jobs',async()=>{
+ const f=fixture();try{
+  const p=f.project('PSN'),agent=f.user('snapshot-agent@x.test','agent');f.projects.setMember(p.id,agent.id,'agent',f.admin);
+  const pluginId='neutral.snapshot';f.ext.plugins.install({id:pluginId,name:'Snapshot condition',version:'1.0.0',capabilities:['workflow.condition','scheduled.job'],permissions:['workflow.condition','scheduled.job','ticket.read']},f.admin);f.ext.plugins.setEnabled(pluginId,true,f.admin);f.v.runtime.configure(pluginId,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:['workflow.condition','scheduled.job','ticket.read']},f.admin);
+  const save=(conditions,plugin_conditions={})=>f.v.governance.settings(p.id,{version:f.projects.project(p.id).version,versioned_process:true,transition_conditions:conditions,plugin_conditions},f.admin);
+  save({resolved:{fields:[],manager:true}},{waiting:[{plugin_id:pluginId,action:'check'}]});const t=f.ticket(p);
+  save({});assert.throws(()=>f.workflows.transition(t,{workflow_status:'waiting',workflow_version:f.workflows.forTicket(t).version},true,f.admin),status(409));assert.throws(()=>f.workflows.transition(t,{workflow_status:'resolved',workflow_version:f.workflows.forTicket(t).version},true,agent),status(403));
+  const fresh=f.ticket(p);assert.equal(f.workflows.transition(fresh,{workflow_status:'resolved',workflow_version:f.workflows.forTicket(fresh).version},true,agent).key,'resolved');
+  // Turning off versioning applies to new work, not already snapshotted work.
+  f.v.governance.settings(p.id,{version:f.projects.project(p.id).version,versioned_process:false,transition_conditions:{},plugin_conditions:{}},f.admin);
+  assert.throws(()=>f.workflows.transition(t,{workflow_status:'resolved',workflow_version:f.workflows.forTicket(t).version},true,agent),status(403));
+  f.v.runtime.reminders({ticket_id:t.id,body:'Review',run_at:new Date(Date.now()+60000).toISOString(),request_key:'snapshot-reminder'},f.admin);
+  const path='/api/desk/v22/tickets/'+t.id+'/migrate-process',request=b=>f.v.handle('POST',path,f.admin,new URLSearchParams(),async()=>b);
+  const preview=(await request({version:t.version})).value;assert.equal(preview.jobs_to_pause,1);assert.equal(preview.old_conditions.resolved.manager,true);assert.deepEqual(preview.new_conditions,{});
+  save({in_progress:{fields:[],manager:true}});await assert.rejects(()=>request({version:t.version,confirm:true,preview_fingerprint:preview.preview_fingerprint}),status(409));
+  const current=(await request({version:t.version})).value;await request({version:t.version,confirm:true,preview_fingerprint:current.preview_fingerprint});
+  assert.equal(f.desk.ticket(t.id).version,t.version+1);assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE ticket_id=?').get(t.id).state,'paused');
+  assert.equal(f.workflows.transition(f.desk.ticket(t.id),{workflow_status:'resolved',workflow_version:f.workflows.forTicket(f.desk.ticket(t.id)).version},true,agent).key,'resolved');
+ }finally{f.close();}
+});

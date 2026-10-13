@@ -4,7 +4,7 @@
 
 - Actual 2.1.0 server code → current server migration passed locally: existing login, private comments, key numbering and encrypted SMTP settings survive. The real backup script restored current encrypted plugin settings; pre-upgrade backup boots with 2.1.0. CI now runs scripts/upgrade-regression-v22.mjs as a release gate.
 - Local syntax checks pass for the implementation candidate.
-- Local application suite: 296 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
+- Local application suite: 298 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
 - New platform tests cover migration/idempotence, blueprint preview/activation, approvals, dependencies, participants, recycle/restore, query grammar, bulk rollback, connector revocation and passkeys.
 - Real WebAuthn signature verification is exercised with synthetic credential data, including synced zero-counter passkeys, replay, origin and user-verification rejection.
 - Synthetic 10,000-ticket scenario passed locally. This is not a concurrent-production benchmark.
@@ -14,6 +14,8 @@
 - Local browser installation failed because downloads returned invalid/truncated archives. Browser tests must run in GitHub Actions; no local browser result is claimed.
 
 - CI on d2b03cbb676cf545ca145443ffb0eea8a7fc4cab passed the main job, the real upgrade job and all Desk–KB engines. Platform tests exposed a corrupt PNG fixture and a plugin-settings route guard; fixes and PDF canvas acceptance tests are prepared for the next run.
+
+- Versioned process snapshots now retain core and plugin transition conditions. Explicit migration previews differences, verifies a fresh preview token and invalidates queued jobs/approvals. New work follows current project settings.
 
 ## Required before stable publication
 

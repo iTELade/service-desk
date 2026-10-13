@@ -2,8 +2,8 @@
 
 Status: W REALIZACJI / UNRELEASED. Dokument określa uzgodniony zakres. Implementacja kandydata i pozostałe bramki odbioru: VALIDATION_2.2.0.md.
 Zależność: przygotowywane 2.1.1, PR #78.
-Pozostawić PR jako draft. Nie scalać do main, nie tworzyć tagu/release'u bez osobnej decyzji; scalenie może uruchomić publikację.
-Numer schematu i migracje zostaną określone podczas implementacji.
+Użytkownik zlecił przygotowanie i wydanie 2.2.0. PR pozostaje draftem do domknięcia uzgodnionego zakresu i bramek walidacji; scalenie uruchamia publikację.
+Kandydat używa schematu 12; migracja i odtworzenie backupu są objęte testem rzeczywistego kodu 2.1.0.
 
 ## Granica wydania
 

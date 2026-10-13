@@ -102,4 +102,4 @@ try {
   }
   if(errors.length)console.error('Browser exceptions:',JSON.stringify(errors));
   check('No browser exceptions', errors.length === 0); console.log(JSON.stringify({ engine, checks: count, physical_iphone_verified: false }));
-} finally { await browser?.close(); server.kill('SIGTERM'); rmSync(dataDir, { recursive: true, force: true }); }
+} catch(err){console.error('Browser exceptions:',JSON.stringify(errors));throw err;} finally { await browser?.close(); server.kill('SIGTERM'); rmSync(dataDir, { recursive: true, force: true }); }
