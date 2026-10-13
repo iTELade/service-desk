@@ -418,3 +418,28 @@ test('plugin workflow conditions in project packages require consent and retain 
   const created=f.v.blueprints.activate(draft.id,{...b,preview_fingerprint:preview.preview_fingerprint},f.admin).projects.project;assert.deepEqual(JSON.parse(f.projects.project(created).settings).plugin_conditions.waiting,[{plugin_id:id,action:'check'}]);const connector=JSON.parse(f.db.prepare('SELECT config FROM plugin_connectors WHERE plugin_id=?').get(id).config);assert.deepEqual(connector.permissions,permissions);assert.ok(connector.project_ids.includes(created));
  }finally{f.close();}
 });
+
+test('plugin project templates require an explicit grant and remain dependent on their publisher',()=>{
+ const f=fixture();try{
+  const p=f.project('PUB'),id='neutral.templates',manifest={id,name:'Template publisher',version:'1.0.0',capabilities:['project.template'],permissions:['template.publish'],templates:[{id:'neutral',name:'Neutral package',config:{projects:[{alias:'neutral',project_type:'internal',forms:[{name:'Neutral request'}]}]}}]};
+  f.ext.plugins.install(manifest,f.admin);f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:[]},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);assert.deepEqual(f.v.blueprints.list(f.admin).plugin_templates,[]);
+  f.v.runtime.configure(id,{version:1,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:['template.publish']},f.admin);const published=f.v.blueprints.list(f.admin).plugin_templates;assert.equal(published.length,1);assert.equal(published[0].id,id+':neutral');assert.deepEqual(published[0].config.projects[0].plugins,[{id,minimum:'1.0.0',required:true}]);
+  const draft=f.v.blueprints.draft(null,{name:'Published draft',config:published[0].config},f.admin),b={version:1,mapping:{neutral:{key:'PUBN',name:'Published destination'}}};assert.equal(f.v.blueprints.validate(draft.id,b,f.admin).valid,true);f.ext.plugins.setEnabled(id,false,f.admin);assert.deepEqual(f.v.blueprints.list(f.admin).plugin_templates,[]);assert.equal(f.v.blueprints.validate(draft.id,b,f.admin).valid,false);assert.throws(()=>f.v.blueprints.activate(draft.id,b,f.admin),status(400));
+  assert.throws(()=>f.ext.plugins.install({...manifest,id:'bad.templates',capabilities:[]},f.admin),status(400));
+ }finally{f.close();}
+});
+
+test('plugin health distinguishes readiness, delivery and business completion and blocks revoked execution access',()=>{
+ const f=fixture();try{
+  const p=f.project('HLT'),t=f.ticket(p),id='neutral.health',permissions=['scheduled.job','ticket.read'];f.ext.plugins.install({id,name:'Health fixture',version:'1.0.0',capabilities:['scheduled.job'],permissions},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);assert.equal(f.ext.plugins.health().plugins[0].health,'not_configured');f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin);assert.equal(f.v.runtime.list(f.admin)[0].health,'ready');const job=f.v.runtime.enqueue(id,{ticket_id:t.id,action:'check',request_key:'health-check-fixture'},f.admin);
+  f.db.prepare("UPDATE platform_jobs SET state='failed' WHERE id=?").run(job.id);assert.equal(f.ext.plugins.health().failed,1);f.db.prepare("UPDATE platform_jobs SET state='sent',result=? WHERE id=?").run(JSON.stringify({delivered:true}),job.id);assert.equal(f.v.runtime.list(f.admin)[0].health,'awaiting_result');f.db.prepare('UPDATE platform_jobs SET result=? WHERE id=?').run(JSON.stringify({delivered:true,business_result:'completed'}),job.id);assert.equal(f.v.runtime.list(f.admin)[0].health,'completed');f.db.prepare('UPDATE users SET active=0 WHERE id=?').run(f.admin.id);assert.equal(f.v.runtime.operationalHealth(id).health,'blocked');
+ }finally{f.close();}
+});
+
+test('late connector acknowledgements cannot resurrect a cancelled job or execute another cancelled batch item',async()=>{
+ const f=fixture();try{
+  const p=f.project('CJA'),t=f.ticket(p),id='neutral.late',permissions=['scheduled.job','ticket.read'];f.ext.plugins.install({id,name:'Late acknowledgement',version:'1.0.0',capabilities:['scheduled.job'],permissions},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);let release,started;const reached=new Promise(r=>started=r),pending=new Promise(r=>release=r),deliveries=[],runtime=createPluginRuntime(f.db,{...f,registry:f.ext.plugins,send:async(...args)=>{deliveries.push(args);started();await pending;}});runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin);
+  const first=runtime.enqueue(id,{ticket_id:t.id,action:'first',request_key:'late-first-action'},f.admin),second=runtime.enqueue(id,{ticket_id:t.id,action:'second',request_key:'late-second-action'},f.admin),flush=runtime.flush();await reached;runtime.state(first.id,{version:1,state:'cancelled'},f.admin);runtime.state(second.id,{version:1,state:'cancelled'},f.admin);release();await flush;
+  assert.equal(deliveries.length,1);assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(first.id).state,'cancelled');assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(second.id).state,'cancelled');assert.equal(JSON.parse(f.db.prepare('SELECT result FROM platform_jobs WHERE id=?').get(first.id).result).late_acknowledgement,true);
+ }finally{f.close();}
+});
