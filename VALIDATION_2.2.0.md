@@ -53,6 +53,15 @@
 - CI on e00d373284830411b5f699bff9b15bd74134d3cd passed all jobs, including customer approval withdrawal and template revision restore, main regressions, all platform/KB engines and both production container architectures.
 - Text filters and the visual editor share a validated query AST with current project/field checks and a parameterized compiler. Literal quotes/number types and nested logic round-trip in tests. Portable queue tests activate mapped account/form/team references and execute the resulting filter against a destination ticket. Cross-project references explicitly fail pending a broader mapping contract. New browser visual/text filter acceptance awaits CI.
 
+## Aktualny postęp — kosz konfiguracji i powiadomienia
+
+- Dodano niezależny mechanizm kosza dla własnych szablonów projektów i nieaktywowanych draftów. Usunięcie wymaga wersji zasobu i pełnej nazwy; odtworzenie nie aktywuje projektu ani nie wznawia zadań, a usunięcie trwałe jest oddzielnie potwierdzane oraz audytowane.
+- Administrator może ustawić retencję nowych wpisów w zakresie 1–365 dni. Ta sama polityka jest stosowana do zgłoszeń i konfiguracji. Zmiana nie skraca retencji istniejących wpisów.
+- Operacja trwałego usunięcia jest obecnie dostępna wyłącznie dla konfiguracji. Trwałe usunięcie zgłoszenia z komentarzami, plikami, zadaniami i referencjami wymaga osobnej procedury kasowania danych z zachowaniem unikalności kluczy. Nie traktować ochronnego błędu 409 jako spełnionego wymogu trwałego usuwania zgłoszeń.
+- Widok administratora udostępnia retencję, kosz konfiguracji i operacje przywrócenia/usunięcia. Uzupełniono scenariusze testowe API, kontroli wersji, uprawnień i retencji.
+- Preferencje godzin ciszy nie ukrywają już odczytu skrzynki powiadomień w aplikacji. Digest udostępnia ograniczone i ponownie weryfikowane podsumowanie według widocznych zgłoszeń. **Brak** jeszcze pełnego terminarza digestów oraz dostarczania przez istniejące kanały.
+- Weryfikacja wszystkich nowych commitów wymaga sukcesu najnowszego pełnego CI. Starszy zielony przebieg nie stanowi dowodu dla nowych zmian.
+
 ## Required before stable publication
 
 - [ ] CI application, migration and upgrade checks on the final commit.
