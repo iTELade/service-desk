@@ -44,6 +44,12 @@ Only completed/failed are accepted. Duplicate identical results are harmless; co
 - POST /api/plugins/PLUGIN_ID/tickets/TICKET_ID/comments requires ticket.comment, an authorized job_id, current ticket version and Idempotency-Key. Public replies only; no direct DB access or impersonation of arbitrary users.
 - Connector permissions are rechecked against both manifest and administrative grants, as well as current project/account state.
 
+## Context and chained scheduling
+
+Optional grants expose GET `/api/plugins/PLUGIN_ID/tickets/TICKET_ID/context` (ticket.context), `/fields` (ticket.fields) and `/person` (person.read). Fields are filtered using the configured execution account's current team/field permissions. Person returns only the affected core user's id/name/email/account availability; no directory credentials or account lifecycle operation is part of this API. There is no arbitrary user-directory lookup.
+
+POST `/api/plugins/PLUGIN_ID/tickets/TICKET_ID/schedule` accepts parent_job_id, current ticket version, action and run_at, with Idempotency-Key. The parent must belong to the same connector/ticket and have an acknowledged, completed result. The follow-up retains the source job's business actor and rechecks access, current approval and plugin grants. Reusing a key with another action, context or explicit date is rejected. Execution accounts losing project/account access also block connector reads.
+
 ## Event subscriptions and workflow conditions
 
 API 1 manifests may declare `subscriptions` containing ticket_created, ticket_updated, status_changed and comment_added. Subscriptions require event.listener and scheduled.job capabilities, plus explicit event.listener, scheduled.job and ticket.read grants. Private comments are excluded. Connector configuration selects an execution_user_id (default: the configuring administrator); the account must have current work access to every scoped project. Each delivery retains both the technical actor and business_actor_id/event_id. Event receipts and job request keys prevent duplicate enqueue on retries; the connector must still deduplicate external execution.
@@ -66,9 +72,11 @@ Example hook:
 
 Declare the matching capability and scheduled.job; administrative grants remain separate from the manifest. Hook role lists contain admin/manager/agent. Public portal panels currently render declarative metadata only; dynamic job results remain limited to their authorized job reader.
 
+Core can import form.field definitions through POST `/api/desk/v22/form-extension/PROJECT_ID`, with form_id/version/plugin_id/hook_id. The first call returns a read-only preview and fingerprint; confirmation rechecks the form, plugin revision and connector grants. Imported fields receive deterministic names and internal visibility, preserving existing ticket snapshots. These are copied core fields and remain valid when the plugin is disabled. dashboard.widget hooks mount in project queues and show only results from jobs accessible to the current reader.
+
 ## Remaining capability boundary
 
-This candidate implements external connector jobs, event subscriptions, scoped ticket access, asynchronous workflow conditions, typed settings, ticket panels and action forms. Migration runners, automation action/trigger integration, dashboard mounting and request-form field import remain pending. Arbitrary uploaded UI/code is outside the isolated connector model. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
+This candidate implements external connector jobs, event subscriptions, scoped ticket access, asynchronous workflow conditions, typed settings, ticket panels and action forms. Extension migration runners and automation action/trigger integration remain pending. Arbitrary uploaded UI/code is outside the isolated connector model. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
 
 ## Lifecycle
 

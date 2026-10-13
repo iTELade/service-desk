@@ -32,6 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -65,6 +66,7 @@ jobs:
           npm ci
           npm run check
           npm run test:ci
+          npm run test:upgrade
           bash -n scripts/upgrade.sh
           sha256sum -c MANIFEST.sha256
       - name: Checkout compatible standalone Knowledge Base fixture

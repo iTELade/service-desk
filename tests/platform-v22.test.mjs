@@ -1,3 +1,4 @@
+import { createPluginAPI } from '../lib/plugin-api.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setup } from './v6-fixture.mjs';
@@ -186,5 +187,55 @@ test('plugin settings encrypt secrets, mask reads, preserve omitted secrets and 
   const customer=f.user('secret-customer@x.test');assert.throws(()=>r.settings.list(id,0,customer),status(403));
   r.configure(id,{version:1,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:['ticket.read','scheduled.job','ui.extension']},f.admin);
   r.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'settings-without-read-001'},f.admin);await r.flush();assert.equal(JSON.parse(sent[1][1]).settings,undefined);
+ }finally{f.close();}
+});
+
+test('signed plugin API filters protected fields, verifies results and scopes follow-up jobs to their source actor',async()=>{
+ const f=fixture();try{
+  const p=f.project('RPC'),created=f.ticket(p),agent=f.user('plugin-executor@x.test','agent'),subject=f.user('plugin-subject@x.test');f.projects.setMember(p.id,agent.id,'agent',f.admin);
+  const team=f.v.processes.saveTeam(null,{project_id:p.id,name:'Private',members:[f.admin.id]},f.admin)[0];
+  f.db.prepare('UPDATE tickets SET form_snapshot=?,custom_values=? WHERE id=?').run(JSON.stringify({fields:[{key:'secret',label:'Secret',type:'text',visibility:'internal',allowed_team_ids:[team.id]}]}),JSON.stringify({secret:'protected-value'}),created.id);
+  f.v.processes.metadata(created.id,{version:0,subject_id:subject.id},f.admin);const t=f.desk.ticket(created.id),id='neutral.rpc',permissions=['scheduled.job','ticket.read','ticket.comment','ticket.context','ticket.fields','person.read','ui.extension'];
+  f.ext.plugins.install({id,name:'Neutral RPC',version:'1.0.0',capabilities:['scheduled.job','ticket.panel'],permissions,hooks:[{id:'result',kind:'ticket.panel',label:'Result',fields:[{key:'state',type:'text'}]}]},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);
+  const runtime=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async()=>{}}),configured=runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],execution_user_id:agent.id,permissions},f.admin),api=createPluginAPI(f.db,{runtime,projects:f.projects,catalog:f.catalog,processes:f.v.processes,workspace:f.v21.workspace});
+  const call=(method,path,body={},key='rpc-test-0001')=>api.handle({method,path:'/api/plugins/'+id+path,token:'Bearer '+configured.generated_secret,idempotencyKey:key,read:async()=>body});
+  assert.deepEqual((await call('GET','/tickets/'+t.id+'/fields')).value.custom_values,{});
+  assert.equal((await call('GET','/tickets/'+t.id+'/person')).value.person.id,subject.id);
+  assert.equal((await call('GET','/tickets/'+t.id+'/context')).value.context.subject_id,subject.id);
+  const job=runtime.enqueue(id,{ticket_id:t.id,action:'noop',request_key:'rpc-source-0001'},f.admin);await runtime.flush();
+  const follow={parent_job_id:job.id,version:t.version,action:'followup',run_at:new Date(Date.now()+60000).toISOString()};await assert.rejects(()=>call('POST','/tickets/'+t.id+'/schedule',follow),status(409));
+  await assert.rejects(()=>call('POST','/jobs/'+job.id+'/result',{status:'completed',data:{secret:'no'}}),status(400));
+  const result={status:'completed',message:'Verified',data:{state:'Verified'}};assert.equal((await call('POST','/jobs/'+job.id+'/result',result)).value.ok,true);assert.equal((await call('POST','/jobs/'+job.id+'/result',result)).value.duplicate,true);
+  const scheduled=(await call('POST','/tickets/'+t.id+'/schedule',follow,'rpc-followup-0001')).value;assert.equal((await call('POST','/tickets/'+t.id+'/schedule',follow,'rpc-followup-0001')).value.id,scheduled.id);
+  const payload=JSON.parse(f.db.prepare('SELECT payload FROM platform_jobs WHERE id=?').get(scheduled.id).payload);assert.equal(payload.parent_job_id,job.id);assert.equal(f.db.prepare('SELECT user_id FROM platform_jobs WHERE id=?').get(scheduled.id).user_id,f.admin.id);
+  f.db.prepare('UPDATE users SET active=0 WHERE id=?').run(agent.id);await assert.rejects(()=>call('GET','/tickets/'+t.id),status(403));
+ }finally{f.close();}
+});
+
+test('customer ticket extension contract keeps portal readable and excludes staff panels and result data',async()=>{
+ const f=fixture();try{
+  const p=f.project('PORTAL'),customer=f.user('portal-owner@x.test'),other=f.user('portal-other@x.test'),t=f.ticket(p,customer),id='neutral.portal';
+  f.ext.plugins.install({id,name:'Neutral portal',version:'1.0.0',capabilities:['portal.panel','ticket.panel'],permissions:['ui.extension'],hooks:[{id:'public',kind:'portal.panel',label:'Public panel',fields:[{key:'state',type:'text'}]},{id:'staff',kind:'ticket.panel',label:'Staff panel',fields:[{key:'private',type:'text'}]}]},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:['ui.extension']},f.admin);
+  const value=(await f.v.handle('GET','/api/desk/v22/tickets/'+t.id,customer,new URLSearchParams())).value;
+  assert.equal(value.next.action,'Realizacja zgłoszenia');assert.equal(value.context,undefined);assert.equal(value.plugin_ui[0].hooks.length,1);assert.equal(value.plugin_ui[0].hooks[0].kind,'portal.panel');assert.equal(value.plugin_ui[0].hooks[0].values.state,null);
+  await assert.rejects(()=>f.v.handle('GET','/api/desk/v22/tickets/'+t.id,other,new URLSearchParams()),status(404));
+ }finally{f.close();}
+});
+
+test('plugin field import previews effects, preserves old snapshots and publishes typed internal fields',async()=>{
+ const f=fixture();try{
+  const p=f.project('PFIELD'),oldTicket=f.ticket(p),id='neutral.fields',manifest={id,name:'Neutral fields',version:'1.0.0',capabilities:['form.field','dashboard.widget'],permissions:['ui.extension'],hooks:[{id:'fields',kind:'form.field',label:'Fields',fields:[{key:'quantity',label:'Quantity',type:'number',required:false}]},{id:'widget',kind:'dashboard.widget',label:'Widget',fields:[{key:'state',type:'text'}]}]};
+  f.ext.plugins.install(manifest,f.admin);f.ext.plugins.setEnabled(id,true,f.admin);f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:manifest.permissions},f.admin);
+  const form=f.catalog.list(p.id,f.admin,'manage').find(f=>f.base_type==='incident'),body={form_id:form.id,version:form.version,plugin_id:id,hook_id:'fields'},path='/api/desk/v22/form-extension/'+p.id;
+  const preview=(await f.v.handle('POST',path,f.admin,new URLSearchParams(),async()=>body)).value;
+  assert.equal(preview.preview,true);assert.equal(f.catalog.list(p.id,f.admin,'manage').find(f=>f.id===form.id).version,form.version);assert.equal(preview.added[0].visibility,'internal');
+  await assert.rejects(()=>f.v.handle('POST',path,f.admin,new URLSearchParams(),async()=>({...body,confirm:true,preview_fingerprint:'stale'})),status(409));
+  await f.v.handle('POST',path,f.admin,new URLSearchParams(),async()=>({...body,confirm:true,preview_fingerprint:preview.fingerprint}));
+  assert.ok(!JSON.parse(f.desk.ticket(oldTicket.id).form_snapshot).fields.some(f=>f.key===preview.added[0].key));
+  const newTicket=f.ticket(p);assert.ok(JSON.parse(newTicket.form_snapshot).fields.some(f=>f.key===preview.added[0].key&&f.type==='number'));
+  const agent=f.user('widget-agent@x.test','agent');f.projects.setMember(p.id,agent.id,'agent',f.admin);
+  f.db.prepare("INSERT INTO platform_jobs(kind,ticket_id,user_id,plugin_id,request_key,payload,run_at,state,result,created_at) VALUES('plugin',?,?,?,'widget-result','{}',?,'sent',?,?)").run(oldTicket.id,f.admin.id,id,new Date().toISOString(),JSON.stringify({data:{state:'Private result'}}),new Date().toISOString());
+  assert.equal(f.v.runtime.uiContract(p.id,f.admin)[0].hooks.find(h=>h.kind==='dashboard.widget').values.state,'Private result');
+  assert.equal(f.v.runtime.uiContract(p.id,agent)[0].hooks.find(h=>h.kind==='dashboard.widget').values.state,null);
  }finally{f.close();}
 });

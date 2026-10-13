@@ -99,3 +99,18 @@ jobs:
         run: npm run test:platform
         env:
           DESK_BROWSER_ENGINE: ${{ matrix.engine }}
+
+  upgrade:
+    name: Upgrade and backup restore
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:upgrade

@@ -1318,3 +1318,5 @@ html[data-theme='dark'] body.sd20 .w21-main .pill.closed {
 
 .attachment-preview-image{display:block;max-width:100%;max-height:70vh;object-fit:contain}
 .attachment-preview-pdf{width:100%;height:65vh;border:1px solid var(--w21-border)}
+
+[data-plugin-panel],[data-plugin-widget]{min-width:0;overflow-wrap:anywhere}

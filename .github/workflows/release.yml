@@ -56,6 +56,7 @@ jobs:
       - name: Pobranie kodu wskazanego wydania
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           ref: refs/tags/${{ env.RELEASE_TAG }}
           persist-credentials: false
 
@@ -87,6 +88,7 @@ jobs:
           npm ci
           npm run check
           npm test
+          npm run test:upgrade
 
       - name: Checkout compatible standalone Knowledge Base fixture
         uses: actions/checkout@v4

@@ -67,7 +67,7 @@ try {
   await page.goto(base+'/#/plugins22');await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();
   await page.locator('[data-p22-dialog] [name=host]').fill('neutral.example.test');await page.locator('[data-p22-dialog] [name=password]').fill('test-only-plugin-secret');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
   await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();check('Plugin secret is masked in UI',await page.locator('[data-p22-dialog] [name=password]').inputValue()==='');await page.keyboard.press('Escape');
-  await api('/desk/plugins/'+pluginId,{enabled:true});await page.goto(base+'/#/ticket/'+t.key);await page.getByRole('button',{name:'Neutral check',exact:true}).click();
+  await api('/desk/plugins/'+pluginId+'/enable',{});await page.goto(base+'/#/ticket/'+t.key);await page.getByRole('button',{name:'Neutral check',exact:true}).click();
   await page.locator('[data-p22-dialog] [name=amount]').fill('3');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
   const pluginJobs=await api('/desk/v22/jobs'),pluginJob=pluginJobs.find(j=>j.plugin_id===pluginId);check('Declarative action queues typed input',pluginJob?.payload.input.amount===3&&pluginJob.payload.action==='check');
   // Passkey registration and login use actual browser-generated cryptographic credentials.
