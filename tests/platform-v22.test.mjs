@@ -468,15 +468,16 @@ test('reinstalling the same plugin ID cannot revive work approved for an earlier
 
 test('plugin comments and follow-ups reject stale source jobs and progress comments preserve request-bound results',async()=>{
  const f=fixture();try{
-  const p=f.project('PCG'),t=f.ticket(p),id='neutral.comment.guard',permissions=['scheduled.job','ticket.read','ticket.comment'],manifest={id,name:'Comment guard',version:'1.0.0',capabilities:['scheduled.job'],permissions};
-  f.ext.plugins.install(manifest,f.admin);f.ext.plugins.setEnabled(id,true,f.admin);
-  const runtime=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async()=>{}}),configured=runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin),api=createPluginAPI(f.db,{runtime,projects:f.projects,workspace:f.v21.workspace});
+  const p=f.project('PCG'),t=f.ticket(p),executor=f.user('rpc-comment-executor@x.test','agent'),id='neutral.comment.guard',permissions=['scheduled.job','ticket.read','ticket.comment'],manifest={id,name:'Comment guard',version:'1.0.0',capabilities:['scheduled.job'],permissions};
+  f.projects.setMember(p.id,executor.id,'agent',f.admin);f.ext.plugins.install(manifest,f.admin);f.ext.plugins.setEnabled(id,true,f.admin);
+  const runtime=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async()=>{}}),configured=runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],execution_user_id:executor.id,permissions},f.admin),api=createPluginAPI(f.db,{runtime,projects:f.projects,workspace:f.v21.workspace});
   const call=(path,body,key='comment-guard-request')=>api.handle({method:'POST',path:'/api/plugins/'+id+path,token:'Bearer '+configured.generated_secret,idempotencyKey:key,read:async()=>body});
   const strict=runtime.enqueue(id,{ticket_id:t.id,action:'check',request_key:'strict-comment-job'},f.admin),job=runtime.enqueue(id,{ticket_id:t.id,action:'check',version_policy:'request',request_key:'request-comment-job'},f.admin);
   await assert.rejects(()=>call('/tickets/'+t.id+'/comments',{job_id:job.id,body:'Queued',version:t.version}),status(409));
   await runtime.flush();await assert.rejects(()=>call('/tickets/'+t.id+'/comments',{job_id:strict.id,body:'Strict',version:t.version}),status(409));
   const comment=await call('/tickets/'+t.id+'/comments',{job_id:job.id,body:'Progress',version:t.version});assert.equal(comment.value.ok,true);
-  assert.equal((await call('/tickets/'+t.id+'/comments',{job_id:job.id,body:'Progress',version:t.version})).value.comment_id,comment.value.comment_id);
+  assert.equal((await call('/tickets/'+t.id+'/comments',{job_id:job.id,body:'Progress',version:t.version})).value.id,comment.value.id);
+  const savedComment=f.db.prepare('SELECT * FROM comments WHERE id=?').get(comment.value.id);assert.equal(savedComment.author_id,executor.id);assert.equal(savedComment.actual_actor_id,f.admin.id);assert.equal(savedComment.origin,'api');f.ext.events();assert.equal(f.db.prepare('SELECT 1 FROM ticket_watchers WHERE ticket_id=? AND user_id=?').get(t.id,executor.id),undefined);assert.ok(f.db.prepare('SELECT 1 FROM notifications WHERE ticket_id=? AND user_id=?').get(t.id,f.admin.id));
   assert.equal((await call('/jobs/'+job.id+'/result',{status:'completed',message:'Done'})).value.ok,true);
   const version=f.desk.ticket(t.id).version;
   f.db.prepare('UPDATE plugin_connectors SET version=version+1 WHERE plugin_id=?').run(id);
