@@ -4,7 +4,7 @@
 
 - Actual 2.1.0 server code → current server migration passed locally: existing login, private comments, key numbering and encrypted SMTP settings survive. The real backup script restored current encrypted plugin settings; pre-upgrade backup boots with 2.1.0. CI now runs scripts/upgrade-regression-v22.mjs as a release gate.
 - Local syntax checks pass for the implementation candidate.
-- Local application suite: 314 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
+- Local application suite: 315 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
 - New platform tests cover migration/idempotence, blueprint preview/activation, approvals, dependencies, participants, recycle/restore, query grammar, bulk rollback, connector revocation and passkeys.
 - Real WebAuthn signature verification is exercised with synthetic credential data, including synced zero-counter passkeys, replay, origin and user-verification rejection.
 - Synthetic 10,000-ticket scenario passed locally. This is not a concurrent-production benchmark.
@@ -39,6 +39,9 @@
 - CI on b920ba2479e0862a5120cfdde4d4da7fcfdff6c7 passed every job, including platform WebKit with the exception gate still enabled, main browser/workspace/visual, KB, upgrade and both production container architectures.
 - CI on c87669c3b64cdca9bc1a782887c1d6a5303b2b58 timed out waiting for the new customer-layout form, without a browser exception. A render/listener readiness race and stale route metadata are the suspected causes. The next run waits for the explicit mount marker and reloads current metadata; the administration route now fetches authoritative project settings/version rather than relying on stale session metadata.
 - The isolated 10,000-ticket benchmark now runs eight distinct authenticated agents in parallel: 80 real creates with core automation, queue/detail reads, atomic comments and idempotent repeats, then a same-version write race. Locally 408 requests completed in 15.3 s (~27 requests/s), p50 94 ms, p95 717 ms, p99 6677 ms. All keys and automation/comments remained unique; one racing write succeeded and seven returned 409. This establishes concurrent correctness, not production capacity or IMAP/SMTP throughput. Per-operation timings are included for subsequent diagnosis/comparison.
+
+- All platform engines passed the customer-layout configuration, privacy, field ordering and keyboard tab scenario on c00546b9a4c40d2181683d81eb5d3c1a30902feb; final main/container completion was still pending when recorded.
+- Event dispatch now yields after at most 100 events or roughly 25 ms, completing each individual event/module transaction before yielding. A durable backlog continues through setImmediate while the worker is running; stop cancels that continuation. Reentrant calls remain blocked, and event/module delivery receipts retain deduplication. A 250-event test verifies ordered, exactly-once delivery across batches. In the same synthetic concurrent workload, p99 dropped from 6594 ms to 542 ms and create maximum from 9271 ms to 1350 ms; p50 increased from 75 ms to 235 ms as background work was shared more evenly. Overall throughput remained ~30 requests/s. These are local comparative observations, not a production SLA.
 
 ## Required before stable publication
 

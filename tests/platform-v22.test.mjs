@@ -503,3 +503,15 @@ test('per-form customer layouts validate privacy and portability and filter hist
   save({});assert.equal(f.v.processes.extras(t.id,f.admin).customer_view,undefined);
  }finally{f.close();}
 });
+
+
+test('durable event backlog yields between bounded batches without duplicate or reentrant deliveries',()=>{
+ const f=fixture();try{
+  const p=f.project('BKL'),t=f.ticket(p);f.ext.events();const ids=[],delivered=[];
+  const insert=f.db.prepare("INSERT INTO desk_events(ticket_id,event,payload,created_at) VALUES(?,'ticket_updated','{}',?)");
+  for(let n=0;n<250;n++)ids.push(Number(insert.run(t.id,new Date().toISOString()).lastInsertRowid));
+  f.ext.setEventHook(event=>{delivered.push(event.id);f.ext.events();});f.ext.events();assert.ok(delivered.length>0&&delivered.length<=100);assert.ok(f.db.prepare("SELECT COUNT(*) n FROM desk_events WHERE status='queued'").get().n>0);
+  for(let n=0;n<250&&f.db.prepare("SELECT 1 FROM desk_events WHERE status='queued'").get();n++)f.ext.events();
+  assert.deepEqual(delivered,ids);assert.equal(new Set(delivered).size,250);assert.equal(f.db.prepare("SELECT COUNT(*) n FROM desk_events WHERE status<>'done'").get().n,0);assert.equal(f.db.prepare("SELECT COUNT(*) n FROM desk_event_deliveries WHERE module='plugins' AND event_id>=?").get(ids[0]).n,250);
+ }finally{f.close();}
+});
