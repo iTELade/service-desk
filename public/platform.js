@@ -39,8 +39,8 @@ export function createPlatformUI({ S, api, e, date, notify, showModal, route, re
     }
     if (view === 'operations22') {
       const pid = Number(q.get('project')) || managed()[0]?.id; if (!pid) return head('Procesy projektu') + '<p>Brak zarządzanych projektów.</p>';
-      const [data, teams, revisions, extensions] = await Promise.all([call('consistency?project=' + pid), call('teams?project=' + pid), call('revisions?project=' + pid),call('extension-ui?project='+pid)]);
-      state = { view, pid, teams, revisions, extensions, project: S.meta.projects.find(p => p.id === pid) };
+      const [data, teams, revisions, extensions, currentProject] = await Promise.all([call('consistency?project=' + pid), call('teams?project=' + pid), call('revisions?project=' + pid),call('extension-ui?project='+pid),api('/projects/'+pid)]);
+      state = { view, pid, teams, revisions, extensions, project: currentProject.project };
       return head('Procesy i spójność projektu') + `<form data-p22-project>${select('project', 'Projekt', managed(), pid)}<button>Otwórz</button></form>` + panel('Walidacja konfiguracji', `<p>${data.valid ? 'Konfiguracja przeszła kontrolę.' : 'Wymagane poprawki:'}</p>${data.issues.map(i => `<p>${i.key ? e(i.key) + ' · ' : ''}${e(i.message)} <a href="${e(i.settings)}">Ustawienia</a></p>`).join('')}`) + panel('Zespoły', button('responsibility-rule','Macierz odpowiedzialności')+button('person-attributes','Dział i lokalizacja osoby')+button('team-new', 'Dodaj zespół') + teams.map(t => `<p>${e(t.name)} · ${t.members.length} osób ${button('team-edit', 'Edytuj', `data-id="${t.id}"`)}</p>`).join('')) + panel('Warunki procesu i portal', button('process-settings', 'Warunki, wersjonowanie i widok klienta')+button('field-privacy','Poufność pól formularza')+button('customer-layout','Widok klienta według formularza')) + panel('Ustawienia pluginów',extensions.map(p=>p.hooks.filter(h=>h.kind==='project.settings').map(h=>button('plugin-settings',p.name+' · '+h.label,`data-plugin="${e(p.id)}" data-hook="${e(h.id)}" data-project="${pid}"`)).join('')).join('')||'<p>Brak dostępnych formularzy pluginów.</p>') + panel('Pola formularzy pluginów',extensions.map(p=>p.hooks.filter(h=>h.kind==='form.field').map(h=>button('plugin-form-fields',p.name+' · '+h.label,`data-plugin="${e(p.id)}" data-hook="${e(h.id)}"`)).join('')).join('')||'<p>Brak definicji pól pluginów.</p>') + panel('Historia konfiguracji', revisions.map(r => `<details><summary>${e(r.kind)} · ${date(r.created_at)} · rewizja ${r.id}</summary><pre>${e(JSON.stringify(r.config, null, 2))}</pre>${button('restore-revision', 'Przywróć po walidacji', `data-id="${r.id}"`)}</details>`).join('') || '<p>Brak wcześniejszych rewizji.</p>');
     }
     if (view === 'recycle22') { state = { view, recycle: await call('recycle') }; return head('Kosz') + '<p>Odtworzenie nie wznawia zaplanowanych zadań. Numery pozostają zarezerwowane.</p>' + panel('Usunięte sprawy', state.recycle.map(r => `<p>Sprawa ${r.resource_id} · termin odtworzenia ${date(r.expires_at)} ${button('restore-trash', 'Odtwórz', `data-id="${r.id}"`)}</p>`).join('') || '<p>Kosz jest pusty.</p>'); }
@@ -104,6 +104,7 @@ export function createPlatformUI({ S, api, e, date, notify, showModal, route, re
       const b = ev.target.closest('[data-p22]'); if (!b) return; b.disabled = true;
       try { await action(b); } catch (err) { notify(err.message, true); } finally { b.disabled = false; }
     }, { signal });
+    main.dataset.platformReady='1';
   }
   async function action(b) {
     const a = b.dataset.p22, id = b.dataset.id, t = state.ticket, x = state.extras;

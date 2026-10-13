@@ -135,6 +135,38 @@ try {
   assert.ok(bulk.results.every((x) => x.ok));
   assert.deepEqual(await api('/api/desk/v21/bulk', payload), bulk);
   assert.equal(db.prepare("SELECT COUNT(*) n FROM tickets WHERE priority='P2'").get().n, 50);
+  // Separate authenticated agents concurrently exercise HTTP reads/writes and core automation.
+  const password='Synthetic-agent-load-password-2026',clients=[];
+  for(let n=0;n<8;n++){
+    const user=(await api('/api/users',{first_name:'Load',last_name:'Agent '+n,email:'load-agent-'+n+'@x.test',role:'agent',password})).user;
+    await api('/api/projects/'+p.id+'/members',{user_id:user.id,role:'agent'});
+    const response=await fetch(base+'/api/login',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify({email:user.email,password})}),session=await response.json();assert.ok(response.ok);
+    const agentCookie=response.headers.get('set-cookie').split(';')[0];
+    clients.push(async(path,data,method=data?'POST':'GET',expected=[200,201])=>{
+      const start=performance.now(),r=await fetch(base+path,{method,headers:{Origin:base,'Content-Type':'application/json',Cookie:agentCookie,'X-CSRF-Token':session.csrf},...(data?{body:JSON.stringify(data)}:{})}),value=await r.json();const duration=performance.now()-start;samples.push(duration);const operation=method==='PATCH'?'write_conflict':path.endsWith('/comments')?'comment':path==='/api/tickets'?'create':path.includes('/queue?')?'queue':'detail';(buckets[operation]??=[]).push(duration);assert.ok(expected.includes(r.status),path+': '+JSON.stringify(value));return {status:r.status,value};
+    });
+  }
+  const workflow=await api('/api/projects/'+p.id+'/workflow');
+  const savedWorkflow=await fetch(base+'/api/projects/'+p.id+'/workflow',{method:'PATCH',headers:{Origin:base,'Content-Type':'application/json',Cookie:cookie,'X-CSRF-Token':csrf},body:JSON.stringify({version:workflow.version,rules:[{name:'Concurrent fixture receipt',enabled:true,event:'ticket_created',from:'*',conditions:[],actions:[{type:'comment',body:'Synthetic automation receipt',internal:true,bot_id:login.user.id}]}]})});assert.ok(savedWorkflow.ok,await savedWorkflow.text());
+  const samples=[],buckets={},created=[],started=performance.now();
+  await Promise.all(clients.map(async(client,lane)=>{
+    for(let n=0;n<10;n++){
+      const ticket=(await client('/api/tickets',{project_id:p.id,title:'Concurrent lane '+lane+' request '+n,description:'Isolated HTTP and automation benchmark',type:'incident',priority:'P3'})).value;
+      await client('/api/desk/v21/queue?project='+p.id+'&limit=25&page='+(lane+1));
+      const current=(await client('/api/tickets/'+ticket.key)).value.ticket;
+      created.push({...ticket,id:current.id});
+      const comment={body:'Concurrent agent response '+lane+'-'+n,version:current.version,request_key:randomUUID()};
+      const first=(await client('/api/desk/v21/tickets/'+ticket.key+'/comments',comment)).value;
+      assert.deepEqual((await client('/api/desk/v21/tickets/'+ticket.key+'/comments',comment)).value,first);
+    }
+  }));
+  const raceTicket=created[0],current=(await api('/api/tickets/'+raceTicket.key)).ticket;
+  const race=await Promise.all(clients.map((client,n)=>client('/api/tickets/'+raceTicket.key,{version:current.version,priority:n%2?'P1':'P4'},'PATCH',[200,409])));
+  assert.equal(race.filter(r=>r.status===200).length,1);assert.equal(race.filter(r=>r.status===409).length,7);
+  const elapsed=performance.now()-started,sorted=samples.sort((a,b)=>a-b),percentile=q=>Math.round(sorted[Math.min(sorted.length-1,Math.ceil(sorted.length*q)-1)]);
+  timings.concurrent={agents:clients.length,requests:samples.length,elapsed_ms:Math.round(elapsed),requests_per_second:Math.round(samples.length*1000/elapsed),p50_ms:percentile(.5),p95_ms:percentile(.95),p99_ms:percentile(.99),conflicts:7,by_operation:Object.fromEntries(Object.entries(buckets).map(([name,values])=>{values.sort((a,b)=>a-b);return [name,{requests:values.length,p50_ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95_ms:Math.round(values[Math.ceil(values.length*.95)-1]),max_ms:Math.round(values.at(-1))}];}))};
+  assert.equal(created.length,80);assert.equal(new Set(created.map(t=>t.key)).size,80);assert.equal(db.prepare('SELECT COUNT(*) n FROM tickets WHERE project_id=?').get(p.id).n,10080);
+  for(const ticket of created){assert.equal(db.prepare("SELECT COUNT(*) n FROM comments WHERE ticket_id=? AND origin='automation'").get(ticket.id).n,1);assert.equal(db.prepare("SELECT COUNT(*) n FROM comments WHERE ticket_id=? AND body LIKE 'Concurrent agent response %'").get(ticket.id).n,1);}
   assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
   assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   console.log('Synthetic 10,000-ticket load passed: ' + JSON.stringify(timings));
