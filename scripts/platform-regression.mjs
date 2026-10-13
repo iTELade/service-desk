@@ -45,7 +45,7 @@ try {
   await page.locator('form[data-p22-preferences] [name=digest_email]').check();
   await page.locator('form[data-p22-preferences] [name=digest_frequency]').selectOption('hourly');
   await page.locator('form[data-p22-preferences] [name=digest_hour]').fill('10');
-  await page.locator('form[data-p22-preferences] button[type=submit]').click();
+  await page.locator('form[data-p22-preferences] button').click();
   await page.waitForFunction(()=>document.querySelector('#main')?.dataset.platformReady==='1');
   const notificationSettings=await api('/desk/v22/notification-preferences');
   check('Digest schedule and email channel persist through settings UI',notificationSettings.config.digest===true&&notificationSettings.config.digest_frequency==='hourly'&&notificationSettings.config.digest_hour===10&&notificationSettings.config.channels.includes('email'));
