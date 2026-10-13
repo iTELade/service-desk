@@ -617,3 +617,23 @@ test('configuration recycle respects retention, ACL, restore and permanent purge
     assert.deepEqual(f.db.prepare('PRAGMA foreign_key_check').all(),[]);
   } finally { f.close(); }
 });
+
+
+test('expired configuration content is purged on a bounded sweep and resource IDs remain reserved',()=>{
+ const f=fixture();
+ try {
+  const config={projects:[{alias:'ab',project_type:'internal',forms:[{name:'Internal request'}]}]};
+  const blueprint=f.v.blueprints.save(null,{name:'Expires safely',config},f.admin);
+  const entry=f.v.configTrash.trash('blueprint',blueprint.id,{version:1,confirm_name:'Expires safely'},f.admin);
+  const old='2020-01-01T00:00:00.000Z';
+  f.db.prepare('UPDATE recycle_entries SET expires_at=? WHERE id=?').run(old,entry.id);
+  assert.throws(()=>f.v.configTrash.restore(entry.id,{confirm_name:'Expires safely'},f.admin),e=>e.status===409);
+  assert.equal(f.v.configTrash.cleanupExpired().purged,1);
+  assert.equal(f.v.configTrash.cleanupExpired().purged,0);
+  assert.equal(f.db.prepare('SELECT snapshot FROM recycle_entries WHERE id=?').get(entry.id).snapshot,'{}');
+  assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='configuration.expired' AND actor_id IS NULL").get().n,1);
+  const next=f.v.blueprints.save(null,{name:'New safe template',config},f.admin);
+  assert.notEqual(next.id,blueprint.id);
+  assert.deepEqual(f.db.prepare('PRAGMA foreign_key_check').all(),[]);
+ }finally{f.close();}
+});
