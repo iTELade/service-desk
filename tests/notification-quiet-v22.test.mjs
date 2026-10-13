@@ -23,5 +23,10 @@ test('quiet hours never hide accessible in-app notifications',()=>{
   assert.equal(list.items.length,1);
   assert.equal(list.unread,1);
   assert.equal(list.digest.threads[0].ticket_key,t.key);
+  f.db.prepare('DELETE FROM project_members WHERE project_id=? AND user_id=?').run(p.id,agent.id);
+  const revoked=f.ext.notifications.list(agent);
+  assert.equal(revoked.items.length,0);
+  assert.equal(revoked.unread,0);
+  assert.equal(revoked.digest.threads.length,0);
  } finally {f.close();}
 });
