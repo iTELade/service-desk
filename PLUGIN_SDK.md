@@ -109,3 +109,7 @@ A published package automatically retains a required dependency on its publisher
 Operational status distinguishes readiness from delivery acknowledgement and completed business results. Missing connectors, revoked access, failed deliveries, pending migrations and unavailable dependencies are visible. A late acknowledgement cannot resume cancelled/paused work; cancellation cannot undo an operation already performed in the external service. Recheck current authorization and request context before external side effects, and deduplicate using instance/plugin/request keys.
 
 Optional run_at schedules a plugin data migration within the next 366 days, allowing a maintenance window. Repeated identical requests retain the original schedule and job; changed schedules require a new reviewed request.
+
+### Komentarze postępu i zadania źródłowe
+
+Komentarz przez RPC wymaga odebranego (`sent`), aktualnego zadania oraz polityki `version_policy: "request"`. Ta polityka pozwala publikować komentarze postępu bez unieważniania wyniku przez wzrost wersji zgłoszenia; nadal wiąże zadanie z treścią wniosku, osobą, akceptacją, procesem, ustawieniami i konfiguracją pluginu. Polityka `ticket` pozostaje ścisła i nie pozwala publikować komentarzy postępu. Anulowane, wstrzymane lub nieaktualne zadania nie mogą komentować. Dalsze zadanie wymaga aktualnego zadania źródłowego z zakończonym wynikiem biznesowym. Ponowna instalacja tego samego ID pluginu nie przywraca ważności wcześniejszych zleceń.

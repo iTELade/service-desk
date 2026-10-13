@@ -4,7 +4,7 @@
 
 - Actual 2.1.0 server code → current server migration passed locally: existing login, private comments, key numbering and encrypted SMTP settings survive. The real backup script restored current encrypted plugin settings; pre-upgrade backup boots with 2.1.0. CI now runs scripts/upgrade-regression-v22.mjs as a release gate.
 - Local syntax checks pass for the implementation candidate.
-- Local application suite: 311 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
+- Local application suite: 313 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
 - New platform tests cover migration/idempotence, blueprint preview/activation, approvals, dependencies, participants, recycle/restore, query grammar, bulk rollback, connector revocation and passkeys.
 - Real WebAuthn signature verification is exercised with synthetic credential data, including synced zero-counter passkeys, replay, origin and user-verification rejection.
 - Synthetic 10,000-ticket scenario passed locally. This is not a concurrent-production benchmark.
@@ -30,6 +30,9 @@
 
 - Complete form revisions now retain defaults, grouping, icons, order and base fields. Settings restore uses current validators within a rolled-back validation transaction; derived service settings/catalogue are synchronized after restore and package activation.
 - CI on 3ff1839988489841e41b9a4937bf1b41aa2af54d passed the main, Chromium/Firefox platform, KB, upgrade and container jobs. WebKit timed out cancelling an immediately due migration; the fixture now schedules that migration for a maintenance time, with actual dispatch/cancellation still covered in runtime tests. Failure diagnostics include the visible notice for the next run.
+
+- CI on f1d83917618b36b2f8049d94d9cd07a11cf01b7d passed all jobs except platform WebKit. All WebKit functional flows passed, but the final exception check caught a network/access-control error fetching /api/me. The next run uses IPv4 for Firefox/WebKit and records request failures, stacks and page URLs; the exception gate remains enabled.
+- Installation generations now survive unregister/reinstall; old jobs cannot resume under a new installation with the same plugin ID. Comments, results (including duplicate results) and follow-up scheduling reject stale source snapshots. Progress comments explicitly require request-bound jobs so the comment's ticket-version increment does not invalidate the job's result.
 
 ## Required before stable publication
 

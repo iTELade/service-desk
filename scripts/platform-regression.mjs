@@ -8,7 +8,7 @@ import { chromium, firefox, webkit } from 'playwright';
 
 const dataDir = mkdtempSync(join(tmpdir(), 'desk22-platform-')), probe = createServer();
 await new Promise(r => probe.listen(0, '127.0.0.1', r)); const port = probe.address().port; await new Promise(r => probe.close(r));
-const base = 'http://localhost:' + port, engine = process.env.DESK_BROWSER_ENGINE || 'chromium';
+const engine=process.env.DESK_BROWSER_ENGINE||'chromium',base='http://'+(engine==='chromium'?'localhost':'127.0.0.1')+':'+port;
 const server = spawn(process.execPath, ['server.mjs'], { env: { ...process.env, NODE_ENV: 'test', APP_URL: base, HOST: '127.0.0.1', PORT: String(port), DATA_DIR: dataDir }, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = '', browser, count = 0; const errors = [];let page;
 server.stderr.on('data', c => logs += c);
@@ -22,7 +22,7 @@ try {
   const login = await context.request.post(base + '/api/login', { headers: { Origin: base }, data: { email: 'platform@x.test', password } }); check('Login', login.ok()); const { csrf } = await login.json();
   const api = async (path, data, method='POST') => { const r = await context.request.fetch(base + '/api' + path, { method: data ? method : 'GET', headers: { Origin: base, 'X-CSRF-Token': csrf }, ...(data ? { data } : {}) }); assert.ok(r.ok(), path + ': ' + await r.text()); return r.json(); };
   const settings=await api('/settings');await api('/settings',{...settings,language:'pl'},'PATCH');
-  page = await context.newPage(); page.on('pageerror', err => errors.push(err.message));
+  page = await context.newPage(); page.on('pageerror',err=>errors.push({message:err.message,stack:err.stack,url:page.url()}));page.on('requestfailed',r=>console.error('Failed browser request:',r.url(),r.failure()?.errorText));
   await page.goto(base + '/#/blueprints22'); await page.getByRole('heading', { name: 'Szablony i drafty projektów', exact: true }).waitFor();
   check('Built-in project templates', await page.getByRole('heading', { name: 'HR + IT', exact: true }).count() === 1);
   await page.locator('.template-grid > section').filter({ has: page.getByRole('heading', { name: 'HR + IT', exact: true }) }).getByRole('button', { name: 'Utwórz draft', exact: true }).click();
@@ -49,7 +49,7 @@ try {
   await api('/desk/v22/settings/' + portal.id, { version: (await api('/projects')).find(p => p.id === portal.id).version, transition_conditions: {}, customer_layout: ['next', 'description', 'attachments', 'conversation'] });
   const customerContext = await browser.newContext();
   const customerLogin = await customerContext.request.post(base + '/api/login', { headers: { Origin: base }, data: { email: customer.email, password: customerPassword } }); check('Customer login for layout', customerLogin.ok());
-  const customerPage = await customerContext.newPage(); customerPage.on('pageerror', err => errors.push(err.message));
+  const customerPage = await customerContext.newPage(); customerPage.on('pageerror',err=>errors.push({message:err.message,stack:err.stack,url:customerPage.url()}));
   await customerPage.goto(base + '/#/ticket/' + customerTicket.key);
   await customerPage.waitForFunction(() => document.querySelectorAll('[data-customer-section]').length === 4 && !document.querySelector('[data-ticket-tabs]'));
   assert.deepEqual(await customerPage.locator('[data-customer-section]').evaluateAll(nodes => nodes.map(n => n.dataset.customerSection)), ['next', 'description', 'attachments', 'conversation']);

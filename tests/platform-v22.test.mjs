@@ -432,7 +432,7 @@ test('plugin project templates require an explicit grant and remain dependent on
 test('plugin health distinguishes readiness, delivery and business completion and blocks revoked execution access',()=>{
  const f=fixture();try{
   const p=f.project('HLT'),t=f.ticket(p),id='neutral.health',permissions=['scheduled.job','ticket.read'];f.ext.plugins.install({id,name:'Health fixture',version:'1.0.0',capabilities:['scheduled.job'],permissions},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);assert.equal(f.ext.plugins.health().plugins[0].health,'not_configured');f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin);assert.equal(f.v.runtime.list(f.admin)[0].health,'ready');const job=f.v.runtime.enqueue(id,{ticket_id:t.id,action:'check',request_key:'health-check-fixture'},f.admin);
-  f.db.prepare("UPDATE platform_jobs SET state='failed' WHERE id=?").run(job.id);assert.equal(f.ext.plugins.health().failed,1);f.db.prepare("UPDATE platform_jobs SET state='sent',result=? WHERE id=?").run(JSON.stringify({delivered:true}),job.id);assert.equal(f.v.runtime.list(f.admin)[0].health,'awaiting_result');f.db.prepare('UPDATE platform_jobs SET result=? WHERE id=?').run(JSON.stringify({delivered:true,business_result:'completed'}),job.id);assert.equal(f.v.runtime.list(f.admin)[0].health,'completed');f.db.prepare('UPDATE users SET active=0 WHERE id=?').run(f.admin.id);assert.equal(f.v.runtime.operationalHealth(id).health,'blocked');
+  f.db.prepare("UPDATE platform_jobs SET state='failed' WHERE id=?").run(job.id);assert.equal(f.ext.plugins.health().failed,1);f.db.prepare("UPDATE platform_jobs SET state='sent',result=? WHERE id=?").run(JSON.stringify({delivered:true}),job.id);assert.equal(f.v.runtime.list(f.admin)[0].health,'awaiting_result');f.db.prepare('UPDATE platform_jobs SET result=? WHERE id=?').run(JSON.stringify({delivered:true,business_result:'completed'}),job.id);assert.equal(f.v.runtime.list(f.admin)[0].health,'completed');f.v.runtime.configure(id,{version:1,url:'https://neutral.example.test/new',project_ids:[p.id],permissions},f.admin);assert.equal(f.v.runtime.list(f.admin)[0].health,'ready');f.db.prepare('UPDATE users SET active=0 WHERE id=?').run(f.admin.id);assert.equal(f.v.runtime.operationalHealth(id).health,'blocked');
  }finally{f.close();}
 });
 
@@ -456,5 +456,35 @@ test('configuration restore retains complete form settings and rejects stale pro
 test('plugin migrations can be scheduled for maintenance and identical delayed retries retain their original job',async()=>{
  const f=fixture();try{
   const p=f.project('MTS'),id='neutral.maintenance';let time=Date.now(),deliveries=0;f.ext.plugins.install({id,name:'Maintenance fixture',version:'1.0.0',dataVersion:1,capabilities:['migration'],permissions:['migration']},f.admin);const runtime=createPluginRuntime(f.db,{...f,registry:f.ext.plugins,clock:()=>time,send:async()=>{deliveries++;}});runtime.configure(id,{version:0,url:'https://neutral.example.test/migrate',project_ids:[p.id],permissions:['migration']},f.admin);const b={revision:1,confirm_version:1,request_key:'maintenance-time-fixture',run_at:new Date(time+3600000).toISOString()},job=runtime.migrations.enqueue(id,b,f.admin);await runtime.flush();assert.equal(deliveries,0);time+=3602000;assert.equal(runtime.migrations.enqueue(id,b,f.admin).id,job.id);await runtime.flush();assert.equal(deliveries,1);assert.equal(runtime.migrations.list(id,f.admin)[0].state,'sent');
+ }finally{f.close();}
+});
+
+test('reinstalling the same plugin ID cannot revive work approved for an earlier installation',()=>{
+ const f=fixture();try{
+  const p=f.project('GEN'),t=f.ticket(p),id='neutral.generation',permissions=['scheduled.job','ticket.read'],manifest={id,name:'Generation fixture',version:'1.0.0',capabilities:['scheduled.job'],permissions};f.ext.plugins.install(manifest,f.admin);f.ext.plugins.setEnabled(id,true,f.admin);f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/old',project_ids:[p.id],permissions},f.admin);const job=f.v.runtime.enqueue(id,{ticket_id:t.id,action:'check',request_key:'old-generation-job'},f.admin),old=f.ext.plugins.list(f.admin)[0].revision;f.ext.plugins.setEnabled(id,false,f.admin);f.ext.plugins.remove(id,f.admin);f.ext.plugins.install(manifest,f.admin);f.ext.plugins.setEnabled(id,true,f.admin);f.v.runtime.configure(id,{version:0,url:'https://neutral.example.test/new',project_ids:[p.id],permissions},f.admin);assert.ok(f.ext.plugins.list(f.admin)[0].revision>old);const paused=f.db.prepare('SELECT * FROM platform_jobs WHERE id=?').get(job.id);assert.equal(paused.state,'paused');assert.throws(()=>f.v.runtime.state(job.id,{version:paused.version,state:'queued'},f.admin),status(409));
+ }finally{f.close();}
+});
+
+
+test('plugin comments and follow-ups reject stale source jobs and progress comments preserve request-bound results',async()=>{
+ const f=fixture();try{
+  const p=f.project('PCG'),t=f.ticket(p),id='neutral.comment.guard',permissions=['scheduled.job','ticket.read','ticket.comment'],manifest={id,name:'Comment guard',version:'1.0.0',capabilities:['scheduled.job'],permissions};
+  f.ext.plugins.install(manifest,f.admin);f.ext.plugins.setEnabled(id,true,f.admin);
+  const runtime=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async()=>{}}),configured=runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin),api=createPluginAPI(f.db,{runtime,projects:f.projects,workspace:f.v21.workspace});
+  const call=(path,body,key='comment-guard-request')=>api.handle({method:'POST',path:'/api/plugins/'+id+path,token:'Bearer '+configured.generated_secret,idempotencyKey:key,read:async()=>body});
+  const strict=runtime.enqueue(id,{ticket_id:t.id,action:'check',request_key:'strict-comment-job'},f.admin),job=runtime.enqueue(id,{ticket_id:t.id,action:'check',version_policy:'request',request_key:'request-comment-job'},f.admin);
+  await assert.rejects(()=>call('/tickets/'+t.id+'/comments',{job_id:job.id,body:'Queued',version:t.version}),status(409));
+  await runtime.flush();await assert.rejects(()=>call('/tickets/'+t.id+'/comments',{job_id:strict.id,body:'Strict',version:t.version}),status(409));
+  const comment=await call('/tickets/'+t.id+'/comments',{job_id:job.id,body:'Progress',version:t.version});assert.equal(comment.value.ok,true);
+  assert.equal((await call('/tickets/'+t.id+'/comments',{job_id:job.id,body:'Progress',version:t.version})).value.comment_id,comment.value.comment_id);
+  assert.equal((await call('/jobs/'+job.id+'/result',{status:'completed',message:'Done'})).value.ok,true);
+  const version=f.desk.ticket(t.id).version;
+  f.db.prepare('UPDATE plugin_connectors SET version=version+1 WHERE plugin_id=?').run(id);
+  await assert.rejects(()=>call('/tickets/'+t.id+'/comments',{job_id:job.id,body:'Stale',version},'stale-comment-guard'),status(409));
+  await assert.rejects(()=>call('/jobs/'+job.id+'/result',{status:'completed',message:'Done'}),status(409));
+  const follow={ticket_id:t.id,parent_job_id:job.id,action:'followup',version,request_key:'stale-followup-guard'};
+  assert.throws(()=>runtime.enqueue(id,follow,f.admin),status(409));
+  await assert.rejects(()=>call('/tickets/'+t.id+'/schedule',follow,'stale-followup-guard'),status(409));
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM comments WHERE ticket_id=?').get(t.id).n,1);
  }finally{f.close();}
 });
