@@ -516,3 +516,18 @@ test('durable event backlog yields between bounded batches without duplicate or 
   assert.deepEqual(delivered,ids);assert.equal(new Set(delivered).size,250);assert.equal(f.db.prepare("SELECT COUNT(*) n FROM desk_events WHERE status<>'done'").get().n,0);assert.equal(f.db.prepare("SELECT COUNT(*) n FROM desk_event_deliveries WHERE module='plugins' AND event_id>=?").get(ids[0]).n,250);
  }finally{f.close();}
 });
+
+test('template and project draft edits keep restorable revisions and invalidate prior activation previews',()=>{
+ const f=fixture();try{
+  const draft=f.v.blueprints.draft(null,{name:'Original draft',blueprint:'it'},f.admin),cfg=JSON.parse(draft.config),mapping={it:{key:'REV',name:'Revision destination'}},preview=f.v.blueprints.validate(draft.id,{version:1,mapping},f.admin);
+  const edited=f.v.blueprints.draft(draft.id,{version:1,name:'Changed draft',config:{...cfg,projects:cfg.projects.map(p=>({...p,forms:p.forms.map((form,i)=>i===0?{...form,name:'Changed form'}:form)}))}},f.admin);assert.equal(edited.version,2);
+  assert.throws(()=>f.v.blueprints.activate(draft.id,{version:1,mapping,preview_fingerprint:preview.preview_fingerprint},f.admin),status(409));assert.equal(f.db.prepare('SELECT COUNT(*) n FROM projects').get().n,0);
+  const history=f.v.blueprints.history('draft',draft.id,f.admin);assert.equal(history.revisions[0].version,1);assert.equal(history.revisions[0].name,'Original draft');
+  const restored=f.v.blueprints.restore('draft',draft.id,{version:2,revision_id:history.revisions[0].id},f.admin);assert.equal(restored.version,3);assert.deepEqual(JSON.parse(restored.config),cfg);assert.equal(f.v.blueprints.history('draft',draft.id,f.admin).revisions.length,2);
+  const tpl=f.v.blueprints.save(null,{name:'Original template',config:cfg},f.admin),other=f.v.blueprints.save(null,{name:'Other template',config:cfg},f.admin);f.v.blueprints.save(tpl.id,{version:1,name:'Changed template',config:cfg},f.admin);const old=f.v.blueprints.history('blueprint',tpl.id,f.admin).revisions[0];
+  assert.throws(()=>f.v.blueprints.restore('blueprint',other.id,{version:1,revision_id:old.id},f.admin),status(404));assert.throws(()=>f.v.blueprints.restore('blueprint',tpl.id,{version:1,revision_id:old.id},f.admin),status(409));f.v.blueprints.restore('blueprint',tpl.id,{version:2,revision_id:old.id},f.admin);assert.equal(f.v.blueprints.list(f.admin).custom.find(t=>t.id===tpl.id).version,3);
+  const nonadmin=f.user('template-agent@x.test','agent');assert.throws(()=>f.v.blueprints.history('draft',draft.id,nonadmin),status(403));
+  const current=f.v.blueprints.validate(draft.id,{version:3,mapping},f.admin);f.v.blueprints.activate(draft.id,{version:3,mapping,preview_fingerprint:current.preview_fingerprint},f.admin);assert.throws(()=>f.v.blueprints.restore('draft',draft.id,{version:4,revision_id:history.revisions[0].id},f.admin),status(409));
+  const copy=f.v.blueprints.draft(null,{name:'Copied activated config',config:cfg},f.admin);assert.equal(copy.activated_at,null);assert.equal(copy.version,1);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM projects').get().n,1);
+ }finally{f.close();}
+});

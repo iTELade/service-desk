@@ -29,6 +29,9 @@ try {
   await page.locator('dialog input[name=name]').fill('QA HR IT'); await page.locator('dialog button[type=submit]').click();
   await page.getByRole('button', { name: 'Podgląd i aktywacja' }).waitFor();
   check('Draft has no tickets', (await api('/tickets')).total === 0);
+  await page.waitForFunction(()=>document.querySelector('#main')?.dataset.platformReady==='1');await page.getByRole('button',{name:'Edytuj draft',exact:true}).click();await page.locator('dialog input[name=name]').fill('Changed QA draft');await page.locator('dialog button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
+  await page.getByRole('button',{name:'Historia draftu',exact:true}).click();await page.getByRole('button',{name:'Przywróć jako nową wersję',exact:true}).click();await page.locator('dialog').waitFor({state:'hidden'});const revised=(await api('/desk/v22/blueprints')).drafts[0];check('Draft editing and validated revision restore',revised.version===3&&revised.name==='QA HR IT'&&(await api('/projects')).length===0);
+
   await page.getByRole('button', { name: 'Podgląd i aktywacja' }).click(); await page.getByRole('button', { name: 'Sprawdź podgląd' }).click(); await page.getByRole('button', { name: 'Aktywuj projekty' }).waitFor();
   check('Preview creates no projects', (await api('/projects')).length === 0);
   await page.getByRole('button', { name: 'Aktywuj projekty' }).click(); await page.locator('dialog').waitFor({ state: 'hidden' });
