@@ -1,6 +1,7 @@
 export function attachmentPreview({ api, showModal, e }) {
   let activeURL, pdfTask, renderTask, generation = 0;
-  const release = () => { generation++; renderTask?.cancel(); renderTask = null; void pdfTask?.destroy(); pdfTask = null; if (activeURL) URL.revokeObjectURL(activeURL); activeURL = null; };
+  const destroy = task => { if (task) void task.destroy().catch(() => {}); };
+  const release = () => { generation++; renderTask?.cancel(); renderTask = null; destroy(pdfTask); pdfTask = null; if (activeURL) URL.revokeObjectURL(activeURL); activeURL = null; };
   document.querySelector('#modal').addEventListener('close', release);
   window.addEventListener('hashchange', release);
   return async id => {
@@ -48,7 +49,7 @@ export function attachmentPreview({ api, showModal, e }) {
         previous.onclick = () => move(-1); next.onclick = () => move(1); await render();
       } catch {
         if (current !== generation) return;
-        renderTask?.cancel(); renderTask = null; void pdfTask?.destroy(); pdfTask = null;
+        renderTask?.cancel(); renderTask = null; destroy(pdfTask); pdfTask = null;
         note.textContent = 'Nie można wyświetlić tego PDF. Pobierz plik, aby otworzyć go lokalnie.';
       }
     } else {

@@ -6,7 +6,7 @@ import {createPlugins} from '../lib/plugins.mjs';
 const admin={id:1,role:'admin'};
 const agent={id:2,role:'agent'};
 
-function setup(){const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON;');return {db,plugins:createPlugins(db)};}
+function setup(){const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON;CREATE TABLE users(id INTEGER PRIMARY KEY);');return {db,plugins:createPlugins(db)};}
 
 test('plugin manifest validates compatibility and lifecycle',()=>{
   const {db,plugins}=setup();

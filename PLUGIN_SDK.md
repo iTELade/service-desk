@@ -76,7 +76,7 @@ Core can import form.field definitions through POST `/api/desk/v22/form-extensio
 
 ## Remaining capability boundary
 
-This candidate implements external connector jobs, event subscriptions, scoped ticket access, asynchronous workflow conditions, typed settings, ticket panels and action forms. Automation actions and signed triggers are implemented; extension migration runners remain pending. Arbitrary uploaded UI/code is outside the isolated connector model. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
+This candidate implements external connector jobs, event subscriptions, scoped ticket access, asynchronous workflow conditions, typed settings, ticket panels and action forms. Automation actions and signed triggers are implemented; external data migration coordination is implemented. Arbitrary uploaded UI/code is outside the isolated connector model. Their presence in the registry capability list does not establish runtime support. See VALIDATION_2.2.0.md for remaining release requirements.
 
 ## Lifecycle
 
@@ -91,3 +91,11 @@ Signed POST `/api/plugins/PLUGIN_ID/tickets/TICKET_ID/trigger` requires automati
 Scheduled jobs default to `version_policy: "ticket"`. Optional `"request"` binds the material request fields and current approval, allowing status changes while pausing after material edits. Connector/settings/manifest changes and revoked actor/project access always invalidate execution. Archived or deleted tickets pause queued work immediately; restoration never resumes it automatically. Stale jobs require a new reviewed request.
 
 Outbound signed deliveries contain instance_id and X-Desk-Instance-ID. Deduplicate external execution using the persisted instance identity, plugin ID and request key; HTTP delivery acknowledgement is distinct from a completed business result.
+
+## External plugin data migrations
+
+A migration-capable manifest declares `dataVersion` (positive integer), capability `migration` and permission `migration`. Register/update the manifest while the plugin is disabled, configure its separate service and explicitly grant migration. POST `/api/desk/v22/plugins/PLUGIN_ID/migrations` accepts `{revision,confirm_version,request_key}`; only an active administrator may submit it. Desk keeps a durable from/to version and retries failed HTTP delivery, never runs supplied migration code or SQL.
+
+The signed `platform.migrate` delivery contains migration_id, instance_id, plugin_version, from_data_version and to_data_version, without ticket data or core database access. The external service owns its migration transaction, backup and idempotency. After acknowledging delivery, POST `/api/plugins/PLUGIN_ID/migrations/MIGRATION_ID/result` with the connector Bearer token and `{status:"completed",data_version:TARGET,message:"..."}` confirms completion. A failed result uses status failed. Changed manifest/connector grants or a revoked administrator invalidate confirmation. HTTP acknowledgement alone never unlocks the plugin; the confirmed dataVersion must match before enablement. Downgrades are blocked.
+
+GET the same management endpoint for migration status. POST `/api/desk/v22/plugin-migrations/ID` with `{version}` cancels coordination. Cancellation prevents confirmation in Desk; it cannot undo work already running in the external service. Recover or roll back external data in the plugin's own deployment before submitting a new reviewed request.

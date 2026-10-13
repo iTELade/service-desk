@@ -275,3 +275,38 @@ test('request-bound delayed jobs survive status changes but material edits and a
   f.ext.lifecycle.archive(t.id,{version:f.desk.ticket(t.id).version,archived:false},f.admin);assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(archive.id).state,'paused');
  }finally{f.close();}
 });
+
+test('external plugin migrations require disabled plugin, scoped grant, acknowledged version and current actor',async()=>{
+ const f=fixture();try{
+  const p=f.project('PMI'),id='neutral.migration',manifest={id,name:'Neutral migration',version:'1.0.0',dataVersion:1,capabilities:['migration'],permissions:['migration']},sent=[];
+  f.ext.plugins.install(manifest,f.admin);const runtime=createPluginRuntime(f.db,{...f,registry:f.ext.plugins,send:async(...args)=>{sent.push(args);}});
+  const secret=runtime.configure(id,{version:0,url:'https://neutral.example.test/migrate',project_ids:[p.id],permissions:['migration']},f.admin).generated_secret;
+  assert.throws(()=>f.ext.plugins.setEnabled(id,true,f.admin),status(409));
+  const job=runtime.migrations.enqueue(id,{revision:1,confirm_version:1,request_key:'migration-001'},f.admin);
+  assert.equal(runtime.migrations.enqueue(id,{revision:1,confirm_version:1,request_key:'migration-001'},f.admin).duplicate,true);
+  assert.throws(()=>runtime.migrations.enqueue(id,{revision:1,confirm_version:1,request_key:'migration-other'},f.admin),status(409));
+  assert.throws(()=>runtime.migrations.result(id,job.id,secret,{status:'completed',data_version:1}),status(409));
+  await runtime.flush();assert.equal(sent.length,1);const body=JSON.parse(sent[0][1]);assert.equal(body.action,'platform.migrate');assert.equal(body.from_data_version,0);assert.equal(body.to_data_version,1);assert.equal(body.ticket,undefined);
+  assert.throws(()=>runtime.migrations.result(id,job.id,'wrong',{status:'completed',data_version:1}),status(401));
+  assert.throws(()=>runtime.migrations.result(id,job.id,secret,{status:'completed',data_version:2}),status(409));
+  runtime.migrations.result(id,job.id,secret,{status:'completed',data_version:1});assert.equal(runtime.migrations.result(id,job.id,secret,{status:'completed',data_version:1}).duplicate,true);
+  f.ext.plugins.setEnabled(id,true,f.admin);assert.equal(f.ext.plugins.list(f.admin)[0].data_version,1);
+  assert.throws(()=>f.ext.plugins.install({...manifest,version:'0.9.0'},f.admin),status(409));
+  f.ext.plugins.install({...manifest,version:'2.0.0',dataVersion:2},f.admin);assert.throws(()=>f.ext.plugins.setEnabled(id,true,f.admin),status(409));
+  const next=runtime.migrations.enqueue(id,{revision:3,confirm_version:2,request_key:'migration-002'},f.admin);await runtime.flush();
+  runtime.configure(id,{version:1,url:'https://neutral.example.test/migrate',project_ids:[p.id],permissions:[]},f.admin);
+  assert.throws(()=>runtime.migrations.result(id,next.id,secret,{status:'completed',data_version:2}),status(409));assert.equal(f.ext.plugins.list(f.admin)[0].data_version,1);
+  runtime.migrations.cancel(next.id,{version:2},f.admin);assert.equal(runtime.migrations.list(id,f.admin)[0].state,'cancelled');
+ }finally{f.close();}
+});
+
+
+test('cancelling an in-flight external migration cannot be undone by a late HTTP acknowledgement',async()=>{
+ const f=fixture();try{
+  const p=f.project('PMC'),id='neutral.cancel',manifest={id,name:'Neutral cancellation',version:'1.0.0',dataVersion:1,capabilities:['migration'],permissions:['migration']};
+  f.ext.plugins.install(manifest,f.admin);let release,started;const reached=new Promise(r=>started=r),pending=new Promise(r=>release=r),runtime=createPluginRuntime(f.db,{...f,registry:f.ext.plugins,send:async()=>{started();await pending;}});
+  const secret=runtime.configure(id,{version:0,url:'https://neutral.example.test/migrate',project_ids:[p.id],permissions:['migration']},f.admin).generated_secret;
+  const job=runtime.migrations.enqueue(id,{revision:1,confirm_version:1,request_key:'migration-cancel-inflight'},f.admin),flush=runtime.flush();await reached;runtime.migrations.cancel(job.id,{version:1},f.admin);release();await flush;
+  assert.equal(runtime.migrations.list(id,f.admin)[0].state,'cancelled');assert.throws(()=>runtime.migrations.result(id,job.id,secret,{status:'completed',data_version:1}),status(409));assert.equal(f.ext.plugins.list(f.admin)[0].data_version,0);
+ }finally{f.close();}
+});

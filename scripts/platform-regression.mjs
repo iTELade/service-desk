@@ -75,10 +75,16 @@ try {
   await api('/desk/v22/plugins/'+pluginId+'/connector',{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions:pluginPermissions});
   await page.goto(base+'/#/plugins22');await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1');await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();
   await page.locator('[data-p22-dialog] [name=host]').fill('neutral.example.test');await page.locator('[data-p22-dialog] [name=password]').fill('test-only-plugin-secret');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
-  await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();check('Plugin secret is masked in UI',await page.locator('[data-p22-dialog] [name=password]').inputValue()==='');await page.keyboard.press('Escape');
+  await page.locator('[data-p22=plugin-settings][data-plugin="'+pluginId+'"]').click();await page.locator('[data-p22-dialog]').waitFor({state:'visible'});check('Plugin secret is masked in UI',await page.locator('[data-p22-dialog] [name=password]').inputValue()==='');await page.keyboard.press('Escape');
   await api('/desk/plugins/'+pluginId+'/enable',{});await page.goto(base+'/#/ticket/'+t.key);await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1');await page.getByRole('button',{name:'Neutral check',exact:true}).click();
   await page.locator('[data-p22-dialog] [name=amount]').fill('3');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
   const pluginJobs=await api('/desk/v22/jobs'),pluginJob=pluginJobs.find(j=>j.plugin_id===pluginId);check('Declarative action queues typed input',pluginJob?.payload.input.amount===3&&pluginJob.payload.action==='check');
+  const migrationPlugin='neutral.browser.migration';
+  await api('/desk/plugins',{id:migrationPlugin,name:'Neutral migration',version:'1.0.0',dataVersion:1,capabilities:['migration'],permissions:['migration']});
+  await api('/desk/v22/plugins/'+migrationPlugin+'/connector',{version:0,url:'https://neutral.example.test/migrate',project_ids:[p.id],permissions:['migration']});
+  await page.goto(base+'/#/plugins22');await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1');await page.locator('[data-p22=plugin-migrations][data-id="'+migrationPlugin+'"]').click();await page.locator('[data-p22-dialog]').waitFor({state:'visible'});await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
+  const migrationJobs=await api('/desk/v22/plugins/'+migrationPlugin+'/migrations');check('Plugin migration queues without enabling extension',migrationJobs.length===1&&migrationJobs[0].state==='queued');
+  await page.locator('[data-p22=plugin-migrations][data-id="'+migrationPlugin+'"]').click();await page.locator('[data-p22=migration-cancel]').click();await page.locator('dialog').waitFor({state:'hidden'});check('Plugin migration cancellation UI', (await api('/desk/v22/plugins/'+migrationPlugin+'/migrations'))[0].state==='cancelled');
   // Passkey registration and login use actual browser-generated cryptographic credentials.
   // This is a virtual authenticator, not evidence of physical iPhone/hybrid interoperability.
   if (engine === 'chromium') {
@@ -94,5 +100,6 @@ try {
     }); check('Virtual passkey registration', registered);
     await api('/logout', {}); await page.goto(base + '/#/login'); await page.getByRole('button', { name: /Zaloguj kluczem dostępu/ }).click(); await page.waitForURL(/#\/queue/); await page.waitForFunction(() => Boolean(window.DeskSession?.()?.user)); check('Virtual passkey passwordless login', true);
   }
+  if(errors.length)console.error('Browser exceptions:',JSON.stringify(errors));
   check('No browser exceptions', errors.length === 0); console.log(JSON.stringify({ engine, checks: count, physical_iphone_verified: false }));
 } finally { await browser?.close(); server.kill('SIGTERM'); rmSync(dataDir, { recursive: true, force: true }); }
