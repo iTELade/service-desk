@@ -4,7 +4,7 @@
 
 - Actual 2.1.0 server code → current server migration passed locally: existing login, private comments, key numbering and encrypted SMTP settings survive. The real backup script restored current encrypted plugin settings; pre-upgrade backup boots with 2.1.0. CI now runs scripts/upgrade-regression-v22.mjs as a release gate.
 - Local syntax checks pass for the implementation candidate.
-- Local application suite: 301 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
+- Local application suite: 303 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
 - New platform tests cover migration/idempotence, blueprint preview/activation, approvals, dependencies, participants, recycle/restore, query grammar, bulk rollback, connector revocation and passkeys.
 - Real WebAuthn signature verification is exercised with synthetic credential data, including synced zero-counter passkeys, replay, origin and user-verification rejection.
 - Synthetic 10,000-ticket scenario passed locally. This is not a concurrent-production benchmark.
@@ -22,6 +22,8 @@
 
 - CI on 9ba5117434b73a72773bd031417ef0241cecb2c9 passed every job: application/browser/workspace/visual, all platform and Desk–KB engines, real upgrade/restore, and AMD64/ARM64 production container startup/restart/backup. New template mapping and dependency changes still require their own CI run.
 
+- Retried CI on 3677e3b5dbabf430a73ee9011fad6321d5e04b6a completed successfully. The earlier main browser ECONNRESET did not reproduce. All application/browser/workspace/visual, platform/KB, upgrade and container jobs passed. New automation mapping changes require their own CI run.
+
 ## Required before stable publication
 
 - [ ] CI application, migration and upgrade checks on the final commit.
@@ -38,6 +40,6 @@
 
 ## Candidate limitations
 
-The branch contains substantial implementation, not the complete accepted 2.2.0 scope. External connector jobs, event subscriptions and workflow condition proofs are implemented; typed settings, ticket panels/actions and safe declared result fields are implemented. Form-definition import and project dashboard widgets are implemented; automation actions and signed triggers are implemented; external migration coordination and enablement gates are implemented. Template export now preserves form-specific SLA using logical form aliases, team-protected fields with explicit member mappings, complete form settings and required/optional plugin dependencies. Identity-bound automation and integration mapping remain pending. Recycle handles tickets, not every configuration resource. Notification preferences cover application events/quiet hours; full email scheduling/digests are pending. Project customer section order is applied when configured, while per-request-type field ordering remains pending. Local PDF.js canvas rendering and image preview and shared storage quotas are implemented; browser acceptance remains pending. Report quantiles/aging, team groups and reopen counts are implemented; comparable concurrent benchmarks are pending.
+The branch contains substantial implementation, not the complete accepted 2.2.0 scope. External connector jobs, event subscriptions and workflow condition proofs are implemented; typed settings, ticket panels/actions and safe declared result fields are implemented. Form-definition import and project dashboard widgets are implemented; automation actions and signed triggers are implemented; external migration coordination and enablement gates are implemented. Template export now preserves form-specific SLA using logical form aliases, team-protected fields with explicit member mappings, complete form settings and required/optional plugin dependencies. Logical account roles, actor/form references and mail/webhook/organization mappings are implemented, with explicit plugin scope consent and rollback-only preview through real validators. Portable process settings and responsibility previews remain pending. Recycle handles tickets, not every configuration resource. Notification preferences cover application events/quiet hours; full email scheduling/digests are pending. Project customer section order is applied when configured, while per-request-type field ordering remains pending. Local PDF.js canvas rendering and image preview and shared storage quotas are implemented; browser acceptance remains pending. Report quantiles/aging, team groups and reopen counts are implemented; comparable concurrent benchmarks are pending.
 
 These are known uncompleted acceptance requirements. Do not publish this branch as a fully delivered stable 2.2.0 or mark the roadmap checklist complete.
