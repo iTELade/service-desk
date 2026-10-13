@@ -5,8 +5,8 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { VERSION, SCHEMA_VERSION } from '../lib/version.mjs';
-const base='http://127.0.0.1:3000',data=process.env.DATA_DIR||'/app/data';let cookie='',csrf='';
-async function api(path,body){const r=await fetch(base+'/api'+path,{method:body?'POST':'GET',headers:{Origin:base,Cookie:cookie,'X-CSRF-Token':csrf,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});if(r.headers.has('set-cookie'))cookie=r.headers.get('set-cookie').split(';')[0];const value=await r.json();assert.ok(r.ok,path+' failed: '+r.status);return value;}
+const base='http://127.0.0.1:3000',data=process.env.DATA_DIR||'/app/data';const declaredOrigin=new URL(process.env.APP_URL||base).origin;let cookie='',csrf='';
+async function api(path,body){const r=await fetch(base+'/api'+path,{method:body?'POST':'GET',headers:{Origin:declaredOrigin,Cookie:cookie,'X-CSRF-Token':csrf,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});if(r.headers.has('set-cookie'))cookie=r.headers.get('set-cookie').split(';')[0];const value=await r.json();assert.ok(r.ok,path+' failed: '+r.status);return value;}
 let health;for(let i=0;i<40;i++){try{const r=await fetch(base+'/healthz');health=await r.json();if(r.ok)break;}catch{}await new Promise(r=>setTimeout(r,500));}
 assert.equal(health?.status,'ok');assert.equal(health.version,VERSION);assert.equal(health.schema,SCHEMA_VERSION);
 const restart=process.argv.includes('--restart'),password='Container-only-test-password-2026',email='container@x.test';
