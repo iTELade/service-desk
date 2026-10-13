@@ -69,6 +69,14 @@
 - Usunięte drafty i szablony po wygaśnięciu okresu retencji są czyszczone porcjami, z systemowym wpisem audytu i zachowaniem minimalnego tombstone identyfikatora. Działa podczas startu Desk i cyklicznie. Nie dotyczy twardego usuwania zgłoszeń z relacjami.
 - Wyniki nowego CI są sprawdzane osobno. Nie oznaczać testów sprzętowego iPhone'a, pełnych digestów/kanałów ani bezpiecznego trwałego usuwania zgłoszeń jako zaliczonych.
 
+## Dzienny/godzinowy digest powiadomień — implementacja i ograniczenia
+
+- Preferencje użytkownika mogą włączyć dobrowolny e-mailowy digest przez istniejący, aktywny kanał SMTP danego projektu: dziennie (wybrana godzina i strefa czasowa) lub co godzinę. Cisza nie blokuje historii w aplikacji, jedynie odracza digest e-mail. Bez dostępnego SMTP dla projektu nie jest tworzone zadanie wysyłki.
+- Schemat `notification_digest_cursors` zapisuje kursor i okres. Przejęcie wiadomości do zaszyfrowanej kolejki pocztowej oraz przesunięcie kursora odbywa się atomowo w jednej transakcji; przebieg jest odporny na powtórne uruchomienie i nie wysyła drugi raz tego samego zestawu powiadomień.
+- Podsumowanie podaje wyłącznie numery zgłoszeń i liczbę zdarzeń bez treści, notatek i nazw ukrytych pól. Po cofnięciu uprawnień agentowi istniejące wiadomości są blokowane przed wysłaniem, także jeśli obejmują kilka zgłoszeń. Przed rzeczywistym SMTP nadal wykonywany jest osobny ACL gate; metadane digesta nie są przekazywane do transportu SMTP.
+- Zakres świadomie ograniczony do istniejących kanałów in-app/e-mail, bez nowego connectora. Opcja zdarzeń w preferencjach filtruje utworzone powiadomienia dla agentów. **Nie** deklarować weryfikacji nowych zewnętrznych kanałów pluginów ani ręcznej akceptacji rzeczywistych dostaw SMTP.
+- Scenariusze testowe: `tests/notification-digests-v22.test.mjs`, dodatkowo `tests/notification-quiet-v22.test.mjs`; wynik pełnego CI musi dotyczyć najnowszego SHA.
+
 ## Required before stable publication
 
 - [ ] CI application, migration and upgrade checks on the final commit.
