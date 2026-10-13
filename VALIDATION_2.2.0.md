@@ -4,7 +4,7 @@
 
 - Actual 2.1.0 server code → current server migration passed locally: existing login, private comments, key numbering and encrypted SMTP settings survive. The real backup script restored current encrypted plugin settings; pre-upgrade backup boots with 2.1.0. CI now runs scripts/upgrade-regression-v22.mjs as a release gate.
 - Local syntax checks pass for the implementation candidate.
-- Local application suite: 316 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
+- Local application suite: 318 tests passed, including deferred automation plugin actions, signed trigger deduplication, request-bound delayed jobs and global settings UI coverage. Final CI rerun remains required.
 - New platform tests cover migration/idempotence, blueprint preview/activation, approvals, dependencies, participants, recycle/restore, query grammar, bulk rollback, connector revocation and passkeys.
 - Real WebAuthn signature verification is exercised with synthetic credential data, including synced zero-counter passkeys, replay, origin and user-verification rejection.
 - Synthetic 10,000-ticket scenario passed locally. This is not a concurrent-production benchmark.
@@ -46,6 +46,9 @@
 - CI on 9ed7115fa94bc16d77ba59bf77ed0b6dd11aba1b passed all jobs, including the concurrent agent workload and bounded durable event dispatch, existing main regressions, all platform/KB browsers and both container architectures.
 - Plugin RPC comments now retain technical author/business initiator separately, bind receipts to job ID and notify the initiator using the technical author for recipient exclusion. Local tests verify provenance, repeated comments and absence of automatic technical-account watchers.
 - Template/draft advanced editing, duplication and restorable configuration revisions are implemented. Restore creates a new version, checks resource ownership/current version and prevents activated draft edits. Stale activation previews are rejected. New unit tests pass; the browser edit/history/restore scenario awaits final CI.
+
+- CI on d3073d4d8a60964b3cb43f8c860e31ce135535dd found the history scenario attempted to click a restore button inside a collapsed details element. The test now expands the revision summary before clicking; no browser exception was reported.
+- Approval withdrawal is available to the current reporter or project manager with a reason and current run revision. It preserves vote history, cancels the latest approval and pauses queued plugin work. Plugin snapshots now bind approval revision as well as run ID; late results cannot reuse withdrawn approval. New review uses a separate approval run. Decisions past the configured deadline fail without recording a vote; new deadlines must be future dates. Unit tests pass; customer withdrawal browser acceptance awaits CI.
 
 ## Required before stable publication
 

@@ -531,3 +531,24 @@ test('template and project draft edits keep restorable revisions and invalidate 
   const copy=f.v.blueprints.draft(null,{name:'Copied activated config',config:cfg},f.admin);assert.equal(copy.activated_at,null);assert.equal(copy.version,1);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM projects').get().n,1);
  }finally{f.close();}
 });
+
+test('approval withdrawal preserves votes, pauses queued work and rejects results authorized by the old approval revision',async()=>{
+ const f=fixture();try{
+  const p=f.project('WDN'),requester=f.user('withdraw-requester@x.test'),agent=f.user('withdraw-agent@x.test','agent');f.projects.setMember(p.id,agent.id,'agent',f.admin);const t=f.ticket(p,requester),run=f.v.processes.approval(t.id,{stages:[{name:'Manager review',users:[f.admin.id]}]},f.admin);
+  f.v.processes.decide(run.id,{version:1,decision:'approved'},f.admin);const control=f.v.processes.extras(t.id,requester).approval_control;assert.equal(control.run_id,run.id);assert.equal(f.v.processes.extras(t.id,agent).approval_control,null);
+  const id='neutral.withdraw',permissions=['scheduled.job','ticket.read'];f.ext.plugins.install({id,name:'Withdrawal fixture',version:'1.0.0',capabilities:['scheduled.job'],permissions},f.admin);f.ext.plugins.setEnabled(id,true,f.admin);const runtime=createPluginRuntime(f.db,{projects:f.projects,desk:f.desk,registry:f.ext.plugins,dataDir:f.dataDir,send:async()=>{}}),configured=runtime.configure(id,{version:0,url:'https://neutral.example.test/execute',project_ids:[p.id],permissions},f.admin);
+  const queued=runtime.enqueue(id,{ticket_id:t.id,action:'later',version_policy:'request',run_at:new Date(Date.now()+60000).toISOString(),request_key:'withdraw-later-job'},f.admin),sent=runtime.enqueue(id,{ticket_id:t.id,action:'now',version_policy:'request',request_key:'withdraw-sent-job'},f.admin);await runtime.flush();assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(sent.id).state,'sent');
+  const input={run_id:run.id,version:control.version,reason:'Request withdrawn'};assert.throws(()=>f.v.processes.withdraw(t.id,input,agent),status(403));assert.throws(()=>f.v.processes.withdraw(t.id,{...input,reason:''},requester),status(400));f.v.processes.withdraw(t.id,input,requester);
+  assert.equal(f.db.prepare('SELECT state FROM platform_jobs WHERE id=?').get(queued.id).state,'paused');assert.equal(f.db.prepare('SELECT state FROM approval_runs WHERE id=?').get(run.id).state,'cancelled');assert.equal(f.db.prepare('SELECT COUNT(*) n FROM approval_votes WHERE run_id=?').get(run.id).n,1);assert.throws(()=>f.v.processes.withdraw(t.id,input,requester),status(409));
+  const api=createPluginAPI(f.db,{runtime,projects:f.projects});await assert.rejects(()=>api.handle({method:'POST',path:'/api/plugins/'+id+'/jobs/'+sent.id+'/result',token:'Bearer '+configured.generated_secret,read:async()=>({status:'completed'})}),status(409));
+  const renewed=f.v.processes.approval(t.id,{stages:[{name:'Renewed review',users:[f.admin.id]}]},f.admin);assert.notEqual(renewed.id,run.id);assert.throws(()=>f.v.processes.decide(run.id,{version:3,decision:'approved'},f.admin),status(409));f.v.processes.decide(renewed.id,{version:1,decision:'approved'},f.admin);assert.equal(f.v.processes.extras(t.id,f.admin).approvals[0].state,'approved');
+ }finally{f.close();}
+});
+
+test('approval deadlines reject expired decisions without recording votes',()=>{
+ const f=fixture();try{
+  const p=f.project('DDL'),t=f.ticket(p);assert.throws(()=>f.v.processes.approval(t.id,{stages:[{name:'Past deadline',users:[f.admin.id],due_at:new Date(Date.now()-1000).toISOString()}]},f.admin),status(400));
+  const run=f.v.processes.approval(t.id,{stages:[{name:'Timed review',users:[f.admin.id],due_at:new Date(Date.now()+60000).toISOString()}]},f.admin),config=JSON.parse(f.db.prepare('SELECT config FROM approval_runs WHERE id=?').get(run.id).config);config[0].due_at=new Date(Date.now()-1000).toISOString();f.db.prepare('UPDATE approval_runs SET config=? WHERE id=?').run(JSON.stringify(config),run.id);
+  assert.throws(()=>f.v.processes.decide(run.id,{version:1,decision:'approved'},f.admin),status(409));assert.equal(f.db.prepare('SELECT COUNT(*) n FROM approval_votes WHERE run_id=?').get(run.id).n,0);assert.equal(f.db.prepare('SELECT state FROM approval_runs WHERE id=?').get(run.id).state,'pending');
+ }finally{f.close();}
+});
