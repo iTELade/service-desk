@@ -117,6 +117,8 @@ try {
   await api('/desk/plugins/'+pluginId+'/enable',{});await page.goto(base+'/#/ticket/'+t.key);await page.waitForFunction(()=>document.querySelector('#main')?.dataset.workspaceReady==='1');await page.getByRole('button',{name:'Neutral check',exact:true}).click();
   await page.locator('[data-p22-dialog] [name=amount]').fill('3');await page.locator('[data-p22-dialog] button[type=submit]').click();await page.locator('dialog').waitFor({state:'hidden'});
   const pluginJobs=await api('/desk/v22/jobs'),pluginJob=pluginJobs.find(j=>j.plugin_id===pluginId);check('Declarative action queues typed input',pluginJob?.payload.input.amount===3&&pluginJob.payload.action==='check');
+  // Ensure ticket insights/activity requests finish before leaving the ticket route in WebKit.
+  await page.waitForLoadState('networkidle');
   await page.goto(base+'/#/blueprints22');await page.getByRole('heading',{name:'Neutral plugin template',exact:true}).waitFor();check('Plugin project template is published through explicit grant',true);
   const migrationPlugin='neutral.browser.migration';
   await api('/desk/plugins',{id:migrationPlugin,name:'Neutral migration',version:'1.0.0',dataVersion:1,capabilities:['migration'],permissions:['migration']});
